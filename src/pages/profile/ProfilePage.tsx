@@ -35,6 +35,8 @@ export function ProfilePage() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [galleryPreviewByKey, setGalleryPreviewByKey] = useState<Record<string, string>>({});
   const previewUrlsRef = useRef<Set<string>>(new Set());
+  /** Region dropdowns are local state; do not re-derive from `p` on every keystroke or selects reset / flash. */
+  const regionIdsHydratedRef = useRef(false);
 
   const trackPreview = useCallback((url: string) => {
     previewUrlsRef.current.add(url);
@@ -56,7 +58,12 @@ export function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!p) return;
+    if (!p) {
+      regionIdsHydratedRef.current = false;
+      return;
+    }
+    if (regionIdsHydratedRef.current) return;
+    regionIdsHydratedRef.current = true;
     const t = window.setTimeout(() => {
       setProfileRegionId(findRegionIdForCityName(p.city));
       const vCity = p.venue?.city ?? p.city;

@@ -17,6 +17,7 @@ export type NavItem = {
 };
 
 export const NAV_MAIN: NavItem[] = [
+  { to: '/profile', label: 'Profile', icon: UserRound },
   { to: '/', label: 'Home', icon: LayoutDashboard },
   { to: '/events', label: 'Events', icon: CalendarDays },
   { to: '/events/archive', label: 'Archive', icon: Archive },
@@ -25,5 +26,4 @@ export const NAV_MAIN: NavItem[] = [
   { to: '/analytics/attendance', label: 'Attendance', icon: LineChart },
   { to: '/finance', label: 'Finance', icon: Wallet },
   { to: '/ratings', label: 'Ratings', icon: Star },
-  { to: '/profile', label: 'Profile', icon: UserRound },
 ];

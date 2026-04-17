@@ -1,13 +1,56 @@
 import { NAV_MAIN } from '@/config/nav';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { getProfile } from '@/services/profileService';
 import { Bell, LayoutDashboard, LogOut, Menu, Ticket, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+
+function isDisplayableImageUrl(url: string) {
+  return /^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:');
+}
+
+function initialsFrom(displayName: string, email: string) {
+  const n = displayName.trim();
+  if (n.length >= 2) {
+    const parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0]![0]!}${parts[1]![0]!}`.toUpperCase();
+    return n.slice(0, 2).toUpperCase();
+  }
+  const local = email.split('@')[0] ?? 'OR';
+  return local.slice(0, 2).toUpperCase() || 'OR';
+}
 
 export function OrganizerShell({ children }: { children?: ReactNode }) {
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [sidebarProfile, setSidebarProfile] = useState<{ displayName: string; logoUrl: string | null }>({
+    displayName: '',
+    logoUrl: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSidebarProfile() {
+      const profile = await getProfile();
+      if (cancelled) return;
+      const logo = profile.logoUrl?.trim() ?? '';
+      setSidebarProfile({
+        displayName: profile.displayName?.trim() || profile.name || user?.name || '',
+        logoUrl: logo && isDisplayableImageUrl(logo) ? logo : null,
+      });
+    }
+    void loadSidebarProfile();
+    function onDashboardChanged() {
+      void loadSidebarProfile();
+    }
+    window.addEventListener('organizer-dashboard-changed', onDashboardChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('organizer-dashboard-changed', onDashboardChanged);
+    };
+  }, [location.pathname, user?.name]);
 
   return (
     <div className="min-h-dvh bg-surface-page text-ink">
@@ -80,23 +123,44 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
             </button>
           </div>
           <nav className="space-y-1">
-            {NAV_MAIN.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold transition-colors',
-                    isActive ? 'bg-ink text-white shadow-card-md' : 'text-ink-60 hover:bg-ink-5 hover:text-ink'
-                  )
-                }
-              >
-                <item.icon size={18} strokeWidth={2} />
-                {item.label}
-              </NavLink>
-            ))}
+            {NAV_MAIN.map((item) => {
+              const isProfile = item.to === '/profile';
+              const initials = initialsFrom(
+                sidebarProfile.displayName || user?.name || '',
+                user?.email ?? ''
+              );
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold transition-colors',
+                      isActive ? 'bg-ink text-white shadow-card-md' : 'text-ink-60 hover:bg-ink-5 hover:text-ink',
+                      isProfile && isActive && 'ring-2 ring-coral/40 ring-offset-2 ring-offset-white'
+                    )
+                  }
+                >
+                  {isProfile ? (
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-lemon/90 to-coral/25 text-[11px] font-bold text-ink shadow-inner ring-2 ring-white"
+                      aria-hidden
+                    >
+                      {sidebarProfile.logoUrl ? (
+                        <img src={sidebarProfile.logoUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        initials
+                      )}
+                    </span>
+                  ) : (
+                    <item.icon size={18} strokeWidth={2} />
+                  )}
+                  {item.label}
+                </NavLink>
+              );
+            })}
           </nav>
           <div className="mt-8 rounded-2xl border border-ink-10 bg-ink-5/60 p-4 md:hidden">
             <button

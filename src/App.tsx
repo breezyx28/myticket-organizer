@@ -30,9 +30,8 @@ export function App() {
           <Route element={<OrganizerShell />}>
             <Route index element={<HomePage />} />
             <Route path="events" element={<EventListPage />} />
-            <Route path="events/new" element={<EventEditorPage />} />
-            <Route path="events/:id" element={<EventEditorPage />} />
             <Route path="events/archive" element={<EventArchivePage />} />
+            <Route path="events/:id" element={<EventEditorPage />} />
             <Route path="scanners" element={<ScannerManagementPage />} />
             <Route path="analytics/sales" element={<SalesAnalyticsPage />} />
             <Route path="analytics/attendance" element={<AttendancePage />} />

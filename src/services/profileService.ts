@@ -12,6 +12,9 @@ export function updateProfile(patch: Partial<OrganizerUser>) {
   updateState((s) => {
     s.profile = { ...s.profile, ...patch };
   });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('organizer-dashboard-changed'));
+  }
 }
 
 export function isProfileComplete(p: OrganizerUser): boolean {
