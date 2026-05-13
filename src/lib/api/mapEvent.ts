@@ -151,7 +151,7 @@ function asGapMap(raw: unknown): Record<number, number> | undefined {
 
 export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
   const root = asRecord(unwrapEnvelope(raw)) ?? asRecord(raw) ?? {};
-  const id = toIdString(root.id);
+  const id = toIdString(root.id ?? root.event_id);
   const venueName = readString(root, 'venue', 'venue_name', 'venueName');
   const city = readString(root, 'city');
 
@@ -171,6 +171,8 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
   const categoryIdStr = readApiNumericId(root, 'category_id', 'categoryId').trim() || undefined;
   const categoryLabel =
     (catObj ? readString(catObj, 'name', 'name_en', 'title') : '') || readString(root, 'category') || 'General';
+  const latitude = readNum(root, 'latitude', 'lat');
+  const longitude = readNum(root, 'longitude', 'lng', 'lon');
 
   return {
     id: id || '0',
@@ -180,14 +182,16 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
     categoryId: categoryIdStr || undefined,
     venue: venueName,
     city,
+    latitude: latitude != null && Number.isFinite(latitude) ? latitude : null,
+    longitude: longitude != null && Number.isFinite(longitude) ? longitude : null,
     regionId: readApiNumericId(root, 'region_id', 'regionId').trim() || undefined,
     cityId: readApiNumericId(root, 'city_id', 'cityId').trim() || undefined,
     startsAt: readString(root, 'starts_at', 'startsAt', 'start_at') || new Date().toISOString(),
     endsAt: readString(root, 'ends_at', 'endsAt', 'end_at') || new Date().toISOString(),
     status: parseStatus(readString(root, 'status', 'state') || 'draft'),
     layoutType: parseLayout(readString(root, 'layout_type', 'layoutType') || 'grid'),
-    rows: readNum(root, 'rows', 'row_count') ?? 6,
-    cols: readNum(root, 'cols', 'columns', 'col_count') ?? 10,
+    rows: readNum(root, 'rows', 'row_count', 'rows_count') ?? 6,
+    cols: readNum(root, 'cols', 'columns', 'col_count', 'cols_count') ?? 10,
     rowGap: readNum(root, 'row_gap', 'rowGap') ?? 8,
     colGap: readNum(root, 'col_gap', 'colGap') ?? 8,
     rowGaps: asGapMap(root.row_gaps ?? root.rowGaps),
@@ -241,6 +245,12 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.category !== undefined) body.category = patch.category;
   if (patch.venue !== undefined) body.venue = patch.venue;
   if (patch.city !== undefined) body.city = patch.city;
+  if (patch.latitude !== undefined && patch.latitude !== null && Number.isFinite(patch.latitude)) {
+    body.latitude = patch.latitude;
+  }
+  if (patch.longitude !== undefined && patch.longitude !== null && Number.isFinite(patch.longitude)) {
+    body.longitude = patch.longitude;
+  }
   if (patch.startsAt !== undefined) body.starts_at = patch.startsAt;
   if (patch.endsAt !== undefined) body.ends_at = patch.endsAt;
   if (patch.layoutType !== undefined) body.layout_type = patch.layoutType;
@@ -291,6 +301,8 @@ const EVENT_PATCH_DIFF_KEYS: (keyof OrganizerEvent)[] = [
   'categoryId',
   'venue',
   'city',
+  'latitude',
+  'longitude',
   'regionId',
   'cityId',
   'startsAt',

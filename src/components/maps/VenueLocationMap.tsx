@@ -94,9 +94,11 @@ type Props = {
   longitude: number | null | undefined;
   onCoordinatesChange: (lat: number, lng: number) => void;
   visible: boolean;
+  /** Override default helper under the search field. */
+  hint?: string;
 };
 
-export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, visible }: Props) {
+export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, visible, hint }: Props) {
   const searchId = useId();
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<GeocodeHit[]>([]);
@@ -170,15 +172,16 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
     };
   }, [query, runSearch]);
 
+  const defaultHint =
+    'Search for an address or place, pick a result, or click the map / drag the pin to set coordinates.';
+
   return (
     <div className="space-y-3 md:col-span-2">
       <div>
         <label htmlFor={searchId} className="block text-[12px] font-semibold text-ink-60">
-          Find venue on map
+          Find location on map
         </label>
-        <p className="mt-0.5 text-[11px] text-ink-40">
-          Search for an address or place, pick a result, or click the map / drag the pin to set coordinates. Values are stored when you save the profile.
-        </p>
+        <p className="mt-0.5 text-[11px] text-ink-40">{hint ?? defaultHint}</p>
         <div className="relative mt-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-40" strokeWidth={2} aria-hidden />
           <input

@@ -3,14 +3,19 @@ import { organizerApi, type ListEventsPage } from '@/store/api/organizerApi';
 import { organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
+import { getApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
+import { ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
 
 export { diffOrganizerEventPatch } from '@/lib/api/mapEvent';
+export { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 
 export function isServerNumericTicketTypeId(id: string): boolean {
   return /^\d+$/.test(id.trim());
 }
 
 const GALLERY_IMAGE_MAX_BYTES = 6 * 1024 * 1024;
+const COVER_IMAGE_MAX_BYTES = 6144 * 1024;
+const ACCEPTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 
 export type { ListEventsPage };
 
@@ -49,6 +54,22 @@ export async function upsertEvent(event: OrganizerEvent) {
 
 export async function deleteEvent(id: string) {
   await apiUnwrap(apiDispatch(organizerApi.endpoints.deleteEvent.initiate(id)));
+}
+
+export function canRemoveEventStatus(status: EventStatus): boolean {
+  return status === 'draft' || status === 'rejected';
+}
+
+export function canArchiveEventStatus(status: EventStatus): boolean {
+  return status === 'ended';
+}
+
+export async function removeEvent(id: string): Promise<void> {
+  const ev = await getEvent(id);
+  if (ev && !canRemoveEventStatus(ev.status)) {
+    throw new Error('Delete is allowed only for draft or rejected events.');
+  }
+  await deleteEvent(id);
 }
 
 export async function duplicateEvent(sourceId: string): Promise<OrganizerEvent | null> {
@@ -128,6 +149,10 @@ export async function cancelEvent(id: string) {
 }
 
 export async function archiveEvent(id: string) {
+  const ev = await getEvent(id);
+  if (ev && !canArchiveEventStatus(ev.status)) {
+    throw new Error('Archive is allowed only after the event has ended.');
+  }
   await apiUnwrap(apiDispatch(organizerApi.endpoints.archiveEvent.initiate(id)));
 }
 
@@ -145,19 +170,40 @@ export async function appendChangeLog(eventId: string, entries: { field: string;
   });
 }
 
+/** Default schedule for a brand-new event (API requires `starts_at` / `ends_at` on POST). */
+export function defaultNewEventSchedule(): { startsAt: string; endsAt: string } {
+  const startsAt = new Date(Date.now() + 86400_000 * 7).toISOString();
+  const endsAt = new Date(Date.now() + 86400_000 * 7 + 3 * 3600_000).toISOString();
+  return { startsAt, endsAt };
+}
+
 export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promise<OrganizerEvent> {
+  const { startsAt: defaultStart, endsAt: defaultEnd } = defaultNewEventSchedule();
+  const startsAt = partial?.startsAt ?? defaultStart;
+  const endsAt = partial?.endsAt ?? defaultEnd;
+
+  const createBody = organizerEventPatchToApiBody({
+    title: partial?.title ?? 'Untitled event',
+    startsAt,
+    endsAt,
+  });
+
   const created = await apiUnwrap<OrganizerEvent>(
-    apiDispatch(organizerApi.endpoints.createEvent.initiate({ title: 'Untitled event' }))
+    apiDispatch(organizerApi.endpoints.createEvent.initiate(createBody))
   );
+  const newId = (created.id ?? '').trim();
+  if (!newId || newId === '0') {
+    throw new Error('Create event succeeded but the API did not return a valid event id.');
+  }
   const defaults: OrganizerEvent = {
     ...created,
-    title: 'Untitled event',
+    title: partial?.title ?? 'Untitled event',
     description: '',
     category: 'Music',
     venue: '',
     city: 'Riyadh',
-    startsAt: new Date(Date.now() + 86400_000 * 7).toISOString(),
-    endsAt: new Date(Date.now() + 86400_000 * 7 + 3 * 3600_000).toISOString(),
+    startsAt,
+    endsAt,
     status: 'draft',
     layoutType: 'grid',
     rows: 6,
@@ -180,9 +226,9 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
     waitlistCount: 0,
     postEventMedia: [],
     eventGallery: [],
-    id: created.id,
+    id: newId,
   };
-  const ev = { ...defaults, ...partial, id: created.id };
+  const ev = { ...defaults, ...partial, id: newId };
 
   await patchEvent(ev.id, {
     title: ev.title,
@@ -259,6 +305,8 @@ export async function patchEvent(
       | 'categoryId'
       | 'venue'
       | 'city'
+      | 'latitude'
+      | 'longitude'
       | 'regionId'
       | 'cityId'
       | 'startsAt'
@@ -352,6 +400,69 @@ export async function uploadEventGalleryImageApi(eventId: string, file: File): P
   const fd = new FormData();
   fd.append('image', file);
   await apiUnwrap(apiDispatch(organizerApi.endpoints.postEventGallery.initiate({ eventId, body: fd })));
+}
+
+export async function uploadEventCoverImageApi(eventId: string, file: File): Promise<void> {
+  if (!file.type || !ACCEPTED_IMAGE_MIME_TYPES.has(file.type.toLowerCase())) {
+    throw new Error('Cover image must be JPG, PNG, GIF, or WEBP.');
+  }
+  if (file.size > COVER_IMAGE_MAX_BYTES) {
+    throw new Error('Cover image must be 6 MB or smaller.');
+  }
+  await uploadEventCoverImageWithProgress(eventId, file);
+}
+
+export function uploadEventCoverImageWithProgress(
+  eventId: string,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<void> {
+  if (!file.type || !ACCEPTED_IMAGE_MIME_TYPES.has(file.type.toLowerCase())) {
+    return Promise.reject(new Error('Cover image must be JPG, PNG, GIF, or WEBP.'));
+  }
+  if (file.size > COVER_IMAGE_MAX_BYTES) {
+    return Promise.reject(new Error('Cover image must be 6 MB or smaller.'));
+  }
+  const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) : null;
+  if (!token) return Promise.reject(new Error('You are not authenticated. Please sign in again.'));
+
+  const fd = new FormData();
+  fd.append('image', file);
+  const url = `${getApiBaseUrl()}${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/cover`;
+
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Accept', 'application/json');
+
+    xhr.upload.onprogress = (ev) => {
+      if (!ev.lengthComputable) return;
+      const p = Math.max(0, Math.min(100, Math.round((ev.loaded / ev.total) * 100)));
+      onProgress?.(p);
+    };
+
+    xhr.onerror = () => reject(new Error('Cover image upload failed. Please try again.'));
+    xhr.onabort = () => reject(new Error('Cover image upload was cancelled.'));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+      let message = `Cover image upload failed (${xhr.status}).`;
+      try {
+        const parsed = JSON.parse(xhr.responseText) as { message?: string; error?: string };
+        const m = typeof parsed?.message === 'string' ? parsed.message : typeof parsed?.error === 'string' ? parsed.error : '';
+        if (m) message = m;
+      } catch {
+        /* noop */
+      }
+      reject(new Error(message));
+    };
+
+    xhr.send(fd);
+  });
 }
 
 export async function deleteEventGalleryItemApi(eventId: string, itemId: string): Promise<void> {

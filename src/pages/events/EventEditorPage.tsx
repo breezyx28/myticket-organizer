@@ -1,4 +1,5 @@
 import { CancellationFlow } from '@/components/events/CancellationFlow';
+import { VenueLocationMap } from '@/components/maps/VenueLocationMap';
 import { PublishImpactDialog } from '@/components/events/PublishImpactDialog';
 import { RecurrenceManager } from '@/components/events/RecurrenceManager';
 import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
@@ -12,6 +13,8 @@ import {
   cancelOccurrence,
   createDraftEvent,
   createEventTicketTypeApi,
+  defaultNewEventSchedule,
+  formatOrganizerApiError,
   deleteEventGalleryItemApi,
   deleteEventTicketTypeApi,
   diffOrganizerEventPatch,
@@ -22,6 +25,7 @@ import {
   publishEvent,
   simulateLifecycleTick,
   updateEventTicketTypeApi,
+  uploadEventCoverImageWithProgress,
   uploadEventGalleryImageApi,
   validateFreeLayoutTotals,
 } from '@/services/eventsService';
@@ -29,12 +33,20 @@ import { getProfile, isProfileComplete } from '@/services/profileService';
 import { useListEventCategoriesQuery, useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import type { EntryMode, LayoutType, OrganizerEvent } from '@/types/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { RefreshCcw } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 export function EventEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const bootstrapped = useRef(false);
+  const [createRouteError, setCreateRouteError] = useState<string | null>(null);
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newScheduleLocal, setNewScheduleLocal] = useState(() => {
+    const { startsAt, endsAt } = defaultNewEventSchedule();
+    return { startsLocal: toLocalInput(startsAt), endsLocal: toLocalInput(endsAt) };
+  });
+  const [newFormErrors, setNewFormErrors] = useState<{ title?: string; startsLocal?: string; endsLocal?: string; form?: string }>({});
   const [event, setEvent] = useState<OrganizerEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileOk, setProfileOk] = useState(true);
@@ -46,8 +58,15 @@ export function EventEditorPage() {
   const [newTicketTypeLabel, setNewTicketTypeLabel] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [galleryBusy, setGalleryBusy] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverProgress, setCoverProgress] = useState(0);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [galleryUploadError, setGalleryUploadError] = useState<string | null>(null);
+  const [uploadedCoverPreview, setUploadedCoverPreview] = useState<string | null>(null);
 
   const committed = useRef<OrganizerEvent | null>(null);
+  const mapCoordsSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: eventCategories = [] } = useListEventCategoriesQuery();
   const { data: saudiRegions = [] } = useListSaudiRegionsQuery();
@@ -65,14 +84,20 @@ export function EventEditorPage() {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
-    if (id === 'new') {
-      if (bootstrapped.current) return;
-      bootstrapped.current = true;
-      void (async () => {
-        const ev = await createDraftEvent();
-        navigate(`/events/${ev.id}`, { replace: true });
-      })();
+    return () => {
+      if (uploadedCoverPreview) URL.revokeObjectURL(uploadedCoverPreview);
+    };
+  }, [uploadedCoverPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (mapCoordsSaveTimerRef.current) window.clearTimeout(mapCoordsSaveTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!id || id === 'new') {
+      setLoading(false);
       return;
     }
     const t = window.setTimeout(() => {
@@ -85,23 +110,141 @@ export function EventEditorPage() {
       })();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [id, navigate]);
+  }, [id]);
 
   const statusLine = useMemo(() => {
     if (!event) return '';
     return `${EVENT_STATUS_LABEL[event.status]} · Sold: ${event.ticketsSold} · Entry: ${event.entryMode}`;
   }, [event]);
 
-  if (id === 'new') {
-    return (
-      <div className="py-20 text-center text-[14px] text-ink-60">
-        Creating draft…
-      </div>
-    );
+  function mapCreateServerErrors(message: string) {
+    const m = message.toLowerCase();
+    const fieldErrors: { title?: string; startsLocal?: string; endsLocal?: string; form?: string } = {};
+    if (m.includes('title')) fieldErrors.title = message;
+    if (m.includes('starts_at') || m.includes('start')) fieldErrors.startsLocal = message;
+    if (m.includes('ends_at') || m.includes('end')) fieldErrors.endsLocal = message;
+    if (!fieldErrors.title && !fieldErrors.startsLocal && !fieldErrors.endsLocal) {
+      fieldErrors.form = message;
+    }
+    return fieldErrors;
   }
 
   if (!profileOk) {
     return <Navigate to="/profile" replace />;
+  }
+
+  if (id === 'new') {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 py-10 px-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">New event</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">Create event</h1>
+          <p className="mt-2 text-[13px] text-ink-60">
+            Set a title and schedule, then continue to the full editor. The draft is created when you continue.
+          </p>
+        </div>
+        <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
+          {createRouteError ? (
+            <div className="mb-4 rounded-2xl border border-coral/40 bg-coral/10 px-4 py-3 text-[13px] text-coral">{createRouteError}</div>
+          ) : null}
+          {newFormErrors.form ? (
+            <div className="mb-4 rounded-2xl border border-coral/40 bg-coral/10 px-4 py-3 text-[13px] text-coral">{newFormErrors.form}</div>
+          ) : null}
+          <div className="grid gap-4">
+            <Field label="Title">
+              <input
+                className={`mt-1 w-full rounded-xl border px-3 py-2 text-[14px] ${newFormErrors.title ? 'border-coral' : 'border-ink-10'}`}
+                value={newTitle}
+                onChange={(e) => {
+                  setNewTitle(e.target.value);
+                  setNewFormErrors((cur) => ({ ...cur, title: undefined, form: undefined }));
+                }}
+                placeholder="e.g. Summer night concert"
+                autoFocus
+              />
+              {newFormErrors.title ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.title}</p> : null}
+            </Field>
+            <Field label="Starts">
+              <input
+                type="datetime-local"
+                className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
+                  newFormErrors.startsLocal ? 'border-coral' : 'border-ink-10'
+                }`}
+                value={newScheduleLocal.startsLocal}
+                onChange={(e) => {
+                  setNewScheduleLocal((s) => ({ ...s, startsLocal: e.target.value }));
+                  setNewFormErrors((cur) => ({ ...cur, startsLocal: undefined, form: undefined }));
+                }}
+              />
+              {newFormErrors.startsLocal ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.startsLocal}</p> : null}
+            </Field>
+            <Field label="Ends">
+              <input
+                type="datetime-local"
+                className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
+                  newFormErrors.endsLocal ? 'border-coral' : 'border-ink-10'
+                }`}
+                value={newScheduleLocal.endsLocal}
+                onChange={(e) => {
+                  setNewScheduleLocal((s) => ({ ...s, endsLocal: e.target.value }));
+                  setNewFormErrors((cur) => ({ ...cur, endsLocal: undefined, form: undefined }));
+                }}
+              />
+              {newFormErrors.endsLocal ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.endsLocal}</p> : null}
+            </Field>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link to="/events">
+              <Button variant="outline" size="md" type="button">
+                Back
+              </Button>
+            </Link>
+            <Button
+              variant="dark"
+              size="md"
+              type="button"
+              disabled={creatingEvent}
+              onClick={() => {
+                void (async () => {
+                  const nextErrors: { title?: string; startsLocal?: string; endsLocal?: string; form?: string } = {};
+                  const title = newTitle.trim();
+                  if (!title) nextErrors.title = 'Title is required.';
+                  if (!newScheduleLocal.startsLocal) nextErrors.startsLocal = 'Start date/time is required.';
+                  if (!newScheduleLocal.endsLocal) nextErrors.endsLocal = 'End date/time is required.';
+                  if (Object.keys(nextErrors).length > 0) {
+                    setCreateRouteError(null);
+                    setNewFormErrors(nextErrors);
+                    return;
+                  }
+                  const startsAt = fromLocalInput(newScheduleLocal.startsLocal);
+                  const endsAt = fromLocalInput(newScheduleLocal.endsLocal);
+                  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+                    setCreateRouteError(null);
+                    setNewFormErrors({ endsLocal: 'End time must be after start time.' });
+                    return;
+                  }
+                  setCreateRouteError(null);
+                  setNewFormErrors({});
+                  setCreatingEvent(true);
+                  try {
+                    const ev = await createDraftEvent({ title, startsAt, endsAt });
+                    navigate(`/events/${ev.id}`, { replace: true });
+                  } catch (e) {
+                    const msg = formatOrganizerApiError(e);
+                    setCreateRouteError(null);
+                    setNewFormErrors(mapCreateServerErrors(msg));
+                  } finally {
+                    setCreatingEvent(false);
+                  }
+                })();
+              }}
+            >
+              {creatingEvent ? 'Creating…' : 'Create draft & continue'}
+            </Button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   if (loading || !event) {
@@ -110,9 +253,34 @@ export function EventEditorPage() {
 
   const freeValidation = validateFreeLayoutTotals(event);
   const notifications = listEventNotifications().filter((n) => n.eventId === event.id);
+  const coverImageUrl = uploadedCoverPreview || (event.eventGallery?.length ? resolvePublicUrl(event.eventGallery[0].url) : '');
 
   function updateLocal(updater: (e: OrganizerEvent) => OrganizerEvent) {
     setEvent((cur) => (cur ? updater(cur) : cur));
+  }
+
+  function reconcilePatchedEvent(
+    serverEvent: OrganizerEvent | null,
+    patch: Partial<OrganizerEvent>,
+    localBeforeSave: OrganizerEvent
+  ): OrganizerEvent | null {
+    if (!serverEvent) return null;
+    // Backend PATCH can lag on layout persistence; keep local non-free selection to avoid UI snapping back.
+    const localNonFree = localBeforeSave.layoutType !== 'free';
+    const serverFree = serverEvent.layoutType === 'free';
+    const patchTouchesSeatMap =
+      patch.layoutType !== undefined || patch.seats !== undefined || patch.rows !== undefined || patch.cols !== undefined;
+    const requestedFreeLayout = patch.layoutType === 'free';
+    if (localNonFree && serverFree && patchTouchesSeatMap && !requestedFreeLayout) {
+      return {
+        ...serverEvent,
+        layoutType: patch.layoutType ?? localBeforeSave.layoutType,
+        rows: patch.rows ?? localBeforeSave.rows,
+        cols: patch.cols ?? localBeforeSave.cols,
+        seats: patch.seats ?? localBeforeSave.seats,
+      };
+    }
+    return serverEvent;
   }
 
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
@@ -137,9 +305,31 @@ export function EventEditorPage() {
     if (ev) committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
   }
 
+  function uploadCoverFile(file: File) {
+    if (!event) return;
+    const eventId = event.id;
+    void (async () => {
+      setCoverBusy(true);
+      setCoverProgress(0);
+      setCoverUploadError(null);
+      setFormError(null);
+      try {
+        await uploadEventCoverImageWithProgress(eventId, file, (p) => setCoverProgress(p));
+        if (uploadedCoverPreview) URL.revokeObjectURL(uploadedCoverPreview);
+        setUploadedCoverPreview(URL.createObjectURL(file));
+        await reloadFromStore();
+      } catch (err) {
+        setCoverUploadError(err instanceof Error ? err.message : 'Cover image upload failed.');
+      } finally {
+        setCoverBusy(false);
+      }
+    })();
+  }
+
   function save(patch: Partial<OrganizerEvent>) {
     if (!committed.current) return;
     const base = committed.current;
+    const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
     const sold =
       base.ticketsSold > 0 &&
       (base.status === 'published' ||
@@ -160,9 +350,10 @@ export function EventEditorPage() {
         setFormError(null);
         await patchEvent(base.id, patch);
         const ev = await getEvent(base.id);
-        if (ev) {
-          setEvent(ev);
-          committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
+        const reconciled = reconcilePatchedEvent(ev, patch, localBeforeSave);
+        if (reconciled) {
+          setEvent(reconciled);
+          committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
         }
       } catch (err) {
         setFormError(err instanceof Error ? err.message : 'Could not save changes.');
@@ -174,6 +365,7 @@ export function EventEditorPage() {
   function confirmImpactSave() {
     if (!pendingPatch || !committed.current) return;
     const base = committed.current;
+    const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
     void (async () => {
       try {
         setFormError(null);
@@ -181,9 +373,10 @@ export function EventEditorPage() {
         const changes = partialChanges(base, pendingPatch);
         await appendChangeLog(base.id, changes);
         const ev = await getEvent(base.id);
-        if (ev) {
-          setEvent(ev);
-          committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
+        const reconciled = reconcilePatchedEvent(ev, pendingPatch, localBeforeSave);
+        if (reconciled) {
+          setEvent(reconciled);
+          committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
         }
         setImpactOpen(false);
         setPendingPatch(null);
@@ -220,9 +413,10 @@ export function EventEditorPage() {
       setFormError(null);
       await patchEvent(event.id, diff);
       const ev = await getEvent(event.id);
-      if (ev) {
-        setEvent(ev);
-        committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
+      const reconciled = reconcilePatchedEvent(ev, diff, event);
+      if (reconciled) {
+        setEvent(reconciled);
+        committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Could not save changes.');
@@ -371,6 +565,22 @@ export function EventEditorPage() {
               onBlur={(e) => save({ venue: e.target.value })}
             />
           </Field>
+          <div className="md:col-span-2">
+            <VenueLocationMap
+              visible
+              latitude={event.latitude ?? null}
+              longitude={event.longitude ?? null}
+              hint="Location updates save automatically shortly after you pick a place or finish moving the pin."
+              onCoordinatesChange={(lat, lng) => {
+                updateLocal((cur) => ({ ...cur, latitude: lat, longitude: lng }));
+                if (mapCoordsSaveTimerRef.current) window.clearTimeout(mapCoordsSaveTimerRef.current);
+                mapCoordsSaveTimerRef.current = window.setTimeout(() => {
+                  mapCoordsSaveTimerRef.current = null;
+                  save({ latitude: lat, longitude: lng });
+                }, 400);
+              }}
+            />
+          </div>
           <Field label="Region">
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
@@ -442,13 +652,59 @@ export function EventEditorPage() {
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Event gallery</h2>
         <p className="mt-2 max-w-2xl text-[13px] text-ink-60">
-          Uploads call the organizer API (<span className="font-mono text-[12px]">POST …/events/&#123;id&#125;/gallery</span>, multipart{' '}
-          <span className="font-mono">image</span>). Removing an image calls <span className="font-mono text-[12px]">DELETE …/gallery/&#123;itemId&#125;</span>.
+          Upload JPG, PNG, or WEBP images only. Maximum file size is 6 MB per image.
         </p>
+        <Field label="Cover image">
+          <label className="mt-1 inline-flex cursor-pointer flex-wrap items-center gap-2">
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="sr-only"
+              disabled={coverBusy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                uploadCoverFile(file);
+              }}
+            />
+            <span className="rounded-xl border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink shadow-card-sm">
+              {coverBusy ? 'Uploading cover…' : 'Upload cover image'}
+            </span>
+          </label>
+          {coverUploadError ? <p className="mt-1 text-[12px] text-coral">{coverUploadError}</p> : null}
+          {coverBusy ? (
+            <div className="mt-2 w-full max-w-sm">
+              <div className="h-2 overflow-hidden rounded-full bg-ink-10">
+                <div className="h-full bg-coral transition-all" style={{ width: `${coverProgress}%` }} />
+              </div>
+              <p className="mt-1 text-[12px] text-ink-60">{coverProgress}% uploaded</p>
+            </div>
+          ) : null}
+        </Field>
+        {coverImageUrl ? (
+          <div className="mt-3 w-[220px] overflow-hidden rounded-xl border border-ink-10 bg-white">
+            <div className="group relative">
+              <img src={coverImageUrl} alt="" className="h-36 w-full object-cover" />
+              <button
+                type="button"
+                className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 transition hover:bg-ink"
+                onClick={() => coverInputRef.current?.click()}
+                title="Replace cover image"
+                disabled={coverBusy}
+              >
+                <RefreshCcw size={12} />
+                Replace
+              </button>
+            </div>
+            <p className="px-3 py-2 text-[11px] text-ink-60">Current cover image</p>
+          </div>
+        ) : null}
         <label className="mt-4 inline-flex cursor-pointer flex-wrap items-center gap-2">
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,image/webp"
             multiple
             className="sr-only"
             disabled={galleryBusy}
@@ -459,13 +715,14 @@ export function EventEditorPage() {
               void (async () => {
                 setGalleryBusy(true);
                 setFormError(null);
+                setGalleryUploadError(null);
                 try {
                   for (const file of files) {
                     await uploadEventGalleryImageApi(event.id, file);
                   }
                   await reloadFromStore();
                 } catch (err) {
-                  setFormError(err instanceof Error ? err.message : 'Gallery upload failed.');
+                  setGalleryUploadError(err instanceof Error ? err.message : 'Gallery upload failed.');
                   await reloadFromStore();
                 } finally {
                   setGalleryBusy(false);
@@ -477,6 +734,7 @@ export function EventEditorPage() {
             {galleryBusy ? 'Uploading…' : 'Add gallery images'}
           </span>
         </label>
+        {galleryUploadError ? <p className="mt-1 text-[12px] text-coral">{galleryUploadError}</p> : null}
         <div className="mt-4 flex flex-wrap gap-3">
           {(event.eventGallery ?? []).map((g) => (
             <div key={g.id} className="group relative w-[148px] overflow-hidden rounded-xl border border-ink-10 bg-white">

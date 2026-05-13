@@ -1,4 +1,4 @@
-import { getAuctionActivity, getBookingVelocity, getSalesByEvent, getSalesSummary, getTicketTypeDistribution } from '@/services/analyticsService';
+import { getSalesAnalytics, type SalesAnalyticsPayload } from '@/services/analyticsService';
 import { BadgeDollarSign, CalendarClock, Ticket, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis } from 'recharts';
@@ -24,64 +24,43 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function SalesAnalyticsPage() {
-  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getSalesSummary>> | null>(null);
-  const [velocity, setVelocity] = useState<Awaited<ReturnType<typeof getBookingVelocity>>>([]);
-  const [byEvent, setByEvent] = useState<Awaited<ReturnType<typeof getSalesByEvent>>>([]);
-  const [distribution, setDistribution] = useState<Awaited<ReturnType<typeof getTicketTypeDistribution>>>([]);
-  const [auction, setAuction] = useState<Awaited<ReturnType<typeof getAuctionActivity>> | null>(null);
+  const [sales, setSales] = useState<SalesAnalyticsPayload | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
       void (async () => {
-        const [s, v, ev, dist, auc] = await Promise.all([
-          getSalesSummary(),
-          getBookingVelocity(),
-          getSalesByEvent(),
-          getTicketTypeDistribution(),
-          getAuctionActivity(),
-        ]);
-        setSummary(s);
-        setVelocity(v);
-        setByEvent(ev);
-        setDistribution(dist);
-        setAuction(auc);
+        const res = await getSalesAnalytics();
+        setSales(res.data);
       })();
     }, 0);
     return () => window.clearTimeout(t);
   }, []);
 
-  const avgOrderValue = useMemo(() => {
-    if (velocity.length === 0) return 0;
-    return Math.round(velocity.reduce((sum, item) => sum + item.amount, 0) / velocity.length);
-  }, [velocity]);
+  const avgOrderValue = sales?.summary.avg_order_value ?? 0;
 
   const trendData = useMemo(
-    () =>
-      [...velocity].reverse().map((item) => ({
-        time: new Date(item.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        revenue: item.amount,
-      })),
-    [velocity]
+    () => (sales?.revenue_trend ?? []).map((item) => ({ time: item.label, revenue: item.revenue })),
+    [sales]
   );
 
   const eventChartData = useMemo(
     () =>
-      byEvent.map((row) => ({
-        name: row.eventTitle.length > 18 ? `${row.eventTitle.slice(0, 18)}…` : row.eventTitle,
+      (sales?.event_inventory ?? []).map((row) => ({
+        name: row.event_title.length > 18 ? `${row.event_title.slice(0, 18)}…` : row.event_title,
         sold: row.sold,
         remaining: row.remaining,
       })),
-    [byEvent]
+    [sales]
   );
 
   const ticketMixData = useMemo(
     () =>
-      distribution.map((d, idx) => ({
+      (sales?.ticket_type_mix ?? []).map((d, idx) => ({
         type: d.label,
         qty: d.qty,
         fill: `hsl(${(idx * 70 + 8) % 360} 82% 58%)`,
       })),
-    [distribution]
+    [sales]
   );
 
   return (
@@ -95,10 +74,10 @@ export function SalesAnalyticsPage() {
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard icon={<Ticket className="h-4 w-4" />} label="Tickets sold" value={summary ? String(summary.totalTickets) : '—'} />
-        <KpiCard icon={<BadgeDollarSign className="h-4 w-4" />} label="Gross revenue" value={summary ? `SAR ${summary.totalRevenue.toLocaleString()}` : '—'} />
-        <KpiCard icon={<CalendarClock className="h-4 w-4" />} label="Live / upcoming events" value={summary ? String(summary.upcoming) : '—'} />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Avg order value" value={velocity.length ? `SAR ${avgOrderValue.toLocaleString()}` : '—'} />
+        <KpiCard icon={<Ticket className="h-4 w-4" />} label="Tickets sold" value={sales ? String(sales.summary.total_tickets_sold) : '—'} />
+        <KpiCard icon={<BadgeDollarSign className="h-4 w-4" />} label="Gross revenue" value={sales ? `SAR ${sales.summary.total_revenue_gross.toLocaleString()}` : '—'} />
+        <KpiCard icon={<CalendarClock className="h-4 w-4" />} label="Live / upcoming events" value={sales ? String(sales.summary.live_or_upcoming_events) : '—'} />
+        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Avg order value" value={sales ? `SAR ${avgOrderValue.toLocaleString()}` : '—'} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
@@ -161,20 +140,20 @@ export function SalesAnalyticsPage() {
               </tr>
             </thead>
             <tbody>
-              {velocity.map((b) => (
+              {(sales?.recent_bookings ?? []).map((b) => (
                 <tr key={b.id} className="border-t border-ink-10">
                   <td className="px-3 py-2 font-mono text-ink-60">{new Date(b.at).toLocaleString()}</td>
-                  <td className="max-w-[220px] truncate px-3 py-2 font-semibold text-ink">{b.eventTitle}</td>
-                  <td className="px-3 py-2 text-ink-60">{b.buyerEmail}</td>
-                  <td className="px-3 py-2 text-ink-60">{b.ticketType ?? '—'}</td>
-                  <td className="px-3 py-2 text-ink-60">{b.seatRef ?? '—'}</td>
+                  <td className="max-w-[220px] truncate px-3 py-2 font-semibold text-ink">{b.event_title}</td>
+                  <td className="px-3 py-2 text-ink-60">{b.buyer_email}</td>
+                  <td className="px-3 py-2 text-ink-60">{b.ticket_type ?? '—'}</td>
+                  <td className="px-3 py-2 text-ink-60">{b.seat_ref ?? '—'}</td>
                   <td className="px-3 py-2 font-mono text-ink">{b.qty}</td>
                   <td className="px-3 py-2 text-right font-mono text-ink">SAR {b.amount.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {velocity.length === 0 ? <p className="mt-3 text-[13px] text-ink-40">No booking data yet.</p> : null}
+          {(sales?.recent_bookings?.length ?? 0) === 0 ? <p className="mt-3 text-[13px] text-ink-40">No booking data yet.</p> : null}
         </div>
       </section>
 
@@ -192,9 +171,9 @@ export function SalesAnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {byEvent.map((row) => (
-                  <tr key={row.eventId} className="border-t border-ink-10">
-                    <td className="max-w-[250px] truncate px-3 py-2 font-semibold text-ink">{row.eventTitle}</td>
+                {(sales?.event_inventory ?? []).map((row) => (
+                  <tr key={row.event_id} className="border-t border-ink-10">
+                    <td className="max-w-[250px] truncate px-3 py-2 font-semibold text-ink">{row.event_title}</td>
                     <td className="px-3 py-2 font-mono text-ink">{row.sold}</td>
                     <td className="px-3 py-2 font-mono text-ink">{row.remaining}</td>
                     <td className="px-3 py-2 text-right font-mono text-ink">SAR {row.gross.toLocaleString()}</td>
@@ -208,9 +187,9 @@ export function SalesAnalyticsPage() {
         <article className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
           <h2 className="text-lg font-extrabold text-ink">Auction activity</h2>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <MiniStat label="Active" value={auction ? String(auction.active) : '0'} />
-            <MiniStat label="Sold" value={auction ? String(auction.sold) : '0'} />
-            <MiniStat label="Expired" value={auction ? String(auction.expired) : '0'} />
+            <MiniStat label="Active" value={sales ? String(sales.auction_activity.active) : '0'} />
+            <MiniStat label="Sold" value={sales ? String(sales.auction_activity.sold) : '0'} />
+            <MiniStat label="Expired" value={sales ? String(sales.auction_activity.expired) : '0'} />
           </div>
           <div className="mt-4 overflow-hidden rounded-2xl border border-ink-10">
             <table className="min-w-full text-left text-[11px]">
@@ -222,12 +201,16 @@ export function SalesAnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {auction?.listings.map((item) => (
+                {(sales?.auction_activity.listings ?? []).map((item) => (
                   <tr key={item.id} className="border-t border-ink-10">
-                    <td className="max-w-[160px] truncate px-3 py-2 font-semibold text-ink">{item.eventTitle}</td>
+                    <td className="max-w-[160px] truncate px-3 py-2 font-semibold text-ink">{item.event_title || item.code || item.id}</td>
                     <td className="px-3 py-2 uppercase text-ink-60">{item.status}</td>
                     <td className="px-3 py-2 text-right font-mono text-ink">
-                      {item.finalPrice ? `SAR ${item.finalPrice.toLocaleString()}` : '—'}
+                      {item.final_price != null
+                        ? `SAR ${item.final_price.toLocaleString()}`
+                        : item.price != null
+                          ? `SAR ${item.price.toLocaleString()}`
+                          : '—'}
                     </td>
                   </tr>
                 ))}

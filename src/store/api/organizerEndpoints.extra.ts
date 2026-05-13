@@ -205,9 +205,67 @@ export function buildExtraOrganizerEndpoints(builder: OrganBuilder) {
       transformResponse: (raw: unknown) => safeParseResponse(financeExportsResponseSchema, raw, 'GET finance exports'),
     }),
 
+    getSalesAnalytics: builder.query<
+      unknown,
+      {
+        from?: string;
+        to?: string;
+        timezone?: string;
+        eventIds?: string[];
+        limitRecentBookings?: number;
+        bucket?: 'hour' | 'day';
+      } | void
+    >({
+      query: (arg) => {
+        const q = new URLSearchParams();
+        if (arg?.from) q.set('from', arg.from);
+        if (arg?.to) q.set('to', arg.to);
+        if (arg?.timezone) q.set('timezone', arg.timezone);
+        if (arg?.bucket) q.set('bucket', arg.bucket);
+        if (arg?.limitRecentBookings != null) q.set('limit_recent_bookings', String(arg.limitRecentBookings));
+        for (const id of arg?.eventIds ?? []) q.append('event_ids[]', id);
+        const qs = q.toString();
+        return orgPath(`/analytics/sales${qs ? `?${qs}` : ''}`);
+      },
+      transformResponse: (raw: unknown) => raw,
+    }),
+
+    getAttendanceAnalytics: builder.query<
+      unknown,
+      {
+        eventId?: string;
+        from?: string;
+        to?: string;
+        timezone?: string;
+        limitRecent?: number;
+      } | void
+    >({
+      query: (arg) => {
+        const q = new URLSearchParams();
+        if (arg?.eventId) q.set('event_id', arg.eventId);
+        if (arg?.from) q.set('from', arg.from);
+        if (arg?.to) q.set('to', arg.to);
+        if (arg?.timezone) q.set('timezone', arg.timezone);
+        if (arg?.limitRecent != null) q.set('limit_recent', String(arg.limitRecent));
+        const qs = q.toString();
+        return orgPath(`/analytics/attendance${qs ? `?${qs}` : ''}`);
+      },
+      transformResponse: (raw: unknown) => raw,
+    }),
+
     postEventGallery: builder.mutation<unknown, { eventId: string; body: Record<string, unknown> | FormData }>({
       query: ({ eventId, body }) => ({
         url: orgPath(`/events/${encodeURIComponent(eventId)}/gallery`),
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (raw: unknown) => unwrapEnvelope(raw),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: 'Event', id: eventId }],
+    }),
+
+    postEventCover: builder.mutation<unknown, { eventId: string; body: Record<string, unknown> | FormData }>({
+      query: ({ eventId, body }) => ({
+        url: orgPath(`/events/${encodeURIComponent(eventId)}/cover`),
         method: 'POST',
         body,
       }),

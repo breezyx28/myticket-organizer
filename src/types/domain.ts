@@ -110,6 +110,9 @@ export type OrganizerEvent = {
   categoryId?: string;
   venue: string;
   city: string;
+  /** Venue coordinates from API (decimal degrees). */
+  latitude?: number | null;
+  longitude?: number | null;
   /** Saudi region id (reference API) when event PATCH supports `region_id`. */
   regionId?: string;
   /** Saudi city id (reference API) when event PATCH supports `city_id`. */

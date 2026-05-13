@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/Button';
-import { VenueLocationMap } from '@/components/profile/VenueLocationMap';
+import { VenueLocationMap } from '@/components/maps/VenueLocationMap';
 import { GalleryDropZone } from '@/components/ui/GalleryDropZone';
 import { SaudiPhoneInput } from '@/components/ui/SaudiPhoneInput';
 import { UploadTileInput } from '@/components/ui/UploadTileInput';
@@ -403,6 +403,7 @@ export function ProfilePage() {
                 visible={tab === 'venue'}
                 latitude={p.venue?.latitude ?? null}
                 longitude={p.venue?.longitude ?? null}
+                hint="Values are stored when you save the profile."
                 onCoordinatesChange={(lat, lng) =>
                   patch({
                     venue: {
