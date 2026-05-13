@@ -1,7 +1,10 @@
-import { ScannerAssignmentPanel } from '@/components/scanners/ScannerAssignmentPanel';
 import { Button } from '@/components/ui/Button';
+import { ScannerAssignmentPanel } from '@/components/scanners/ScannerAssignmentPanel';
 import { createScanner, listScanners, listScanLogs } from '@/services/scannersService';
 import { listEvents } from '@/services/eventsService';
+import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
+import { firstMessagesFromApiError, pickApiFieldMessage } from '@/lib/api/apiValidationErrors';
+import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
 import { ClipboardList, QrCode, ScanLine, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -19,6 +22,7 @@ export function ScannerManagementPage() {
   const [email, setEmail] = useState('');
   const [tab, setTab] = useState<ScannerTab>('accounts');
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [scannerFieldErrors, setScannerFieldErrors] = useState<{ name?: string; email?: string }>({});
 
   async function reload() {
     const [s, e, l] = await Promise.all([listScanners(), listEvents(), listScanLogs()]);
@@ -84,6 +88,7 @@ export function ScannerManagementPage() {
               onClick={() => {
                 setName('');
                 setEmail('');
+                setScannerFieldErrors({});
                 setOpenCreateDialog(true);
               }}
             >
@@ -132,31 +137,69 @@ export function ScannerManagementPage() {
               className="mt-4 space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!name.trim() || !email.trim()) return;
-                createScanner({ name: name.trim(), email: email.trim(), active: true, assignedEventIds: [] });
-                setName('');
-                setEmail('');
-                setOpenCreateDialog(false);
-                void reload();
+                const next: { name?: string; email?: string } = {};
+                const nm = name.trim();
+                const em = email.trim();
+                if (!nm) next.name = 'Name is required.';
+                if (!em) next.email = 'Email is required.';
+                else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) next.email = 'Enter a valid email address.';
+                if (Object.keys(next).length > 0) {
+                  setScannerFieldErrors(next);
+                  return;
+                }
+                setScannerFieldErrors({});
+                void (async () => {
+                  try {
+                    await createScanner({ name: nm, email: em, active: true, assignedEventIds: [] });
+                    setName('');
+                    setEmail('');
+                    setOpenCreateDialog(false);
+                    toast.success('Scanner account created.');
+                    await reload();
+                  } catch (err) {
+                    const raw = firstMessagesFromApiError(err);
+                    const fe: { name?: string; email?: string } = {};
+                    const nErr = pickApiFieldMessage(raw, 'name');
+                    const eErr = pickApiFieldMessage(raw, 'email');
+                    if (nErr) fe.name = nErr;
+                    if (eErr) fe.email = eErr;
+                    setScannerFieldErrors(fe);
+                    if (!fe.name && !fe.email) {
+                      toast.error(formatOrganizerApiError(err));
+                    }
+                  }
+                })();
               }}
             >
               <label className="block text-[12px] font-semibold text-ink-60">
                 Name
                 <input
-                  className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
+                  className={`mt-1 w-full rounded-xl border bg-white px-3 py-2 text-[14px] ${
+                    scannerFieldErrors.name ? 'border-coral' : 'border-ink-10'
+                  }`}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setScannerFieldErrors((c) => ({ ...c, name: undefined }));
+                  }}
                   autoFocus
                 />
+                {scannerFieldErrors.name ? <p className="mt-1 text-[12px] text-coral">{scannerFieldErrors.name}</p> : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 Email
                 <input
                   type="email"
-                  className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
+                  className={`mt-1 w-full rounded-xl border bg-white px-3 py-2 text-[14px] ${
+                    scannerFieldErrors.email ? 'border-coral' : 'border-ink-10'
+                  }`}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setScannerFieldErrors((c) => ({ ...c, email: undefined }));
+                  }}
                 />
+                {scannerFieldErrors.email ? <p className="mt-1 text-[12px] text-coral">{scannerFieldErrors.email}</p> : null}
               </label>
               <div className="mt-6 flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setOpenCreateDialog(false)}>

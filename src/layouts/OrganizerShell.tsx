@@ -1,5 +1,4 @@
 import { NAV_MAIN } from '@/config/nav';
-import { ToastViewport } from '@/components/ui/ToastViewport';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/profileService';
@@ -183,7 +182,6 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
       </div>
 
       {open ? <button type="button" className="fixed inset-0 z-30 bg-ink/40 md:hidden" aria-label="Close overlay" onClick={() => setOpen(false)} /> : null}
-      <ToastViewport />
     </div>
   );
 }

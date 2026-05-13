@@ -1,5 +1,6 @@
 import { RequireOrganizer } from '@/components/auth/RequireOrganizer';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AppToaster } from '@/lib/AppToaster';
 import { OrganizerShell } from '@/layouts/OrganizerShell';
 import { AccessDeniedPage } from '@/pages/auth/AccessDeniedPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
@@ -20,6 +21,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 export function App() {
   return (
     <AuthProvider>
+      <AppToaster />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

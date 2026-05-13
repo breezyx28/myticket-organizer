@@ -9,6 +9,8 @@ import {
   removeEvent,
 } from '@/services/eventsService';
 import { getProfile, isProfileComplete } from '@/services/profileService';
+import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
+import { toast } from '@/lib/appToast';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
 import type { OrganizerEvent } from '@/types/domain';
 import { MoreHorizontal } from 'lucide-react';
@@ -269,7 +271,9 @@ export function EventListPage() {
                         await removeEvent(action.eventId);
                       }
                       await reload(page);
-                    } catch {}
+                    } catch (err) {
+                      toast.error(formatOrganizerApiError(err));
+                    }
                   })();
                 }}
               >

@@ -5,6 +5,7 @@ import { RecurrenceManager } from '@/components/events/RecurrenceManager';
 import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
 import { getApiBaseUrl } from '@/config/api';
+import { toast } from '@/lib/appToast';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
 import {
   appendChangeLog,
@@ -36,10 +37,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
+function toastApiErr(err: unknown, fallback: string) {
+  const msg = formatOrganizerApiError(err).trim();
+  toast.error(msg && msg !== 'Request failed.' ? msg : fallback);
+}
+
 export function EventEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [createRouteError, setCreateRouteError] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newScheduleLocal, setNewScheduleLocal] = useState(() => {
@@ -56,7 +61,6 @@ export function EventEditorPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [mediaLabel, setMediaLabel] = useState('');
   const [newTicketTypeLabel, setNewTicketTypeLabel] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
   const [galleryBusy, setGalleryBusy] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverProgress, setCoverProgress] = useState(0);
@@ -144,12 +148,6 @@ export function EventEditorPage() {
           </p>
         </div>
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-          {createRouteError ? (
-            <div className="mb-4 rounded-2xl border border-coral/40 bg-coral/10 px-4 py-3 text-[13px] text-coral">{createRouteError}</div>
-          ) : null}
-          {newFormErrors.form ? (
-            <div className="mb-4 rounded-2xl border border-coral/40 bg-coral/10 px-4 py-3 text-[13px] text-coral">{newFormErrors.form}</div>
-          ) : null}
           <div className="grid gap-4">
             <Field label="Title">
               <input
@@ -191,6 +189,7 @@ export function EventEditorPage() {
                 }}
               />
               {newFormErrors.endsLocal ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.endsLocal}</p> : null}
+              {newFormErrors.form ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.form}</p> : null}
             </Field>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -212,18 +211,15 @@ export function EventEditorPage() {
                   if (!newScheduleLocal.startsLocal) nextErrors.startsLocal = 'Start date/time is required.';
                   if (!newScheduleLocal.endsLocal) nextErrors.endsLocal = 'End date/time is required.';
                   if (Object.keys(nextErrors).length > 0) {
-                    setCreateRouteError(null);
                     setNewFormErrors(nextErrors);
                     return;
                   }
                   const startsAt = fromLocalInput(newScheduleLocal.startsLocal);
                   const endsAt = fromLocalInput(newScheduleLocal.endsLocal);
                   if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
-                    setCreateRouteError(null);
                     setNewFormErrors({ endsLocal: 'End time must be after start time.' });
                     return;
                   }
-                  setCreateRouteError(null);
                   setNewFormErrors({});
                   setCreatingEvent(true);
                   try {
@@ -231,7 +227,6 @@ export function EventEditorPage() {
                     navigate(`/events/${ev.id}`, { replace: true });
                   } catch (e) {
                     const msg = formatOrganizerApiError(e);
-                    setCreateRouteError(null);
                     setNewFormErrors(mapCreateServerErrors(msg));
                   } finally {
                     setCreatingEvent(false);
@@ -312,7 +307,6 @@ export function EventEditorPage() {
       setCoverBusy(true);
       setCoverProgress(0);
       setCoverUploadError(null);
-      setFormError(null);
       try {
         await uploadEventCoverImageWithProgress(eventId, file, (p) => setCoverProgress(p));
         if (uploadedCoverPreview) URL.revokeObjectURL(uploadedCoverPreview);
@@ -347,7 +341,6 @@ export function EventEditorPage() {
     }
     void (async () => {
       try {
-        setFormError(null);
         await patchEvent(base.id, patch);
         const ev = await getEvent(base.id);
         const reconciled = reconcilePatchedEvent(ev, patch, localBeforeSave);
@@ -356,7 +349,7 @@ export function EventEditorPage() {
           committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
         }
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Could not save changes.');
+        toastApiErr(err, 'Could not save changes.');
         await reloadFromStore();
       }
     })();
@@ -368,7 +361,6 @@ export function EventEditorPage() {
     const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
     void (async () => {
       try {
-        setFormError(null);
         await patchEvent(base.id, pendingPatch);
         const changes = partialChanges(base, pendingPatch);
         await appendChangeLog(base.id, changes);
@@ -381,7 +373,7 @@ export function EventEditorPage() {
         setImpactOpen(false);
         setPendingPatch(null);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Could not save changes.');
+        toastApiErr(err, 'Could not save changes.');
         setImpactOpen(false);
         setPendingPatch(null);
         await reloadFromStore();
@@ -410,7 +402,6 @@ export function EventEditorPage() {
       }
     }
     try {
-      setFormError(null);
       await patchEvent(event.id, diff);
       const ev = await getEvent(event.id);
       const reconciled = reconcilePatchedEvent(ev, diff, event);
@@ -419,16 +410,13 @@ export function EventEditorPage() {
         committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
       }
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Could not save changes.');
+      toastApiErr(err, 'Could not save changes.');
       await reloadFromStore();
     }
   }
 
   return (
     <div className="space-y-8">
-      {formError ? (
-        <div className="rounded-2xl border border-coral/40 bg-coral/10 px-4 py-3 text-[13px] text-coral">{formError}</div>
-      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Event editor</p>
@@ -451,11 +439,10 @@ export function EventEditorPage() {
               onClick={() => {
                 void (async () => {
                   try {
-                    setFormError(null);
                     await publishEvent(event.id);
                     await reloadFromStore();
                   } catch (err) {
-                    setFormError(err instanceof Error ? err.message : 'Submit failed.');
+                    toastApiErr(err, 'Submit failed.');
                   }
                 })();
               }}
@@ -470,11 +457,10 @@ export function EventEditorPage() {
               onClick={() => {
                 void (async () => {
                   try {
-                    setFormError(null);
                     await archiveEvent(event.id);
                     await reloadFromStore();
                   } catch (err) {
-                    setFormError(err instanceof Error ? err.message : 'Archive failed.');
+                    toastApiErr(err, 'Archive failed.');
                   }
                 })();
               }}
@@ -494,11 +480,10 @@ export function EventEditorPage() {
             onClick={() => {
               void (async () => {
                 try {
-                  setFormError(null);
                   await simulateLifecycleTick(event.id);
                   await reloadFromStore();
                 } catch (err) {
-                  setFormError(err instanceof Error ? err.message : 'Lifecycle step failed.');
+                  toastApiErr(err, 'Lifecycle step failed.');
                 }
               })();
             }}
@@ -714,7 +699,6 @@ export function EventEditorPage() {
               if (!files.length) return;
               void (async () => {
                 setGalleryBusy(true);
-                setFormError(null);
                 setGalleryUploadError(null);
                 try {
                   for (const file of files) {
@@ -745,11 +729,10 @@ export function EventEditorPage() {
                 onClick={() => {
                   void (async () => {
                     try {
-                      setFormError(null);
                       await deleteEventGalleryItemApi(event.id, g.id);
                       await reloadFromStore();
                     } catch (err) {
-                      setFormError(err instanceof Error ? err.message : 'Could not remove image.');
+                      toastApiErr(err, 'Could not remove image.');
                     }
                   })();
                 }}
@@ -976,7 +959,6 @@ export function EventEditorPage() {
                   onBlur={() => {
                     void (async () => {
                       try {
-                        setFormError(null);
                         if (!tt.label.trim()) return;
                         if (!isServerNumericTicketTypeId(tt.id)) {
                           await reloadFromStore();
@@ -989,7 +971,7 @@ export function EventEditorPage() {
                         });
                         await reloadFromStore();
                       } catch (err) {
-                        setFormError(err instanceof Error ? err.message : 'Could not save ticket type.');
+                        toastApiErr(err, 'Could not save ticket type.');
                         await reloadFromStore();
                       }
                     })();
@@ -1006,7 +988,6 @@ export function EventEditorPage() {
                   onBlur={() => {
                     void (async () => {
                       try {
-                        setFormError(null);
                         if (!isServerNumericTicketTypeId(tt.id)) {
                           await reloadFromStore();
                           return;
@@ -1018,7 +999,7 @@ export function EventEditorPage() {
                         });
                         await reloadFromStore();
                       } catch (err) {
-                        setFormError(err instanceof Error ? err.message : 'Could not save ticket type.');
+                        toastApiErr(err, 'Could not save ticket type.');
                         await reloadFromStore();
                       }
                     })();
@@ -1039,7 +1020,6 @@ export function EventEditorPage() {
                     onBlur={() => {
                       void (async () => {
                         try {
-                          setFormError(null);
                           if (!isServerNumericTicketTypeId(tt.id)) {
                             await reloadFromStore();
                             return;
@@ -1051,7 +1031,7 @@ export function EventEditorPage() {
                           });
                           await reloadFromStore();
                         } catch (err) {
-                          setFormError(err instanceof Error ? err.message : 'Could not save ticket type.');
+                          toastApiErr(err, 'Could not save ticket type.');
                           await reloadFromStore();
                         }
                       })();
@@ -1068,7 +1048,6 @@ export function EventEditorPage() {
                       const next = event.ticketTypes.filter((x) => x.id !== tt.id);
                       if (next.length === 0) return;
                       try {
-                        setFormError(null);
                         if (isServerNumericTicketTypeId(tt.id)) {
                           await deleteEventTicketTypeApi(event.id, tt.id);
                           await reloadFromStore();
@@ -1076,7 +1055,7 @@ export function EventEditorPage() {
                           updateLocal((cur) => (cur ? { ...cur, ticketTypes: next } : cur));
                         }
                       } catch (err) {
-                        setFormError(err instanceof Error ? err.message : 'Could not remove ticket type.');
+                        toastApiErr(err, 'Could not remove ticket type.');
                         await reloadFromStore();
                       }
                     })();
@@ -1103,7 +1082,6 @@ export function EventEditorPage() {
                   const label = newTicketTypeLabel.trim();
                   if (!label) return;
                   try {
-                    setFormError(null);
                     await createEventTicketTypeApi(event.id, {
                       label,
                       defaultPrice: 80,
@@ -1112,7 +1090,7 @@ export function EventEditorPage() {
                     setNewTicketTypeLabel('');
                     await reloadFromStore();
                   } catch (err) {
-                    setFormError(err instanceof Error ? err.message : 'Could not add ticket type.');
+                    toastApiErr(err, 'Could not add ticket type.');
                   }
                 })();
               }}

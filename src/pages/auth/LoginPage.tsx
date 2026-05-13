@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function LoginPage() {
   const { user, signIn } = useAuth();
   const loc = useLocation();
@@ -12,26 +14,40 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [otp, setOtp] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; otp?: string }>({});
   const mainSite = getMainSiteOrigin();
 
   if (user?.role === 'organizer') {
     return <Navigate to={from} replace />;
   }
 
+  function clearFieldError(key: keyof typeof fieldErrors) {
+    setFieldErrors((cur) => {
+      const next = { ...cur };
+      delete next[key];
+      return next;
+    });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFieldErrors({});
+
     if (challengeToken) {
-      const res = await signIn({ challengeToken, otp: otp.trim() });
+      const otpTrim = otp.trim();
+      if (!otpTrim) {
+        setFieldErrors({ otp: 'Enter the verification code from your authenticator app.' });
+        return;
+      }
+      const res = await signIn({ challengeToken, otp: otpTrim });
       if (!res.ok) {
         if (res.reason === 'two_factor_required') {
           setChallengeToken(res.challengeToken ?? null);
-          setError('Additional verification required. Enter the new code.');
+          setFieldErrors({ otp: 'Additional verification required. Enter the new code.' });
         } else if (res.reason === 'not_organizer') {
-          setError('Access denied — this dashboard is for Organizer accounts only.');
+          setFieldErrors({ email: 'Access denied — this dashboard is for Organizer accounts only.' });
         } else {
-          setError('Invalid or expired verification code.');
+          setFieldErrors({ otp: 'Invalid or expired verification code.' });
         }
       } else {
         setChallengeToken(null);
@@ -40,18 +56,29 @@ export function LoginPage() {
       return;
     }
 
-    const res = await signIn({ email, password });
+    const next: { email?: string; password?: string } = {};
+    const em = email.trim();
+    if (!em) next.email = 'Email is required.';
+    else if (!emailPattern.test(em)) next.email = 'Enter a valid email address.';
+    if (!password) next.password = 'Password is required.';
+    if (Object.keys(next).length > 0) {
+      setFieldErrors(next);
+      return;
+    }
+
+    const res = await signIn({ email: em, password });
     if (!res.ok) {
       if (res.reason === 'two_factor_required' && res.challengeToken) {
         setChallengeToken(res.challengeToken);
         setOtp('');
-        setError(null);
+        setFieldErrors({});
         return;
       }
       if (res.reason === 'not_organizer') {
-        setError('Access denied — this dashboard is for Organizer accounts only.');
+        setFieldErrors({ email: 'Access denied — this dashboard is for Organizer accounts only.' });
       } else {
-        setError('Invalid credentials. Check your email and password.');
+        const msg = 'Invalid credentials. Check your email and password.';
+        setFieldErrors({ email: msg, password: msg });
       }
     }
   }
@@ -73,13 +100,19 @@ export function LoginPage() {
                 <label className="block">
                   <span className="text-[12px] font-semibold text-ink-60">Verification code</span>
                   <input
-                    className="mt-1.5 w-full rounded-xl border border-ink-10 px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30"
+                    className={`mt-1.5 w-full rounded-xl border px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30 ${
+                      fieldErrors.otp ? 'border-coral' : 'border-ink-10'
+                    }`}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
+                    onChange={(e) => {
+                      setOtp(e.target.value);
+                      clearFieldError('otp');
+                    }}
                     autoComplete="one-time-code"
                     inputMode="numeric"
                     autoFocus
                   />
+                  {fieldErrors.otp ? <p className="mt-1.5 text-[12px] font-medium text-coral">{fieldErrors.otp}</p> : null}
                 </label>
               </>
             ) : (
@@ -87,27 +120,36 @@ export function LoginPage() {
                 <label className="block">
                   <span className="text-[12px] font-semibold text-ink-60">Email</span>
                   <input
-                    className="mt-1.5 w-full rounded-xl border border-ink-10 px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30"
+                    className={`mt-1.5 w-full rounded-xl border px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30 ${
+                      fieldErrors.email ? 'border-coral' : 'border-ink-10'
+                    }`}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearFieldError('email');
+                    }}
                     autoComplete="email"
-                    required
                   />
+                  {fieldErrors.email ? <p className="mt-1.5 text-[12px] font-medium text-coral">{fieldErrors.email}</p> : null}
                 </label>
                 <label className="block">
                   <span className="text-[12px] font-semibold text-ink-60">Password</span>
                   <input
                     type="password"
-                    className="mt-1.5 w-full rounded-xl border border-ink-10 px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30"
+                    className={`mt-1.5 w-full rounded-xl border px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30 ${
+                      fieldErrors.password ? 'border-coral' : 'border-ink-10'
+                    }`}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearFieldError('password');
+                    }}
                     autoComplete="current-password"
-                    required
                   />
+                  {fieldErrors.password ? <p className="mt-1.5 text-[12px] font-medium text-coral">{fieldErrors.password}</p> : null}
                 </label>
               </>
             )}
-            {error ? <p className="rounded-xl bg-coral/15 px-4 py-3 text-[13px] font-medium text-ink">{error}</p> : null}
             <Button type="submit" variant="dark" className="w-full" size="lg">
               {challengeToken ? 'Verify and continue' : 'Continue'}
             </Button>
@@ -120,7 +162,7 @@ export function LoginPage() {
                 onClick={() => {
                   setChallengeToken(null);
                   setOtp('');
-                  setError(null);
+                  setFieldErrors({});
                 }}
               >
                 Back to email & password

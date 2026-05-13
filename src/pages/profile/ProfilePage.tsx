@@ -3,6 +3,10 @@ import { VenueLocationMap } from '@/components/maps/VenueLocationMap';
 import { GalleryDropZone } from '@/components/ui/GalleryDropZone';
 import { SaudiPhoneInput } from '@/components/ui/SaudiPhoneInput';
 import { UploadTileInput } from '@/components/ui/UploadTileInput';
+import { firstMessagesFromApiError, pickApiFieldMessage } from '@/lib/api/apiValidationErrors';
+import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
+import { toast } from '@/lib/appToast';
+import { cn } from '@/lib/utils';
 import { isProfileComplete, loadProfileBundle, saveOrganizerProfile, uploadProfileDocument, uploadProfileGalleryImage, uploadProfileLogo, type ProfileResourceContext } from '@/services/profileService';
 import type { OrganizerUser } from '@/types/domain';
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
@@ -28,6 +32,28 @@ function mergeOrganization(
   return { ...(o ?? { previousEvents: [], categories: [] }), ...partial };
 }
 
+function profileSaveFieldErrorsFromApi(e: unknown): Record<string, string> {
+  const raw = firstMessagesFromApiError(e);
+  const out: Record<string, string> = {};
+  const add = (ui: string, ...keys: string[]) => {
+    const m = pickApiFieldMessage(raw, ...keys);
+    if (m) out[ui] = m;
+  };
+  add('displayName', 'display_name', 'displayName');
+  add('phone', 'phone');
+  add('bio', 'bio');
+  add('regionId', 'region_id');
+  add('cityId', 'city_id', 'city');
+  add('organizationDocument', 'organization_document');
+  add('gallery', 'gallery');
+  add('venueName', 'venue.name', 'venue_name');
+  add('venueAddress', 'venue.address', 'venue_address', 'address');
+  add('venueCapacity', 'venue.capacity', 'capacity');
+  add('venueRegionId', 'venue.region_id', 'venue_region_id');
+  add('venueCityId', 'venue.city_id', 'venue_city_id');
+  return out;
+}
+
 export function ProfilePage() {
   const [p, setP] = useState<OrganizerUser | null>(null);
   const [resourceCtx, setResourceCtx] = useState<ProfileResourceContext | null>(null);
@@ -42,6 +68,7 @@ export function ProfilePage() {
   const [facilityInput, setFacilityInput] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [saveFieldErrors, setSaveFieldErrors] = useState<Record<string, string>>({});
   const [galleryPreviewByKey, setGalleryPreviewByKey] = useState<Record<string, string>>({});
   const previewUrlsRef = useRef<Set<string>>(new Set());
   /** Region dropdowns are local state; do not re-derive from `p` on every keystroke or selects reset / flash. */
@@ -68,6 +95,10 @@ export function ProfilePage() {
     }, 0);
     return () => window.clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    setSaveFieldErrors({});
+  }, [tab]);
 
   useEffect(() => {
     if (!p) {
@@ -169,11 +200,18 @@ export function ProfilePage() {
         className="space-y-0 overflow-visible rounded-3xl border border-ink-10 bg-white shadow-card-sm"
         onSubmit={async (e) => {
           e.preventDefault();
-          const bundle = await saveOrganizerProfile(p, resourceCtx);
-          setP(bundle.user);
-          setResourceCtx(bundle.resourceCtx);
-          setSaved(true);
-          window.setTimeout(() => setSaved(false), 2000);
+          setSaveFieldErrors({});
+          try {
+            const bundle = await saveOrganizerProfile(p, resourceCtx);
+            setP(bundle.user);
+            setResourceCtx(bundle.resourceCtx);
+            setSaved(true);
+            toast.success('Profile saved');
+            window.setTimeout(() => setSaved(false), 2000);
+          } catch (err) {
+            setSaveFieldErrors(profileSaveFieldErrorsFromApi(err));
+            toast.error(formatOrganizerApiError(err));
+          }
         }}
       >
         {tab === 'info' ? (
@@ -183,20 +221,37 @@ export function ProfilePage() {
               <label className="block text-[12px] font-semibold text-ink-60">
                 Display name
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.displayName ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.displayName}
                   onChange={(e) => patch({ displayName: e.target.value })}
                   required
                 />
+                {saveFieldErrors.displayName ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.displayName}</p>
+                ) : null}
               </label>
               <div className="block text-[12px] font-semibold text-ink-60">
                 Phone
-                <SaudiPhoneInput className="mt-1.5" value={p.phone} onChange={(next) => patch({ phone: next })} />
+                <SaudiPhoneInput
+                  className={cn(
+                    'mt-1.5',
+                    saveFieldErrors.phone ? 'border-coral ring-2 ring-coral/25' : ''
+                  )}
+                  value={p.phone}
+                  onChange={(next) => patch({ phone: next })}
+                />
+                {saveFieldErrors.phone ? <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.phone}</p> : null}
               </div>
               <label className="block text-[12px] font-semibold text-ink-60">
                 Saudi region
                 <select
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 bg-white px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.regionId ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={profileRegionId}
                   onChange={(e) => {
                     const id = e.target.value;
@@ -215,11 +270,17 @@ export function ProfilePage() {
                 {refRegionsError ? (
                   <p className="mt-1 text-[11px] text-coral">Could not load regions. Check API base URL and try again.</p>
                 ) : null}
+                {saveFieldErrors.regionId ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.regionId}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 City
                 <select
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 bg-white px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.cityId ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.cityId ?? ''}
                   onChange={(e) => {
                     const id = e.target.value;
@@ -241,6 +302,9 @@ export function ProfilePage() {
                     </option>
                   ))}
                 </select>
+                {saveFieldErrors.cityId ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.cityId}</p>
+                ) : null}
               </label>
               <div className="md:col-span-2">
                 <p className="text-[12px] font-semibold text-ink-60">Logo</p>
@@ -301,10 +365,14 @@ export function ProfilePage() {
                 Bio (min 30 chars)
                 <textarea
                   rows={5}
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.bio ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.bio}
                   onChange={(e) => patch({ bio: e.target.value })}
                 />
+                {saveFieldErrors.bio ? <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.bio}</p> : null}
               </label>
             </div>
           </section>
@@ -317,7 +385,10 @@ export function ProfilePage() {
               <label className="block text-[12px] font-semibold text-ink-60">
                 Venue name
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.venueName ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.venue?.name ?? ''}
                   onChange={(e) =>
                     patch({
@@ -325,11 +396,17 @@ export function ProfilePage() {
                     })
                   }
                 />
+                {saveFieldErrors.venueName ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.venueName}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 Venue region
                 <select
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 bg-white px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.venueRegionId ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={venueRegionId}
                   onChange={(e) => {
                     const id = e.target.value;
@@ -352,11 +429,17 @@ export function ProfilePage() {
                     </option>
                   ))}
                 </select>
+                {saveFieldErrors.venueRegionId ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.venueRegionId}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 Venue city
                 <select
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 bg-white px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.venueCityId ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.venue?.cityId ?? ''}
                   onChange={(e) => {
                     const cid = e.target.value;
@@ -386,11 +469,17 @@ export function ProfilePage() {
                     </option>
                   ))}
                 </select>
+                {saveFieldErrors.venueCityId ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.venueCityId}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60 md:col-span-2">
                 Address
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.venueAddress ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.venue?.address ?? ''}
                   onChange={(e) =>
                     patch({
@@ -398,6 +487,9 @@ export function ProfilePage() {
                     })
                   }
                 />
+                {saveFieldErrors.venueAddress ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.venueAddress}</p>
+                ) : null}
               </label>
               <VenueLocationMap
                 visible={tab === 'venue'}
@@ -425,7 +517,10 @@ export function ProfilePage() {
                 <input
                   type="number"
                   min={0}
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 font-mono text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 font-mono text-[14px]',
+                    saveFieldErrors.venueCapacity ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.venue?.capacity ?? ''}
                   onChange={(e) =>
                     patch({
@@ -436,6 +531,9 @@ export function ProfilePage() {
                     })
                   }
                 />
+                {saveFieldErrors.venueCapacity ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.venueCapacity}</p>
+                ) : null}
               </label>
               <div className="md:col-span-2">
                 <p className="text-[12px] font-semibold text-ink-60">Facilities</p>
@@ -585,6 +683,9 @@ export function ProfilePage() {
                 PDF or image — uploads immediately to the organizer API, then the public URL is stored when you save the profile.
               </p>
               {docUploadError ? <p className="text-[12px] text-coral">{docUploadError}</p> : null}
+              {saveFieldErrors.organizationDocument ? (
+                <p className="text-[12px] font-medium text-coral">{saveFieldErrors.organizationDocument}</p>
+              ) : null}
               {p.organizationDocument ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-10 bg-ink-5/50 px-4 py-3">
                   <FileText className="h-9 w-9 shrink-0 text-coral" strokeWidth={1.5} />
@@ -632,6 +733,7 @@ export function ProfilePage() {
                 Each image uploads to the organizer API when selected; public URLs are appended to your profile. Remove items you do not want, then use <strong>Save profile</strong> to persist the gallery list.
               </p>
               {galleryUploadError ? <p className="text-[12px] text-coral">{galleryUploadError}</p> : null}
+              {saveFieldErrors.gallery ? <p className="text-[12px] font-medium text-coral">{saveFieldErrors.gallery}</p> : null}
               {galleryUploading ? <p className="text-[12px] text-ink-60">Uploading images…</p> : null}
               <GalleryDropZone
                 items={galleryItems}

@@ -9,6 +9,7 @@ import {
   type PayoutRowView,
 } from '@/services/financeService';
 import type { FinanceSnapshot } from '@/types/domain';
+import { toast } from '@/lib/appToast';
 import { useCallback, useEffect, useState } from 'react';
 
 export function FinancialOverviewPage() {
@@ -47,7 +48,9 @@ export function FinancialOverviewPage() {
       const csv = await getFinanceExportsCsv();
       downloadFinanceCsv(csv);
     } catch (e) {
-      setExportErr(e instanceof Error ? e.message : 'Export failed');
+      const msg = e instanceof Error ? e.message : 'Export failed';
+      setExportErr(msg);
+      toast.error(msg);
     } finally {
       setExportBusy(false);
     }

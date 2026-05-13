@@ -1,5 +1,5 @@
 import type { Middleware } from '@reduxjs/toolkit';
-import { enqueueToast } from '@/store/slices/toastSlice';
+import { toast } from '@/lib/appToast';
 
 const SUCCESS_MESSAGES: Record<string, string> = {
   createEvent: 'Event created successfully.',
@@ -45,15 +45,15 @@ export const rtkToastMiddleware: Middleware = () => (next) => (action) => {
   if (action.type.endsWith('/fulfilled')) {
     const msg = SUCCESS_MESSAGES[endpointName];
     if (!msg) return result;
-    const dedupeKey = `ok:${endpointName}`;
-    next(enqueueToast({ tone: 'success', message: msg, dedupeKey }));
+    const id = `rtk:ok:${endpointName}`;
+    toast.success(msg, { id });
     return result;
   }
 
   if (!ERROR_ENDPOINTS.has(endpointName)) return result;
   const fallback = action.error?.message || 'Request failed.';
   const msg = extractErrorMessage(action.payload, fallback);
-  const dedupeKey = `err:${endpointName}:${msg}`;
-  next(enqueueToast({ tone: 'error', message: msg, dedupeKey }));
+  const id = `rtk:err:${endpointName}`;
+  toast.error(msg, { id });
   return result;
 };
