@@ -49,7 +49,16 @@ export function CancellationFlow({
               <Button variant="outline" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button variant="danger" disabled={!agree} onClick={() => { cancelEvent(eventId); onDone(); }}>
+              <Button
+                variant="danger"
+                disabled={!agree}
+                onClick={() => {
+                  void (async () => {
+                    await cancelEvent(eventId);
+                    onDone();
+                  })();
+                }}
+              >
                 Confirm cancel
               </Button>
             </div>

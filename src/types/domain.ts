@@ -11,8 +11,12 @@ export type OrganizerUser = {
   bio: string;
   /** Primary contact phone (E.164 or local) */
   phone: string;
-  /** Primary operating city */
+  /** Primary operating city (display name; optional if `cityId` is set) */
   city: string;
+  /** Saudi city id from reference API (`city_id`, integer as string) */
+  cityId?: string;
+  /** Saudi region id from reference API (`region_id`, integer as string) */
+  regionId?: string;
   /** Logo image URL (optional) */
   logoUrl: string;
   /** Required organization document (e.g. CR/permit scan) */
@@ -25,6 +29,10 @@ export type OrganizerUser = {
     city: string;
     capacity: number | null;
     facilities: string[];
+    regionId?: string;
+    cityId?: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   organization?: {
     website?: string;
@@ -39,6 +47,8 @@ export type OrganizerUser = {
 
 export type EventStatus =
   | 'draft'
+  | 'pending_approval'
+  | 'rejected'
   | 'published'
   | 'sold_out'
   | 'in_progress'
@@ -83,13 +93,27 @@ export type EventOccurrence = {
   ticketsSold: number;
 };
 
+export type EventGalleryItem = {
+  /** Server row id (required for DELETE /events/{id}/gallery/{itemId}). */
+  id: string;
+  /** Public image URL (https or absolute path). */
+  url: string;
+};
+
 export type OrganizerEvent = {
   id: string;
   title: string;
   description: string;
+  /** Display label (from API or category list). */
   category: string;
+  /** Event category FK from main `events/categories` list — PATCH as `category_id`. */
+  categoryId?: string;
   venue: string;
   city: string;
+  /** Saudi region id (reference API) when event PATCH supports `region_id`. */
+  regionId?: string;
+  /** Saudi city id (reference API) when event PATCH supports `city_id`. */
+  cityId?: string;
   startsAt: string;
   endsAt: string;
   status: EventStatus;
@@ -115,6 +139,8 @@ export type OrganizerEvent = {
   revenueGross: number;
   /** Sold-out waitlist counter (mock) */
   waitlistCount?: number;
+  /** Marketing / hero gallery (from GET event; manage via POST/DELETE gallery endpoints). */
+  eventGallery: EventGalleryItem[];
   postEventMedia: { kind: 'video' | 'photo'; label: string }[];
   /** Last impactful edit simulation */
   lastChangeLog?: { field: string; old: string; new: string; at: string }[];
@@ -126,6 +152,8 @@ export type ScannerAccount = {
   email: string;
   active: boolean;
   assignedEventIds: string[];
+  /** Present when API returns assignment ids (needed to DELETE unassign). */
+  assignmentIdsByEventId?: Record<string, string>;
 };
 
 export type ScanLog = {
@@ -192,6 +220,8 @@ export type FinanceSnapshot = {
   platformFees: number;
   net: number;
   refunds: number;
+  /** From API `adjustments_total` when present */
+  adjustments?: number;
   payoutStatus: 'scheduled' | 'paid' | 'held';
   refundBreakdown?: { reason: string; amount: number }[];
   feeAdjustments?: { label: string; amount: number }[];

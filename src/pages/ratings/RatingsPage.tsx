@@ -73,7 +73,7 @@ export function RatingsPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reputation</p>
           <CardTitle className="text-3xl font-extrabold tracking-tight text-ink">Ratings</CardTitle>
           <CardDescription className="max-w-2xl text-[15px] text-ink-60">
-            Mutual ratings unlock after completed engagements in the full product — mock feedback with live charts.
+            Star ratings are not exposed on the organizer API. This view lists your engagements (same source as reputation workflows); scores stay at zero until a dedicated ratings contract exists.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -105,7 +105,9 @@ export function RatingsPage() {
             </CardHeader>
             <CardContent className="pb-2">
               {trendData.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No ratings yet.</p>
+                <p className="text-sm text-muted-foreground">No score trend — engagements do not include star ratings.</p>
+              ) : trendData.every((d) => d.score === 0) ? (
+                <p className="text-sm text-muted-foreground">Engagements loaded; chart hidden because scores are not in the API response.</p>
               ) : (
                 <ChartContainer config={chartConfig} className="aspect-[4/3] max-h-[280px] w-full sm:aspect-video">
                   <AreaChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
@@ -267,8 +269,16 @@ function RatingReceivedCard({ rating: r, index, ready }: { rating: RatingItem; i
     >
       <CardContent className="pt-6">
         <div className="flex flex-wrap items-center gap-2">
-          <Star className="fill-amber text-amber motion-safe:animate-[pulse_2.4s_ease-in-out_infinite]" size={22} strokeWidth={2} />
-          <span className="font-mono text-2xl font-bold text-ink">{r.score.toFixed(1)}</span>
+          {r.score > 0 ? (
+            <>
+              <Star className="fill-amber text-amber motion-safe:animate-[pulse_2.4s_ease-in-out_infinite]" size={22} strokeWidth={2} />
+              <span className="font-mono text-2xl font-bold text-ink">{r.score.toFixed(1)}</span>
+            </>
+          ) : (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Engagement
+            </span>
+          )}
           <span className="text-[13px] font-semibold text-ink-60">{r.eventTitle}</span>
         </div>
         <p className="mt-3 text-[15px] font-medium leading-relaxed text-ink">{r.comment}</p>

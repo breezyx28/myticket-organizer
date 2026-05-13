@@ -9,9 +9,13 @@ export type SessionUser = {
 
 export type AuthContextValue = {
   user: SessionUser | null;
-  signIn: (params: { email: string; password: string }) => { ok: true } | { ok: false; reason: 'invalid' | 'not_organizer' };
-  signInGoogleMock: () => void;
-  signOut: () => void;
+  signIn: (
+    params: { email: string; password: string } | { challengeToken: string; otp: string }
+  ) => Promise<
+    | { ok: true }
+    | { ok: false; reason: 'invalid' | 'not_organizer' | 'two_factor_required'; challengeToken?: string }
+  >;
+  signOut: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

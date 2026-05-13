@@ -1,9 +1,11 @@
 import { Button } from '@/components/ui/Button';
+import { getMainSiteOrigin } from '@/config/site';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 export function AccessDeniedPage() {
   const { signOut, user } = useAuth();
+  const main = getMainSiteOrigin();
 
   return (
     <div className="min-h-dvh bg-surface-dark text-white">
@@ -18,15 +20,22 @@ export function AccessDeniedPage() {
             <Button type="button" variant="primary" onClick={() => signOut()}>
               Sign out
             </Button>
-            <a
-              href="https://myticket.com"
-              className="inline-flex items-center rounded-full border-2 border-white/30 px-5 py-3 text-[14px] font-semibold hover:bg-white/10"
-            >
-              Main website
-            </a>
+            {main ? (
+              <a
+                href={main}
+                className="inline-flex items-center rounded-full border-2 border-white/30 px-5 py-3 text-[14px] font-semibold hover:bg-white/10"
+                rel="noreferrer"
+              >
+                Main website
+              </a>
+            ) : (
+              <span className="inline-flex items-center rounded-full border-2 border-white/15 px-5 py-3 text-[14px] font-semibold text-white/50">
+                Set VITE_MAIN_SITE_URL for main site link
+              </span>
+            )}
           </div>
           <p className="mt-6 text-[13px] text-white/60">
-            Need organizer access? Complete onboarding on the main site and wait for admin approval (demo).
+            Need organizer access? Complete onboarding on the main site and wait for admin approval.
           </p>
           <Link to="/login" className="mt-4 inline-block text-[13px] font-semibold text-lemon hover:underline">
             Try a different account

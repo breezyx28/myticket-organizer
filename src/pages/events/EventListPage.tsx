@@ -1,34 +1,36 @@
 import { Button } from '@/components/ui/Button';
-import { archiveEvent, duplicateEvent, listEvents, setEventStatus, simulateLifecycleTick } from '@/services/eventsService';
+import {
+  archiveEvent,
+  duplicateEvent,
+  listEventsPaged,
+  simulateLifecycleTick,
+} from '@/services/eventsService';
 import { getProfile, isProfileComplete } from '@/services/profileService';
-import type { EventStatus, OrganizerEvent } from '@/types/domain';
+import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
+import type { OrganizerEvent } from '@/types/domain';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-
-const STATUS_LABEL: Record<EventStatus, string> = {
-  draft: 'Draft',
-  published: 'Published',
-  sold_out: 'Sold out',
-  in_progress: 'In progress',
-  ended: 'Ended',
-  cancelled: 'Cancelled',
-  archived: 'Archived',
-};
+import { useCallback, useEffect, useState } from 'react';
 
 export function EventListPage() {
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
   const [profileOk, setProfileOk] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pager, setPager] = useState<{ current: number; last: number; total: number } | null>(null);
 
-  async function reload() {
-    const [ev, p] = await Promise.all([listEvents(), getProfile()]);
-    setEvents(ev);
-    setProfileOk(isProfileComplete(p));
-  }
+  const reload = useCallback(
+    async (forPage = page) => {
+      const [evPage, p] = await Promise.all([listEventsPaged(forPage), getProfile()]);
+      setEvents(evPage.data);
+      setPager({ current: evPage.current_page, last: evPage.last_page, total: evPage.total });
+      setProfileOk(isProfileComplete(p));
+    },
+    [page]
+  );
 
   useEffect(() => {
     const t = window.setTimeout(() => void reload(), 0);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [reload]);
 
   return (
     <div className="space-y-8">
@@ -36,7 +38,7 @@ export function EventListPage() {
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Events</p>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">My events</h1>
-          <p className="mt-2 max-w-xl text-[15px] text-ink-60">Create, publish, edit, duplicate, cancel, and archive — all mock-persisted locally.</p>
+          <p className="mt-2 max-w-xl text-[15px] text-ink-60">Create, publish, edit, duplicate, cancel, and archive against the organizer API.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={profileOk ? '/events/new' : '/profile'}>
@@ -84,7 +86,7 @@ export function EventListPage() {
                 <td className="hidden px-4 py-4 text-ink-60 md:table-cell">{new Date(e.startsAt).toLocaleString()}</td>
                 <td className="px-4 py-4">
                   <span className="inline-flex rounded-full bg-ink-5 px-3 py-1 text-[11px] font-bold uppercase text-ink-80 ring-1 ring-ink-10">
-                    {STATUS_LABEL[e.status]}
+                    {EVENT_STATUS_LABEL[e.status]}
                   </span>
                 </td>
                 <td className="hidden px-4 py-4 font-mono lg:table-cell">{e.ticketsSold}</td>
@@ -100,8 +102,10 @@ export function EventListPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          archiveEvent(e.id);
-                          void reload();
+                          void (async () => {
+                            await archiveEvent(e.id);
+                            await reload();
+                          })();
                         }}
                       >
                         Archive
@@ -111,8 +115,10 @@ export function EventListPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        duplicateEvent(e.id);
-                        void reload();
+                        void (async () => {
+                          await duplicateEvent(e.id);
+                          await reload();
+                        })();
                       }}
                     >
                       Duplicate
@@ -121,32 +127,59 @@ export function EventListPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        simulateLifecycleTick(e.id);
-                        void reload();
+                        void (async () => {
+                          await simulateLifecycleTick(e.id);
+                          await reload();
+                        })();
                       }}
                     >
                       Next state
                     </Button>
-                    {e.status !== 'sold_out' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEventStatus(e.id, 'sold_out');
-                          void reload();
-                        }}
-                      >
-                        Mark sold out
-                      </Button>
-                    ) : null}
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {events.length === 0 ? <p className="p-6 text-[14px] text-ink-40">No events yet.</p> : null}
+        {events.length === 0 ? <p className="p-6 text-[14px] text-ink-40">No events on this page.</p> : null}
       </div>
+
+      {pager ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-10 bg-ink-5/40 px-4 py-3 text-[13px] text-ink-60">
+          <span>
+            Page <span className="font-mono font-bold text-ink">{pager.current}</span> of{' '}
+            <span className="font-mono font-bold text-ink">{pager.last}</span>
+            {pager.total > 0 ? (
+              <>
+                {' '}
+                · <span className="font-mono font-bold text-ink">{pager.total}</span> events total
+              </>
+            ) : null}
+          </span>
+          {pager.last > 1 ? (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pager.current <= 1}
+                onClick={() => setPage((x) => Math.max(1, x - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pager.current >= pager.last}
+                onClick={() => setPage((x) => x + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -29,7 +29,9 @@ export function HomePage() {
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Dashboard</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink md:text-4xl">At a glance</h1>
-        <p className="mt-2 max-w-2xl text-[15px] text-ink-60">Mock data in your browser reflects local changes to events, scanners, analytics, and finance.</p>
+        <p className="mt-2 max-w-2xl text-[15px] text-ink-60">
+          Live data from the organizer API where wired (events, finance, scanners); other tiles may still use local aggregates until every module is connected.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -55,7 +55,7 @@ export function GalleryDropZone({
       >
         <ImagePlus className="h-10 w-10 text-coral" strokeWidth={1.75} />
         <span className="text-[13px] font-semibold text-ink">Drop images here or browse</span>
-        <span className="max-w-sm text-[12px] text-ink-40">PNG, JPG, WebP — multiple files supported (demo: stored as filenames)</span>
+        <span className="max-w-sm text-[12px] text-ink-40">PNG, JPG, WebP — multiple files supported.</span>
         <input
           type="file"
           accept="image/*"

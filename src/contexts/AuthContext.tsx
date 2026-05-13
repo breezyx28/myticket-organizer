@@ -1,5 +1,9 @@
 import { AuthContext, type AuthContextValue, type SessionUser } from '@/contexts/organizerAuthContext';
-import type { UserRole } from '@/types/domain';
+import { organizerApi, useLoginMutation, useLogoutMutation } from '@/store/api/organizerApi';
+import { useAppDispatch } from '@/store/hooks';
+import { setAccessToken, ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
+import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
+import type { OrganizerUser } from '@/types/domain';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 const SESSION_KEY = 'myticket_organizer_session_v1';
@@ -19,57 +23,111 @@ function saveSession(u: SessionUser | null) {
   else sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
 }
 
-/** Demo: only organizer@myticket.demo / password OR any email containing "+organizer" */
-function resolveDemoRole(email: string): UserRole | null {
-  const e = email.trim().toLowerCase();
-  if (e === 'organizer@myticket.demo') return 'organizer';
-  if (e.includes('+organizer')) return 'organizer';
-  if (e.includes('attendee') || e.includes('+buyer')) return 'attendee';
-  return null;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(() => loadSession());
+  const dispatch = useAppDispatch();
+  const [user, setUser] = useState<SessionUser | null>(() => {
+    if (typeof sessionStorage === 'undefined') return null;
+    const token = sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+    const u = loadSession();
+    if (!token && u) return null;
+    return u;
+  });
+  const [loginMutation] = useLoginMutation();
+  const [logoutMutation] = useLogoutMutation();
 
-  const signIn = useCallback((params: { email: string; password: string }) => {
-    const email = params.email.trim();
-    if (!email || params.password.length < 4) return { ok: false as const, reason: 'invalid' as const };
-    const role = resolveDemoRole(email);
-    if (role === null) return { ok: false as const, reason: 'invalid' as const };
-    if (role !== 'organizer') return { ok: false as const, reason: 'not_organizer' as const };
-    const next: SessionUser = {
-      email,
-      name: email.split('@')[0] ?? 'Organizer',
-      role: 'organizer',
-    };
-    setUser(next);
-    saveSession(next);
-    return { ok: true as const };
-  }, []);
+  const signIn = useCallback(
+    async (params: { email: string; password: string } | { challengeToken: string; otp: string }) => {
+      if ('challengeToken' in params) {
+        try {
+          const result = await loginMutation({
+            challenge_token: params.challengeToken,
+            otp: params.otp,
+          }).unwrap();
+          if (result.kind === 'two_factor_required') {
+            return { ok: false as const, reason: 'two_factor_required' as const, challengeToken: result.challengeToken };
+          }
+          if (result.kind !== 'success' || !result.accessToken) {
+            return { ok: false as const, reason: 'invalid' as const };
+          }
+          dispatch(setAccessToken(result.accessToken));
+          let nextUser = result.user;
+          if (!nextUser) {
+            try {
+              const profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
+              nextUser = { email: profile.email, name: profile.name, role: 'organizer' };
+            } catch {
+              dispatch(setAccessToken(null));
+              return { ok: false as const, reason: 'invalid' as const };
+            }
+          }
+          if (nextUser.role !== 'organizer') {
+            dispatch(setAccessToken(null));
+            return { ok: false as const, reason: 'not_organizer' as const };
+          }
+          setUser(nextUser);
+          saveSession(nextUser);
+          return { ok: true as const };
+        } catch {
+          return { ok: false as const, reason: 'invalid' as const };
+        }
+      }
 
-  const signInGoogleMock = useCallback(() => {
-    const next: SessionUser = {
-      email: 'organizer@myticket.demo',
-      name: 'Riyadh Nights',
-      role: 'organizer',
-    };
-    setUser(next);
-    saveSession(next);
-  }, []);
+      const email = params.email.trim();
+      if (!email || params.password.length < 1) return { ok: false as const, reason: 'invalid' as const };
+      try {
+        const result = await loginMutation({
+          email,
+          password: params.password,
+        }).unwrap();
+        if (result.kind === 'two_factor_required') {
+          return { ok: false as const, reason: 'two_factor_required' as const, challengeToken: result.challengeToken };
+        }
+        if (result.kind !== 'success' || !result.accessToken) {
+          return { ok: false as const, reason: 'invalid' as const };
+        }
+        dispatch(setAccessToken(result.accessToken));
+        let nextUser = result.user;
+        if (!nextUser) {
+          try {
+            const profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
+            nextUser = { email: profile.email, name: profile.name, role: 'organizer' };
+          } catch {
+            dispatch(setAccessToken(null));
+            return { ok: false as const, reason: 'invalid' as const };
+          }
+        }
+        if (nextUser.role !== 'organizer') {
+          dispatch(setAccessToken(null));
+          return { ok: false as const, reason: 'not_organizer' as const };
+        }
+        setUser(nextUser);
+        saveSession(nextUser);
+        return { ok: true as const };
+      } catch {
+        return { ok: false as const, reason: 'invalid' as const };
+      }
+    },
+    [dispatch, loginMutation]
+  );
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    try {
+      await logoutMutation().unwrap();
+    } catch {
+      /* still clear client session */
+    }
+    dispatch(setAccessToken(null));
     setUser(null);
     saveSession(null);
-  }, []);
+  }, [dispatch, logoutMutation]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       signIn,
-      signInGoogleMock,
       signOut,
     }),
-    [user, signIn, signInGoogleMock, signOut]
+    [user, signIn, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
