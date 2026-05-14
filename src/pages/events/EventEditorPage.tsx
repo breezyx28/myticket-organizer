@@ -4,7 +4,7 @@ import { PublishImpactDialog } from '@/components/events/PublishImpactDialog';
 import { RecurrenceManager } from '@/components/events/RecurrenceManager';
 import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
-import { getApiBaseUrl } from '@/config/api';
+import { ApiBaseUrl } from '@/config/api';
 import { toast } from '@/lib/appToast';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
 import {
@@ -1194,7 +1194,7 @@ function resolvePublicUrl(url: string) {
   if (/^https?:\/\//i.test(u) || u.startsWith('data:')) return u;
   if (u.startsWith('/')) {
     try {
-      return new URL(u, getApiBaseUrl()).toString();
+      return new URL(u, ApiBaseUrl).toString();
     } catch {
       return u;
     }

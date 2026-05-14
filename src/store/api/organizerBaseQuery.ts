@@ -5,7 +5,7 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
-import { getApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
+import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
 import { refreshTokenResponseSchema } from '@/schemas/organizer/responses/auth';
 import { setAccessToken } from '@/store/slices/authSlice';
@@ -23,11 +23,19 @@ function parseRefreshBody(data: unknown): string | null {
 
 let refreshInFlight: Promise<string | null> | null = null;
 
-function scheduleRefresh(
-  api: BaseQueryApi,
-  rawBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
-  extraOptions: object
-): Promise<string | null> {
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: ApiBaseUrl,
+  prepareHeaders: (headers, { getState, endpoint }) => {
+    if (!PUBLIC_ENDPOINTS.has(String(endpoint))) {
+      const token = (getState() as { auth?: { accessToken?: string | null } }).auth?.accessToken;
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+    }
+    headers.set('Accept', 'application/json');
+    return headers;
+  },
+});
+
+function scheduleRefresh(api: BaseQueryApi, extraOptions: object): Promise<string | null> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
@@ -54,18 +62,6 @@ function scheduleRefresh(
   return refreshInFlight;
 }
 
-const rawBaseQuery = fetchBaseQuery({
-  baseUrl: getApiBaseUrl(),
-  prepareHeaders: (headers, { getState, endpoint }) => {
-    if (!PUBLIC_ENDPOINTS.has(String(endpoint))) {
-      const token = (getState() as { auth?: { accessToken?: string | null } }).auth?.accessToken;
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-    }
-    headers.set('Accept', 'application/json');
-    return headers;
-  },
-});
-
 export const organizerBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
@@ -76,7 +72,7 @@ export const organizerBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchB
 
   if (NO_REFRESH_ON_401.has(String(api.endpoint))) return result;
 
-  const token = await scheduleRefresh(api, rawBaseQuery, (extraOptions ?? {}) as object);
+  const token = await scheduleRefresh(api, (extraOptions ?? {}) as object);
   if (!token) return result;
 
   result = await rawBaseQuery(args, api, extraOptions);

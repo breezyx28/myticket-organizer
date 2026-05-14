@@ -3,7 +3,7 @@ import { organizerApi, type ListEventsPage } from '@/store/api/organizerApi';
 import { organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
-import { getApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
+import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
 
 export { diffOrganizerEventPatch } from '@/lib/api/mapEvent';
@@ -428,7 +428,7 @@ export function uploadEventCoverImageWithProgress(
 
   const fd = new FormData();
   fd.append('image', file);
-  const url = `${getApiBaseUrl()}${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/cover`;
+  const url = `${ApiBaseUrl}${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/cover`;
 
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();

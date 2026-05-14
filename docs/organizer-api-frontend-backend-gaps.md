@@ -4,7 +4,7 @@ This document supports handoff to backend developers. The organizer SPA targets 
 
 ## Environment
 
-- **Base URL**: `VITE_API_BASE_URL` (optional). Defaults to `http://localhost:8000` — see [`src/config/api.ts`](../src/config/api.ts).
+- **Base URL**: hardcoded `ApiBaseUrl` in [`src/config/api.ts`](../src/config/api.ts).
 - **Auth**: Bearer from `POST /api/v1/organizer/auth/login` (including **2FA** branch with `challenge_token` + second step `otp` per backend). Token in `sessionStorage` and Redux `auth.accessToken`. `POST .../auth/refresh` expects `{ token }` per markdown.
 - **401 handling**: [`organizerBaseQuery`](../src/store/api/organizerBaseQuery.ts) on **401** (except `login`, `refresh`, `logout`, and public routes) calls **`POST .../auth/refresh`** once, updates the token, and **retries** the original request. Concurrent 401s share one in-flight refresh.
 

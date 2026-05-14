@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { getApiBaseUrl, MAIN_API_PREFIX, REFERENCE_API_PREFIX } from '@/config/api';
+import { ApiBaseUrl, MAIN_API_PREFIX, REFERENCE_API_PREFIX } from '@/config/api';
 import { eventCategoriesEnvelopeSchema, type EventCategoryRow } from '@/schemas/reference/eventCategories';
 import {
   saudiCitiesEnvelopeSchema,
@@ -51,7 +51,7 @@ function normalizeEventCategories(rows: EventCategoryRow[]): EventCategoryOption
 export const referenceApi = createApi({
   reducerPath: 'referenceApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: getApiBaseUrl(),
+    baseUrl: ApiBaseUrl,
     prepareHeaders: (headers) => {
       headers.set('Accept', 'application/json');
     },
