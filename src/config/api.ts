@@ -1,13 +1,12 @@
-/** Fallback when `VITE_API_BASE_URL` is unset (local backend). Set `VITE_API_BASE_URL` in `.env` for staging/production. */
-const DEFAULT_BASE = 'http://localhost:8000';
-
-/** Organizer API origin from Vite (`import.meta.env.VITE_API_BASE_URL`). */
+/** Organizer API origin from Vite (`import.meta.env.VITE_API_BASE_URL`). Set in `.env` (no hardcoded default). */
 export function getApiBaseUrl(): string {
   const v = import.meta.env.VITE_API_BASE_URL;
   if (typeof v === 'string' && v.trim().length > 0) {
     return v.replace(/\/+$/, '');
   }
-  return DEFAULT_BASE;
+  throw new Error(
+    'Missing VITE_API_BASE_URL. Define it in `.env` at the project root (e.g. VITE_API_BASE_URL=https://api.example.com), then restart `vite` / the dev server so the value is inlined.'
+  );
 }
 
 export const ORGANIZER_API_PREFIX = '/api/v1/organizer';

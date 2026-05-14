@@ -41,10 +41,10 @@ export function LoginPage() {
       }
       const res = await signIn({ challengeToken, otp: otpTrim });
       if (!res.ok) {
-        if (res.reason === 'two_factor_required') {
-          setChallengeToken(res.challengeToken ?? null);
+        if (res?.reason === 'two_factor_required') {
+          setChallengeToken(res?.challengeToken ?? null);
           setFieldErrors({ otp: 'Additional verification required. Enter the new code.' });
-        } else if (res.reason === 'not_organizer') {
+        } else if (res?.reason === 'not_organizer') {
           setFieldErrors({ email: 'Access denied — this dashboard is for Organizer accounts only.' });
         } else {
           setFieldErrors({ otp: 'Invalid or expired verification code.' });
