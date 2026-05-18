@@ -11,6 +11,9 @@ import {
 } from '@/schemas/organizer/responses/shared';
 import { healthResponseSchema, versionResponseSchema } from '@/schemas/organizer/responses/auth';
 import { financeExportsResponseSchema } from '@/schemas/organizer/responses/finance';
+import { notificationsListResponseSchema } from '@/schemas/organizer/responses/notifications';
+import { mapApiNotificationRow } from '@/lib/api/mapNotification';
+import type { NotificationsListPage, OrganizerNotification } from '@/types/domain';
 
 type OrganBuilder = EndpointBuilder<
   BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
@@ -32,7 +35,8 @@ type OrganBuilder = EndpointBuilder<
   | 'Refund'
   | 'Waitlist'
   | 'Engagement'
-  | 'EngagementMessage',
+  | 'EngagementMessage'
+  | 'Notification',
   'organizerApi'
 >;
 
@@ -549,6 +553,61 @@ export function buildExtraOrganizerEndpoints(builder: OrganBuilder) {
         return d.data;
       },
       providesTags: (_r, _e, engagementId) => [{ type: 'EngagementMessage', id: String(engagementId) }],
+    }),
+
+    listNotifications: builder.query<NotificationsListPage, { page?: number; since?: string } | void>({
+      query: (arg) => {
+        const page = typeof arg === 'object' && arg?.page != null ? arg.page : 1;
+        const since = typeof arg === 'object' && arg?.since ? arg.since : undefined;
+        const params = new URLSearchParams({ page: String(page) });
+        if (since) params.set('since', since);
+        return orgPath(`/me/notifications?${params.toString()}`);
+      },
+      transformResponse: (raw: unknown): NotificationsListPage => {
+        const shell = safeParseResponse(notificationsListResponseSchema, raw, 'GET /me/notifications');
+        return {
+          data: shell.data.map((row) => mapApiNotificationRow(row)),
+          current_page: shell.current_page,
+          last_page: shell.last_page,
+          per_page: shell.per_page,
+          total: shell.total,
+          unread_count: shell.unread_count ?? shell.data.filter((row) => {
+            const o = row && typeof row === 'object' ? (row as { is_read?: boolean }) : null;
+            return o?.is_read === false;
+          }).length,
+        };
+      },
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.data.map((n) => ({ type: 'Notification' as const, id: n.id })),
+              { type: 'Notification' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Notification', id: 'LIST' }],
+    }),
+
+    markNotificationRead: builder.mutation<OrganizerNotification, string>({
+      query: (id) => ({
+        url: orgPath(`/me/notifications/${encodeURIComponent(id)}/read`),
+        method: 'PATCH',
+      }),
+      transformResponse: (raw: unknown) => mapApiNotificationRow(unwrapEnvelope(raw)),
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'Notification', id },
+        { type: 'Notification', id: 'LIST' },
+      ],
+    }),
+
+    markAllNotificationsRead: builder.mutation<{ message?: string }, void>({
+      query: () => ({
+        url: orgPath('/me/notifications/read-all'),
+        method: 'POST',
+      }),
+      transformResponse: (raw: unknown) => {
+        const parsed = messageResponseSchema.safeParse(raw);
+        return parsed.success ? parsed.data : { message: 'ok' };
+      },
+      invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
     }),
   };
 }

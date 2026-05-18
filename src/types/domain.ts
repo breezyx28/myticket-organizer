@@ -239,6 +239,44 @@ export type EventChangeNotification = {
   changes?: { field: string; old: string; new: string }[];
 };
 
+export type AdminEventNotificationAction =
+  | 'approved'
+  | 'rejected'
+  | 'featured'
+  | 'unfeatured'
+  | 'pinned'
+  | 'unpinned';
+
+export type AdminEventNotificationData = {
+  admin_action: AdminEventNotificationAction;
+  event_id: number;
+  event_code: string;
+  status: string;
+  rejection_reason?: string;
+};
+
+export type OrganizerNotification = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  data: AdminEventNotificationData | Record<string, unknown> | null;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export type NotificationsListPage = {
+  data: OrganizerNotification[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  unread_count: number;
+};
+
 export type OrganizerDashboardState = {
   profile: OrganizerUser;
   events: OrganizerEvent[];

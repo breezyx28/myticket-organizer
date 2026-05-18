@@ -2,7 +2,8 @@ import { NAV_MAIN } from '@/config/nav';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/profileService';
-import { Bell, LayoutDashboard, LogOut, Menu, Ticket, X } from 'lucide-react';
+import { NotificationBellMenu } from '@/components/notifications/NotificationBellMenu';
+import { LayoutDashboard, LogOut, Menu, Ticket, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
@@ -77,7 +78,9 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
               Dashboard
             </span>
           </div>
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-2">
+            <NotificationBellMenu />
+            <div className="hidden items-center gap-2 md:flex">
             <NavLink
               to="/"
               className="inline-flex h-10 items-center gap-2 rounded-full border border-ink-10 bg-white px-4 text-[13px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
@@ -85,13 +88,6 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
               <LayoutDashboard size={16} strokeWidth={2} />
               Overview
             </NavLink>
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
-            >
-              <Bell size={16} strokeWidth={2} />
-            </button>
             <div className="ml-1 rounded-2xl border border-ink-10 bg-white px-3 py-1.5">
               <p className="max-w-[220px] truncate text-[12px] font-semibold text-ink">{user?.email}</p>
               <p className="text-[10px] font-bold uppercase tracking-wide text-ink-40">Organizer account</p>
@@ -104,6 +100,7 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
               <LogOut size={16} strokeWidth={2} />
               Sign out
             </button>
+            </div>
           </div>
         </div>
       </header>

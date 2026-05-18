@@ -61,6 +61,7 @@ export const organizerApi = createApi({
     'Waitlist',
     'Engagement',
     'EngagementMessage',
+    'Notification',
   ],
   endpoints: (builder) => ({
     ...buildExtraOrganizerEndpoints(builder),
