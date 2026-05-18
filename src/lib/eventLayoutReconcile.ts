@@ -18,14 +18,47 @@ export function reconcilePatchedEvent(
   const requestedFreeLayout = patch.layoutType === 'free';
   const intendedNonFree = intendedLayout !== 'free';
   const serverFree = serverEvent.layoutType === 'free';
+  const intendedRows = patch.rows ?? localBeforeSave.rows;
+  const intendedCols = patch.cols ?? localBeforeSave.cols;
+  const intendedSeats = patch.seats ?? localBeforeSave.seats;
 
   if (serverFree && intendedNonFree && patchTouchesSeatMap && !requestedFreeLayout) {
     return {
       ...serverEvent,
       layoutType: intendedLayout,
-      rows: patch.rows ?? localBeforeSave.rows,
-      cols: patch.cols ?? localBeforeSave.cols,
-      seats: patch.seats ?? localBeforeSave.seats,
+      rows: intendedRows,
+      cols: intendedCols,
+      seats: intendedSeats,
+    };
+  }
+
+  if (requestedFreeLayout) {
+    return {
+      ...serverEvent,
+      layoutType: 'free',
+      rows: 0,
+      cols: 0,
+      seats: [],
+    };
+  }
+
+  if (!patchTouchesSeatMap || !intendedNonFree) {
+    return serverEvent;
+  }
+
+  const serverSeatsMissing = serverEvent.seats.length === 0 && intendedSeats.length > 0;
+  const serverDimensionsStale =
+    intendedRows > 0 &&
+    intendedCols > 0 &&
+    (serverEvent.rows !== intendedRows || serverEvent.cols !== intendedCols);
+
+  if (serverSeatsMissing || serverDimensionsStale) {
+    return {
+      ...serverEvent,
+      layoutType: intendedLayout,
+      rows: intendedRows,
+      cols: intendedCols,
+      seats: serverSeatsMissing ? intendedSeats : serverEvent.seats,
     };
   }
 

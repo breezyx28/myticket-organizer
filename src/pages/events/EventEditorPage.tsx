@@ -70,8 +70,19 @@ export function EventEditorPage() {
   const [uploadedCoverPreview, setUploadedCoverPreview] = useState<string | null>(null);
 
   const committed = useRef<OrganizerEvent | null>(null);
+  /** Latest editor state (updated synchronously in seat-map handlers before blur/save). */
+  const latestEventRef = useRef<OrganizerEvent | null>(null);
   const mapCoordsSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    latestEventRef.current = event;
+  }, [event]);
+
+  function clampSeatMapDimension(value: number, max: number) {
+    if (!Number.isFinite(value) || value < 1) return 1;
+    return Math.min(max, Math.trunc(value));
+  }
 
   const { data: eventCategories = [] } = useListEventCategoriesQuery();
   const { data: saudiRegions = [] } = useListSaudiRegionsQuery();
@@ -320,8 +331,7 @@ export function EventEditorPage() {
     }
     void (async () => {
       try {
-        await patchEvent(base.id, patch);
-        const ev = await getEvent(base.id);
+        const ev = await patchEvent(base.id, patch);
         const reconciled = reconcilePatchedEvent(ev, patch, localBeforeSave);
         if (reconciled) {
           setEvent(reconciled);
@@ -340,10 +350,9 @@ export function EventEditorPage() {
     const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
     void (async () => {
       try {
-        await patchEvent(base.id, pendingPatch);
+        const ev = await patchEvent(base.id, pendingPatch);
         const changes = partialChanges(base, pendingPatch);
         await appendChangeLog(base.id, changes);
-        const ev = await getEvent(base.id);
         const reconciled = reconcilePatchedEvent(ev, pendingPatch, localBeforeSave);
         if (reconciled) {
           setEvent(reconciled);
@@ -381,8 +390,7 @@ export function EventEditorPage() {
       }
     }
     try {
-      await patchEvent(event.id, diff);
-      const ev = await getEvent(event.id);
+      const ev = await patchEvent(event.id, diff);
       const reconciled = reconcilePatchedEvent(ev, diff, event);
       if (reconciled) {
         setEvent(reconciled);
@@ -746,6 +754,7 @@ export function EventEditorPage() {
                     ticketTypes: next.ticketTypes,
                   });
                 }
+                latestEventRef.current = next;
                 setEvent(next);
                 save(
                   {
@@ -771,16 +780,25 @@ export function EventEditorPage() {
               value={event.rows}
               disabled={event.layoutType === 'free'}
               onChange={(e) => {
-                const rows = Number(e.target.value);
-                updateLocal((cur) => ({
-                  ...cur,
-                  rows,
-                  seats: cur.layoutType === 'free' ? [] : buildSeatsFromGrid({ ...cur, rows }),
-                }));
+                const rows = clampSeatMapDimension(Number(e.target.value), 24);
+                updateLocal((cur) => {
+                  if (!cur) return cur;
+                  const next: OrganizerEvent = {
+                    ...cur,
+                    rows,
+                    seats:
+                      cur.layoutType === 'free'
+                        ? []
+                        : buildSeatsFromGrid({ ...cur, rows, cols: cur.cols || 10 }),
+                  };
+                  latestEventRef.current = next;
+                  return next;
+                });
               }}
               onBlur={() => {
-                if (event.layoutType === 'free') return;
-                save({ rows: event.rows, cols: event.cols });
+                const cur = latestEventRef.current;
+                if (!cur || cur.layoutType === 'free') return;
+                save({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
               }}
             />
           </Field>
@@ -793,16 +811,25 @@ export function EventEditorPage() {
               value={event.cols}
               disabled={event.layoutType === 'free'}
               onChange={(e) => {
-                const cols = Number(e.target.value);
-                updateLocal((cur) => ({
-                  ...cur,
-                  cols,
-                  seats: cur.layoutType === 'free' ? [] : buildSeatsFromGrid({ ...cur, cols }),
-                }));
+                const cols = clampSeatMapDimension(Number(e.target.value), 32);
+                updateLocal((cur) => {
+                  if (!cur) return cur;
+                  const next: OrganizerEvent = {
+                    ...cur,
+                    cols,
+                    seats:
+                      cur.layoutType === 'free'
+                        ? []
+                        : buildSeatsFromGrid({ ...cur, rows: cur.rows || 6, cols }),
+                  };
+                  latestEventRef.current = next;
+                  return next;
+                });
               }}
               onBlur={() => {
-                if (event.layoutType === 'free') return;
-                save({ rows: event.rows, cols: event.cols });
+                const cur = latestEventRef.current;
+                if (!cur || cur.layoutType === 'free') return;
+                save({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
               }}
             />
           </Field>
@@ -851,14 +878,23 @@ export function EventEditorPage() {
           <SeatLayoutBuilder
             event={event}
             onApplyTemplate={(rows, cols) => {
-              const seats = buildSeatsFromGrid({ ...event, rows, cols, ticketTypes: event.ticketTypes });
-              const next = { ...event, rows, cols, seats };
+              const r = clampSeatMapDimension(rows, 24);
+              const c = clampSeatMapDimension(cols, 32);
+              const seats = buildSeatsFromGrid({ ...event, rows: r, cols: c, ticketTypes: event.ticketTypes });
+              const next = { ...event, rows: r, cols: c, seats };
+              latestEventRef.current = next;
               updateLocal(() => next);
-              save({ rows, cols }, { localSnapshot: next });
+              save({ rows: r, cols: c }, { localSnapshot: next });
             }}
             onChangeSeats={(seats) => {
-              updateLocal((cur) => ({ ...cur, seats }));
-              save({ seats });
+              updateLocal((cur) => {
+                if (!cur) return cur;
+                const next = { ...cur, seats };
+                latestEventRef.current = next;
+                return next;
+              });
+              const cur = latestEventRef.current;
+              if (cur) save({ seats }, { localSnapshot: cur });
             }}
             onChangeSpacing={(patch) => {
               updateLocal((cur) => ({ ...cur, ...patch }));

@@ -395,6 +395,12 @@ export function buildSeatsFromGrid(ev: Pick<OrganizerEvent, 'rows' | 'cols' | 't
   return seats;
 }
 
+function seatMapDimensions(merged: OrganizerEvent): { rows: number; cols: number } {
+  const rows = Math.max(1, Math.min(100, merged.rows || 6));
+  const cols = Math.max(1, Math.min(100, merged.cols || 10));
+  return { rows, cols };
+}
+
 export async function patchEvent(
   id: string,
   patch: Partial<
@@ -429,9 +435,9 @@ export async function patchEvent(
       | 'postEventMedia'
     >
   > & { layoutType?: LayoutType; entryMode?: EntryMode }
-) {
+): Promise<OrganizerEvent | null> {
   const current = await getEvent(id);
-  if (!current) return;
+  if (!current) return null;
 
   const { seats: seatsPatch, ...eventFields } = patch;
   const merged: OrganizerEvent = { ...current, ...eventFields };
@@ -460,23 +466,32 @@ export async function patchEvent(
     );
   }
 
-  if (merged.layoutType === 'free') return;
+  if (merged.layoutType === 'free') {
+    return getEvent(id);
+  }
 
   if (shouldBulkReplaceSeatMap(patch, merged)) {
+    const { rows, cols } = seatMapDimensions(merged);
     const defaultType = merged.ticketTypes[0];
     await bulkReplaceEventSeats(id, {
       layoutType: merged.layoutType,
-      rows: merged.rows || 6,
-      cols: merged.cols || 10,
+      rows,
+      cols,
       ticketTypeId: resolveNumericTicketTypeId(merged.ticketTypes, defaultType?.id),
       section: merged.layoutType === 'section' ? merged.seats[0]?.section : undefined,
     });
-    return;
+    const fresh = await getEvent(id);
+    if (fresh && fresh.seats.length === 0 && merged.seats.length > 0) {
+      return { ...fresh, rows, cols, seats: merged.seats };
+    }
+    return fresh;
   }
 
   if (seatsPatch?.length) {
     await syncSeatsIndividually(id, seatsPatch, current.seats, merged.ticketTypes);
   }
+
+  return getEvent(id);
 }
 
 export async function createEventTicketTypeApi(
