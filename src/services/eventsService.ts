@@ -1,6 +1,6 @@
 import type { OrganizerEvent, EventStatus, LayoutType, EntryMode, SeatCell } from '@/types/domain';
 import { organizerApi, type ListEventsPage } from '@/store/api/organizerApi';
-import { organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
+import { mapApiSeats, organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
@@ -30,9 +30,107 @@ export async function listEvents(): Promise<OrganizerEvent[]> {
 
 export async function getEvent(id: string): Promise<OrganizerEvent | null> {
   try {
-    return await apiUnwrap<OrganizerEvent>(apiDispatch(organizerApi.endpoints.getEvent.initiate(id)));
+    const ev = await apiUnwrap<OrganizerEvent>(apiDispatch(organizerApi.endpoints.getEvent.initiate(id)));
+    if (!ev) return null;
+    if (ev.layoutType !== 'free' && ev.seats.length === 0) {
+      try {
+        const rows = await apiUnwrap<unknown[]>(apiDispatch(organizerApi.endpoints.listSeats.initiate(id)));
+        ev.seats = mapApiSeats(rows);
+      } catch {
+        /* keep empty seats */
+      }
+    }
+    return ev;
   } catch {
     return null;
+  }
+}
+
+function resolveNumericTicketTypeId(
+  ticketTypes: OrganizerEvent['ticketTypes'],
+  preferredId?: string
+): number | undefined {
+  if (preferredId && /^\d+$/.test(preferredId.trim())) {
+    return Number(preferredId);
+  }
+  for (const t of ticketTypes) {
+    if (/^\d+$/.test(t.id.trim())) return Number(t.id);
+  }
+  return undefined;
+}
+
+function seatCellChanged(before: SeatCell, after: SeatCell): boolean {
+  return (
+    before.ticketTypeId !== after.ticketTypeId ||
+    before.price !== after.price ||
+    before.accessibility !== after.accessibility ||
+    (before.section ?? '') !== (after.section ?? '')
+  );
+}
+
+function shouldBulkReplaceSeatMap(
+  patch: Partial<OrganizerEvent>,
+  merged: OrganizerEvent
+): boolean {
+  if (merged.layoutType === 'free') return false;
+  if (patch.layoutType !== undefined || patch.rows !== undefined || patch.cols !== undefined) return true;
+  if (!patch.seats?.length) return false;
+  const expected = merged.rows * merged.cols;
+  if (expected > 0 && patch.seats.length !== expected) return true;
+  const serverIds = patch.seats.filter((s) => /^\d+$/.test(s.id.trim())).length;
+  return serverIds < patch.seats.length * 0.5;
+}
+
+export async function bulkReplaceEventSeats(
+  eventId: string,
+  opts: {
+    layoutType: LayoutType;
+    rows: number;
+    cols: number;
+    ticketTypeId?: number;
+    section?: string;
+  }
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    layout_type: opts.layoutType,
+    rows: opts.rows,
+    cols: opts.cols,
+    replace: true,
+  };
+  if (opts.ticketTypeId != null) body.ticket_type_id = opts.ticketTypeId;
+  if (opts.section) body.section = opts.section;
+  await apiUnwrap(
+    apiDispatch(organizerApi.endpoints.bulkSeats.initiate({ eventId, body }))
+  );
+}
+
+async function syncSeatsIndividually(
+  eventId: string,
+  nextSeats: SeatCell[],
+  prevSeats: SeatCell[],
+  ticketTypes: OrganizerEvent['ticketTypes']
+): Promise<void> {
+  const prevById = new Map(prevSeats.map((s) => [s.id, s]));
+  for (const seat of nextSeats) {
+    if (!/^\d+$/.test(seat.id.trim())) continue;
+    const prev = prevById.get(seat.id);
+    if (!prev || !seatCellChanged(prev, seat)) continue;
+    const body: Record<string, unknown> = {};
+    const ttId = resolveNumericTicketTypeId(ticketTypes, seat.ticketTypeId);
+    if (ttId != null) body.ticket_type_id = ttId;
+    if (seat.price !== prev.price) body.price = seat.price;
+    if (seat.accessibility !== prev.accessibility) body.accessibility = seat.accessibility;
+    if ((seat.section ?? '') !== (prev.section ?? '')) body.section = seat.section ?? null;
+    if (Object.keys(body).length === 0) continue;
+    await apiUnwrap(
+      apiDispatch(
+        organizerApi.endpoints.patchSeat.initiate({
+          eventId,
+          seatId: seat.id,
+          body,
+        })
+      )
+    );
   }
 }
 
@@ -255,7 +353,6 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
     recurrence: ev.recurrence ?? undefined,
     occurrences: ev.occurrences,
     postEventMedia: ev.postEventMedia,
-    seats: [],
   });
 
   for (const t of ev.ticketTypes) {
@@ -267,9 +364,13 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
   }
 
   let fresh = (await getEvent(ev.id)) ?? ev;
-  if (fresh.layoutType !== 'free' && fresh.ticketTypes.length > 0) {
-    const seats = buildSeatsFromGrid({ ...fresh, rows: fresh.rows, cols: fresh.cols });
-    await patchEvent(fresh.id, { seats });
+  if (fresh.layoutType !== 'free' && fresh.rows > 0 && fresh.cols > 0) {
+    await bulkReplaceEventSeats(fresh.id, {
+      layoutType: fresh.layoutType,
+      rows: fresh.rows,
+      cols: fresh.cols,
+      ticketTypeId: resolveNumericTicketTypeId(fresh.ticketTypes),
+    });
     fresh = (await getEvent(fresh.id)) ?? fresh;
   }
   return fresh;
@@ -332,29 +433,50 @@ export async function patchEvent(
   const current = await getEvent(id);
   if (!current) return;
 
-  const apiPatch: Partial<OrganizerEvent> = { ...patch };
-
-  if (patch.layoutType === 'free') {
-    apiPatch.seats = [];
-  } else if (
-    patch.seats === undefined &&
-    (patch.rows != null || patch.cols != null || patch.layoutType != null)
-  ) {
-    const merged: OrganizerEvent = { ...current, ...patch };
-    apiPatch.seats = buildSeatsFromGrid(merged);
+  const { seats: seatsPatch, ...eventFields } = patch;
+  const merged: OrganizerEvent = { ...current, ...eventFields };
+  if (seatsPatch !== undefined) merged.seats = seatsPatch;
+  if (eventFields.layoutType === 'free') {
+    merged.rows = 0;
+    merged.cols = 0;
+    merged.seats = [];
   }
 
-  const body = organizerEventPatchToApiBody(apiPatch);
-  if (Object.keys(body).length === 0) return;
+  const eventApiPatch: Partial<OrganizerEvent> = { ...eventFields };
+  if (eventFields.layoutType === 'free') {
+    eventApiPatch.rows = 0;
+    eventApiPatch.cols = 0;
+  }
 
-  await apiUnwrap(
-    apiDispatch(
-      organizerApi.endpoints.patchEvent.initiate({
-        id,
-        patch: apiPatch,
-      })
-    )
-  );
+  const body = organizerEventPatchToApiBody(eventApiPatch);
+  if (Object.keys(body).length > 0) {
+    await apiUnwrap(
+      apiDispatch(
+        organizerApi.endpoints.patchEvent.initiate({
+          id,
+          patch: eventApiPatch,
+        })
+      )
+    );
+  }
+
+  if (merged.layoutType === 'free') return;
+
+  if (shouldBulkReplaceSeatMap(patch, merged)) {
+    const defaultType = merged.ticketTypes[0];
+    await bulkReplaceEventSeats(id, {
+      layoutType: merged.layoutType,
+      rows: merged.rows || 6,
+      cols: merged.cols || 10,
+      ticketTypeId: resolveNumericTicketTypeId(merged.ticketTypes, defaultType?.id),
+      section: merged.layoutType === 'section' ? merged.seats[0]?.section : undefined,
+    });
+    return;
+  }
+
+  if (seatsPatch?.length) {
+    await syncSeatsIndividually(id, seatsPatch, current.seats, merged.ticketTypes);
+  }
 }
 
 export async function createEventTicketTypeApi(

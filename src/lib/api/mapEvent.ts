@@ -62,7 +62,7 @@ function mapTicketTypes(raw: unknown): TicketTypeDef[] {
   });
 }
 
-function mapSeats(raw: unknown): SeatCell[] {
+export function mapApiSeats(raw: unknown): SeatCell[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item, i) => {
     const o = asRecord(item) ?? {};
@@ -189,16 +189,16 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
     startsAt: readString(root, 'starts_at', 'startsAt', 'start_at') || new Date().toISOString(),
     endsAt: readString(root, 'ends_at', 'endsAt', 'end_at') || new Date().toISOString(),
     status: parseStatus(readString(root, 'status', 'state') || 'draft'),
-    layoutType: parseLayout(readString(root, 'layout_type', 'layoutType') || 'grid'),
-    rows: readNum(root, 'rows', 'row_count', 'rows_count') ?? 6,
-    cols: readNum(root, 'cols', 'columns', 'col_count', 'cols_count') ?? 10,
+    layoutType: parseLayout(readString(root, 'layout_type', 'layoutType') || 'free'),
+    rows: readNum(root, 'rows_count', 'rows', 'row_count') ?? 0,
+    cols: readNum(root, 'cols_count', 'cols', 'columns', 'col_count') ?? 0,
     rowGap: readNum(root, 'row_gap', 'rowGap') ?? 8,
     colGap: readNum(root, 'col_gap', 'colGap') ?? 8,
     rowGaps: asGapMap(root.row_gaps ?? root.rowGaps),
     colGaps: asGapMap(root.col_gaps ?? root.colGaps),
     capacity: readNum(root, 'capacity', 'seat_capacity') ?? 0,
     ticketTypes: mapTicketTypes(root.ticket_types ?? root.ticketTypes),
-    seats: mapSeats(root.seats),
+    seats: mapApiSeats(root.seats),
     entryMode: parseEntry(readString(root, 'entry_mode', 'entryMode') || 'one_time'),
     purchaseLimitPerUser: readNum(root, 'purchase_limit_per_user', 'purchaseLimitPerUser') ?? undefined,
     multiDaySingleTicket: Boolean(root.multi_day_single_ticket ?? root.multiDaySingleTicket ?? false),
@@ -254,8 +254,13 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.startsAt !== undefined) body.starts_at = patch.startsAt;
   if (patch.endsAt !== undefined) body.ends_at = patch.endsAt;
   if (patch.layoutType !== undefined) body.layout_type = patch.layoutType;
-  if (patch.rows !== undefined) body.rows = patch.rows;
-  if (patch.cols !== undefined) body.cols = patch.cols;
+  if (patch.layoutType === 'free') {
+    body.rows_count = 0;
+    body.cols_count = 0;
+  } else {
+    if (patch.rows !== undefined) body.rows_count = patch.rows;
+    if (patch.cols !== undefined) body.cols_count = patch.cols;
+  }
   if (patch.rowGap !== undefined) body.row_gap = patch.rowGap;
   if (patch.colGap !== undefined) body.col_gap = patch.colGap;
   if (patch.rowGaps !== undefined) body.row_gaps = patch.rowGaps;
@@ -264,17 +269,6 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.entryMode !== undefined) body.entry_mode = patch.entryMode;
   if (patch.purchaseLimitPerUser !== undefined) body.purchase_limit_per_user = patch.purchaseLimitPerUser;
   if (patch.multiDaySingleTicket !== undefined) body.multi_day_single_ticket = patch.multiDaySingleTicket;
-  if (patch.seats !== undefined) {
-    body.seats = patch.seats.map((s) => ({
-      id: s.id,
-      row: s.row,
-      col: s.col,
-      section: s.section ?? null,
-      ticket_type_id: s.ticketTypeId,
-      price: s.price,
-      accessibility: s.accessibility,
-    }));
-  }
   if (patch.recurrence !== undefined) body.recurrence = patch.recurrence;
   if (patch.occurrences !== undefined) {
     body.occurrences = patch.occurrences.map((o) => ({

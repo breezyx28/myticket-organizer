@@ -49,9 +49,20 @@ const notifyResponseSchema = z.object({
   dispatched: z.coerce.number(),
 });
 
-const seatsBulkResponseSchema = z.object({
-  created: z.coerce.number(),
-});
+const seatsBulkResponseSchema = z
+  .object({
+    created: z.coerce.number(),
+    data: z
+      .object({
+        id: z.coerce.number().optional(),
+        layout_type: z.string().optional(),
+        rows_count: z.coerce.number().optional(),
+        cols_count: z.coerce.number().optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
 
 function orgPath(path: string) {
   return `${ORGANIZER_API_PREFIX}${path.startsWith('/') ? path : `/${path}`}`;

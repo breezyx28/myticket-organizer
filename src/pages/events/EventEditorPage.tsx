@@ -6,6 +6,7 @@ import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
 import { ApiBaseUrl } from '@/config/api';
 import { toast } from '@/lib/appToast';
+import { reconcilePatchedEvent } from '@/lib/eventLayoutReconcile';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
 import {
   appendChangeLog,
@@ -254,30 +255,6 @@ export function EventEditorPage() {
     setEvent((cur) => (cur ? updater(cur) : cur));
   }
 
-  function reconcilePatchedEvent(
-    serverEvent: OrganizerEvent | null,
-    patch: Partial<OrganizerEvent>,
-    localBeforeSave: OrganizerEvent
-  ): OrganizerEvent | null {
-    if (!serverEvent) return null;
-    // Backend PATCH can lag on layout persistence; keep local non-free selection to avoid UI snapping back.
-    const localNonFree = localBeforeSave.layoutType !== 'free';
-    const serverFree = serverEvent.layoutType === 'free';
-    const patchTouchesSeatMap =
-      patch.layoutType !== undefined || patch.seats !== undefined || patch.rows !== undefined || patch.cols !== undefined;
-    const requestedFreeLayout = patch.layoutType === 'free';
-    if (localNonFree && serverFree && patchTouchesSeatMap && !requestedFreeLayout) {
-      return {
-        ...serverEvent,
-        layoutType: patch.layoutType ?? localBeforeSave.layoutType,
-        rows: patch.rows ?? localBeforeSave.rows,
-        cols: patch.cols ?? localBeforeSave.cols,
-        seats: patch.seats ?? localBeforeSave.seats,
-      };
-    }
-    return serverEvent;
-  }
-
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
     const out: { field: string; old: string; new: string }[] = [];
     for (const k of Object.keys(patch) as (keyof OrganizerEvent)[]) {
@@ -320,10 +297,12 @@ export function EventEditorPage() {
     })();
   }
 
-  function save(patch: Partial<OrganizerEvent>) {
+  function save(patch: Partial<OrganizerEvent>, options?: { localSnapshot?: OrganizerEvent }) {
     if (!committed.current) return;
     const base = committed.current;
-    const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
+    const localBeforeSave =
+      options?.localSnapshot ??
+      (event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base);
     const sold =
       base.ticketsSold > 0 &&
       (base.status === 'published' ||
@@ -752,21 +731,30 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
               value={event.layoutType}
               onChange={(e) => {
+                if (!event) return;
                 const layoutType = e.target.value as LayoutType;
-                setEvent((cur) => {
-                  if (!cur) return cur;
-                  const next: OrganizerEvent = { ...cur, layoutType };
-                  if (layoutType === 'free') next.seats = [];
-                  else
-                    next.seats = buildSeatsFromGrid({
-                      ...next,
-                      rows: next.rows || 6,
-                      cols: next.cols || 10,
-                      ticketTypes: next.ticketTypes,
-                    });
-                  queueMicrotask(() => save({ layoutType: next.layoutType, seats: next.seats }));
-                  return next;
-                });
+                const next: OrganizerEvent = { ...event, layoutType };
+                if (layoutType === 'free') {
+                  next.seats = [];
+                } else {
+                  next.rows = next.rows || 6;
+                  next.cols = next.cols || 10;
+                  next.seats = buildSeatsFromGrid({
+                    ...next,
+                    rows: next.rows,
+                    cols: next.cols,
+                    ticketTypes: next.ticketTypes,
+                  });
+                }
+                setEvent(next);
+                save(
+                  {
+                    layoutType: next.layoutType,
+                    rows: next.layoutType === 'free' ? 0 : next.rows,
+                    cols: next.layoutType === 'free' ? 0 : next.cols,
+                  },
+                  { localSnapshot: next }
+                );
               }}
             >
               <option value="grid">Grid</option>
@@ -792,7 +780,7 @@ export function EventEditorPage() {
               }}
               onBlur={() => {
                 if (event.layoutType === 'free') return;
-                save({ rows: event.rows, seats: event.seats });
+                save({ rows: event.rows, cols: event.cols });
               }}
             />
           </Field>
@@ -814,7 +802,7 @@ export function EventEditorPage() {
               }}
               onBlur={() => {
                 if (event.layoutType === 'free') return;
-                save({ cols: event.cols, seats: event.seats });
+                save({ rows: event.rows, cols: event.cols });
               }}
             />
           </Field>
@@ -864,8 +852,9 @@ export function EventEditorPage() {
             event={event}
             onApplyTemplate={(rows, cols) => {
               const seats = buildSeatsFromGrid({ ...event, rows, cols, ticketTypes: event.ticketTypes });
-              updateLocal((cur) => ({ ...cur, rows, cols, seats }));
-              save({ rows, cols, seats });
+              const next = { ...event, rows, cols, seats };
+              updateLocal(() => next);
+              save({ rows, cols }, { localSnapshot: next });
             }}
             onChangeSeats={(seats) => {
               updateLocal((cur) => ({ ...cur, seats }));
