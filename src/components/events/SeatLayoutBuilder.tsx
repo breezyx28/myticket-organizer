@@ -1,6 +1,13 @@
-import type { OrganizerEvent, SeatCell, TicketTypeDef } from '@/types/domain';
+import { Button } from '@/components/ui/Button';
+import {
+  nextSeatSelection,
+  pruneSeatSelection,
+  resolveSeatClickModifier,
+  seatIdsInRowMajorRange,
+} from '@/lib/seatSelection';
 import { cn } from '@/lib/utils';
-import { useMemo, useState } from 'react';
+import type { OrganizerEvent, SeatCell, TicketTypeDef } from '@/types/domain';
+import { useEffect, useMemo, useState } from 'react';
 
 export function SeatLayoutBuilder({
   event,
@@ -13,21 +20,76 @@ export function SeatLayoutBuilder({
   onChangeSpacing: (patch: Partial<Pick<OrganizerEvent, 'rowGap' | 'colGap' | 'rowGaps' | 'colGaps'>>) => void;
   onApplyTemplate?: (rows: number, cols: number) => void;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [anchorId, setAnchorId] = useState<string | null>(null);
   const [overrideRow, setOverrideRow] = useState<number>(1);
   const [overrideRowGap, setOverrideRowGap] = useState<number>(event.rowGap);
   const [overrideCol, setOverrideCol] = useState<number>(1);
   const [overrideColGap, setOverrideColGap] = useState<number>(event.colGap);
-  const selected = useMemo(() => event.seats.find((s) => s.id === selectedId) ?? null, [event.seats, selectedId]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => pruneSeatSelection(prev, event.seats));
+  }, [event.seats]);
+
+  const types = event.ticketTypes;
+  const selectedList = useMemo(
+    () => event.seats.filter((s) => selectedIds.has(s.id)),
+    [event.seats, selectedIds]
+  );
+  const singleSelected = selectedList.length === 1 ? selectedList[0]! : null;
 
   if (event.layoutType === 'free') {
     return <p className="text-[14px] text-ink-60">Free layout uses capacity + ticket type quantity limits (no seat map).</p>;
   }
 
-  const types = event.ticketTypes;
+  function patchSeats(updater: (seats: SeatCell[]) => SeatCell[]) {
+    onChangeSeats(updater(event.seats));
+  }
 
   function setSeat(id: string, patch: Partial<Pick<SeatCell, 'ticketTypeId' | 'price' | 'accessibility'>>) {
-    onChangeSeats(event.seats.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    patchSeats((seats) => seats.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  function handleSeatPointerDown(seat: SeatCell, e: React.MouseEvent) {
+    if (e.button !== 0) return;
+    const modifier = resolveSeatClickModifier(e);
+    const rangeIds =
+      modifier === 'range' && anchorId
+        ? seatIdsInRowMajorRange(event.seats, anchorId, seat.id)
+        : [seat.id];
+
+    setSelectedIds((prev) => nextSeatSelection(prev, seat.id, modifier, rangeIds));
+    setAnchorId(seat.id);
+  }
+
+  function selectAllSeats() {
+    const all = new Set(event.seats.map((s) => s.id));
+    setSelectedIds(all);
+    const first = event.seats[0];
+    if (first) setAnchorId(first.id);
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setAnchorId(null);
+  }
+
+  function applyBulk(patch: { ticketTypeId?: string; price?: number }) {
+    if (selectedIds.size === 0) return;
+    patchSeats((seats) =>
+      seats.map((s) => {
+        if (!selectedIds.has(s.id)) return s;
+        const next = { ...s };
+        if (patch.ticketTypeId !== undefined) {
+          next.ticketTypeId = patch.ticketTypeId;
+          if (patch.price === undefined) {
+            next.price = types.find((t) => t.id === patch.ticketTypeId)?.defaultPrice ?? s.price;
+          }
+        }
+        if (patch.price !== undefined) next.price = patch.price;
+        return next;
+      })
+    );
   }
 
   return (
@@ -35,21 +97,21 @@ export function SeatLayoutBuilder({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 hover:bg-ink-5"
+          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(6, 10)}
         >
           Template: Small (6x10)
         </button>
         <button
           type="button"
-          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 hover:bg-ink-5"
+          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(8, 12)}
         >
           Template: Medium (8x12)
         </button>
         <button
           type="button"
-          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 hover:bg-ink-5"
+          className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(10, 14)}
         >
           Template: Large (10x14)
@@ -169,40 +231,76 @@ export function SeatLayoutBuilder({
           </button>
         </div>
       </div>
-      <p className="text-[12px] text-ink-60">
-        <strong>Click</strong> a seat to select it. <strong>Double-click</strong> toggles accessibility. Set per-seat type &amp; price in the inspector.
-      </p>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12px] text-ink-60">
+          <strong>Click</strong> to select · <strong>Ctrl/Cmd+click</strong> to add/remove · <strong>Shift+click</strong>{' '}
+          for a range · <strong>Double-click</strong> toggles accessibility
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink-60 hover:bg-ink-5 hover:text-ink"
+            onClick={selectAllSeats}
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            disabled={selectedIds.size === 0}
+            className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink-60 hover:bg-ink-5 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={clearSelection}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-ink-10 bg-white p-4">
         <div
-          className="grid w-max gap-1"
+          className="grid w-max gap-1 select-none"
           style={{
             gridTemplateColumns: `repeat(${event.cols}, minmax(0, 1fr))`,
             gap: `${event.colGap / 4}px ${event.rowGap / 4}px`,
           }}
         >
-          {event.seats.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              title={s.id}
-              onClick={() => setSelectedId(s.id)}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                setSeat(s.id, { accessibility: !s.accessibility });
-              }}
-              className={cn(
-                'h-8 w-8 rounded-md text-[10px] font-mono font-bold text-ink shadow-card-sm ring-1 ring-ink/10',
-                typeColor(s.ticketTypeId, types),
-                s.accessibility ? 'ring-2 ring-indigo ring-offset-1' : '',
-                selectedId === s.id ? 'outline outline-2 outline-offset-2 outline-coral' : ''
-              )}
-            >
-              {s.row + 1}:{s.col + 1}
-            </button>
-          ))}
+          {event.seats.map((s) => {
+            const isSelected = selectedIds.has(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                title={s.id}
+                aria-pressed={isSelected}
+                onPointerDown={(e) => handleSeatPointerDown(s, e)}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  setSeat(s.id, { accessibility: !s.accessibility });
+                }}
+                className={cn(
+                  'h-8 w-8 rounded-md text-[10px] font-mono font-bold text-ink shadow-card-sm ring-1 ring-ink/10 transition-[outline,transform] duration-100',
+                  typeColor(s.ticketTypeId, types),
+                  s.accessibility ? 'ring-2 ring-indigo ring-offset-1' : '',
+                  isSelected && 'z-10 scale-[1.06] outline outline-2 outline-offset-2 outline-coral'
+                )}
+              >
+                {s.row + 1}:{s.col + 1}
+              </button>
+            );
+          })}
         </div>
       </div>
-      <SeatInspector seat={selected} types={types} onApply={(patch) => selected && setSeat(selected.id, patch)} />
+
+      {selectedIds.size >= 2 ? (
+        <SeatBulkInspector
+          count={selectedIds.size}
+          types={types}
+          onApply={applyBulk}
+          onClear={clearSelection}
+        />
+      ) : (
+        <SeatInspector seat={singleSelected} types={types} onApply={(patch) => singleSelected && setSeat(singleSelected.id, patch)} />
+      )}
     </div>
   );
 }
@@ -252,6 +350,108 @@ function SeatInspector({
           value={seat.price}
           onChange={(e) => onApply({ price: Number(e.target.value) })}
         />
+      </div>
+    </div>
+  );
+}
+
+function SeatBulkInspector({
+  count,
+  types,
+  onApply,
+  onClear,
+}: {
+  count: number;
+  types: TicketTypeDef[];
+  onApply: (patch: { ticketTypeId?: string; price?: number }) => void;
+  onClear: () => void;
+}) {
+  const [applyType, setApplyType] = useState(true);
+  const [applyPrice, setApplyPrice] = useState(false);
+  const [ticketTypeId, setTicketTypeId] = useState(types[0]?.id ?? '');
+  const [price, setPrice] = useState('');
+
+  useEffect(() => {
+    if (types.length > 0 && !types.some((t) => t.id === ticketTypeId)) {
+      setTicketTypeId(types[0]!.id);
+    }
+  }, [types, ticketTypeId]);
+
+  const canApply = (applyType && ticketTypeId) || (applyPrice && price.trim() !== '' && !Number.isNaN(Number(price)));
+
+  return (
+    <div className="rounded-2xl border border-coral/25 bg-lemon/15 p-4 text-[13px] text-ink-60 shadow-card-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-bold text-ink">Bulk edit</p>
+          <p className="mt-0.5 text-[12px] text-ink-60">
+            {count} seat{count === 1 ? '' : 's'} selected — changes apply when you click Apply
+          </p>
+        </div>
+        <button
+          type="button"
+          className="text-[12px] font-semibold text-ink-60 underline-offset-2 hover:text-ink hover:underline"
+          onClick={onClear}
+        >
+          Clear selection
+        </button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <label className="flex items-center gap-2 text-[12px] font-semibold text-ink">
+          <input
+            type="checkbox"
+            checked={applyType}
+            onChange={(e) => setApplyType(e.target.checked)}
+            className="h-4 w-4 rounded border-ink-20"
+          />
+          Ticket type
+        </label>
+        <select
+          disabled={!applyType}
+          className="min-w-[140px] rounded-xl border border-ink-10 bg-white px-3 py-2 text-[13px] disabled:opacity-50"
+          value={ticketTypeId}
+          onChange={(e) => setTicketTypeId(e.target.value)}
+        >
+          {types.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+
+        <label className="flex items-center gap-2 text-[12px] font-semibold text-ink">
+          <input
+            type="checkbox"
+            checked={applyPrice}
+            onChange={(e) => setApplyPrice(e.target.checked)}
+            className="h-4 w-4 rounded border-ink-20"
+          />
+          Price
+        </label>
+        <input
+          type="number"
+          min={0}
+          disabled={!applyPrice}
+          placeholder="SAR"
+          className="w-28 rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-[13px] disabled:opacity-50"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
+
+        <Button
+          variant="dark"
+          size="sm"
+          disabled={!canApply}
+          onClick={() => {
+            const patch: { ticketTypeId?: string; price?: number } = {};
+            if (applyType && ticketTypeId) patch.ticketTypeId = ticketTypeId;
+            if (applyPrice && price.trim() !== '') patch.price = Number(price);
+            onApply(patch);
+          }}
+        >
+          Apply to {count} seats
+        </Button>
       </div>
     </div>
   );
