@@ -6,8 +6,8 @@ import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
 import { ApiBaseUrl } from '@/config/api';
 import { toast } from '@/lib/appToast';
-import { reconcilePatchedEvent } from '@/lib/eventLayoutReconcile';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
+import { useEventEditorSync } from '@/hooks/useEventEditorSync';
 import {
   appendChangeLog,
   archiveEvent,
@@ -20,10 +20,8 @@ import {
   deleteEventGalleryItemApi,
   deleteEventTicketTypeApi,
   diffOrganizerEventPatch,
-  getEvent,
   isServerNumericTicketTypeId,
   listEventNotifications,
-  patchEvent,
   publishEvent,
   simulateLifecycleTick,
   updateEventTicketTypeApi,
@@ -53,8 +51,6 @@ export function EventEditorPage() {
     return { startsLocal: toLocalInput(startsAt), endsLocal: toLocalInput(endsAt) };
   });
   const [newFormErrors, setNewFormErrors] = useState<{ title?: string; startsLocal?: string; endsLocal?: string; form?: string }>({});
-  const [event, setEvent] = useState<OrganizerEvent | null>(null);
-  const [loading, setLoading] = useState(true);
   const [profileOk, setProfileOk] = useState(true);
   const [impactOpen, setImpactOpen] = useState(false);
   const [pendingPatch, setPendingPatch] = useState<Partial<OrganizerEvent> | null>(null);
@@ -69,15 +65,21 @@ export function EventEditorPage() {
   const [galleryUploadError, setGalleryUploadError] = useState<string | null>(null);
   const [uploadedCoverPreview, setUploadedCoverPreview] = useState<string | null>(null);
 
-  const committed = useRef<OrganizerEvent | null>(null);
-  /** Latest editor state (updated synchronously in seat-map handlers before blur/save). */
-  const latestEventRef = useRef<OrganizerEvent | null>(null);
   const mapCoordsSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    latestEventRef.current = event;
-  }, [event]);
+  const {
+    event,
+    loading,
+    committed,
+    latestEventRef,
+    updateLocal,
+    saveWithToast,
+    reloadFromServer,
+    refreshTicketTypes,
+    concurrentTabWarning,
+    dismissConcurrentTabWarning,
+  } = useEventEditorSync(id);
 
   function clampSeatMapDimension(value: number, max: number) {
     if (!Number.isFinite(value) || value < 1) return 1;
@@ -110,23 +112,6 @@ export function EventEditorPage() {
       if (mapCoordsSaveTimerRef.current) window.clearTimeout(mapCoordsSaveTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!id || id === 'new') {
-      setLoading(false);
-      return;
-    }
-    const t = window.setTimeout(() => {
-      void (async () => {
-        setLoading(true);
-        const ev = await getEvent(id);
-        setEvent(ev);
-        if (ev) committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
-        setLoading(false);
-      })();
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, [id]);
 
   const statusLine = useMemo(() => {
     if (!event) return '';
@@ -262,10 +247,6 @@ export function EventEditorPage() {
   const notifications = listEventNotifications().filter((n) => n.eventId === event.id);
   const coverImageUrl = uploadedCoverPreview || (event.eventGallery?.length ? resolvePublicUrl(event.eventGallery[0].url) : '');
 
-  function updateLocal(updater: (e: OrganizerEvent) => OrganizerEvent) {
-    setEvent((cur) => (cur ? updater(cur) : cur));
-  }
-
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
     const out: { field: string; old: string; new: string }[] = [];
     for (const k of Object.keys(patch) as (keyof OrganizerEvent)[]) {
@@ -281,13 +262,6 @@ export function EventEditorPage() {
     return out;
   }
 
-  async function reloadFromStore() {
-    if (!id) return;
-    const ev = await getEvent(id);
-    setEvent(ev);
-    if (ev) committed.current = JSON.parse(JSON.stringify(ev)) as OrganizerEvent;
-  }
-
   function uploadCoverFile(file: File) {
     if (!event) return;
     const eventId = event.id;
@@ -299,7 +273,7 @@ export function EventEditorPage() {
         await uploadEventCoverImageWithProgress(eventId, file, (p) => setCoverProgress(p));
         if (uploadedCoverPreview) URL.revokeObjectURL(uploadedCoverPreview);
         setUploadedCoverPreview(URL.createObjectURL(file));
-        await reloadFromStore();
+        await reloadFromServer();
       } catch (err) {
         setCoverUploadError(err instanceof Error ? err.message : 'Cover image upload failed.');
       } finally {
@@ -308,12 +282,9 @@ export function EventEditorPage() {
     })();
   }
 
-  function save(patch: Partial<OrganizerEvent>, options?: { localSnapshot?: OrganizerEvent }) {
+  function saveEventPatch(patch: Partial<OrganizerEvent>, options?: { localSnapshot?: OrganizerEvent }) {
     if (!committed.current) return;
     const base = committed.current;
-    const localBeforeSave =
-      options?.localSnapshot ??
-      (event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base);
     const sold =
       base.ticketsSold > 0 &&
       (base.status === 'published' ||
@@ -329,47 +300,33 @@ export function EventEditorPage() {
         return;
       }
     }
-    void (async () => {
-      try {
-        const ev = await patchEvent(base.id, patch);
-        const reconciled = reconcilePatchedEvent(ev, patch, localBeforeSave);
-        if (reconciled) {
-          setEvent(reconciled);
-          committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
-        }
-      } catch (err) {
-        toastApiErr(err, 'Could not save changes.');
-        await reloadFromStore();
-      }
-    })();
+    saveWithToast(patch, options, (err) => {
+      toastApiErr(err, 'Could not save changes.');
+    });
   }
 
   function confirmImpactSave() {
     if (!pendingPatch || !committed.current) return;
     const base = committed.current;
     const localBeforeSave = event ? (JSON.parse(JSON.stringify(event)) as OrganizerEvent) : base;
-    void (async () => {
-      try {
-        const ev = await patchEvent(base.id, pendingPatch);
-        const changes = partialChanges(base, pendingPatch);
-        await appendChangeLog(base.id, changes);
-        const reconciled = reconcilePatchedEvent(ev, pendingPatch, localBeforeSave);
-        if (reconciled) {
-          setEvent(reconciled);
-          committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
-        }
-        setImpactOpen(false);
-        setPendingPatch(null);
-      } catch (err) {
+    const changes = partialChanges(base, pendingPatch);
+    saveWithToast(
+      pendingPatch,
+      { localSnapshot: localBeforeSave },
+      (err) => {
         toastApiErr(err, 'Could not save changes.');
         setImpactOpen(false);
         setPendingPatch(null);
-        await reloadFromStore();
+      },
+      () => {
+        void appendChangeLog(base.id, changes);
+        setImpactOpen(false);
+        setPendingPatch(null);
       }
-    })();
+    );
   }
 
-  async function handleSaveChanges() {
+  function handleSaveChanges() {
     if (!committed.current || !event) return;
     const diff = diffOrganizerEventPatch(committed.current, event);
     if (Object.keys(diff).length === 0) return;
@@ -389,17 +346,7 @@ export function EventEditorPage() {
         return;
       }
     }
-    try {
-      const ev = await patchEvent(event.id, diff);
-      const reconciled = reconcilePatchedEvent(ev, diff, event);
-      if (reconciled) {
-        setEvent(reconciled);
-        committed.current = JSON.parse(JSON.stringify(reconciled)) as OrganizerEvent;
-      }
-    } catch (err) {
-      toastApiErr(err, 'Could not save changes.');
-      await reloadFromStore();
-    }
+    saveEventPatch(diff, { localSnapshot: event });
   }
 
   return (
@@ -427,7 +374,7 @@ export function EventEditorPage() {
                 void (async () => {
                   try {
                     await publishEvent(event.id);
-                    await reloadFromStore();
+                    await reloadFromServer();
                   } catch (err) {
                     toastApiErr(err, 'Submit failed.');
                   }
@@ -445,7 +392,7 @@ export function EventEditorPage() {
                 void (async () => {
                   try {
                     await archiveEvent(event.id);
-                    await reloadFromStore();
+                    await reloadFromServer();
                   } catch (err) {
                     toastApiErr(err, 'Archive failed.');
                   }
@@ -468,7 +415,7 @@ export function EventEditorPage() {
               void (async () => {
                 try {
                   await simulateLifecycleTick(event.id);
-                  await reloadFromStore();
+                  await reloadFromServer();
                 } catch (err) {
                   toastApiErr(err, 'Lifecycle step failed.');
                 }
@@ -498,6 +445,35 @@ export function EventEditorPage() {
         </div>
       </section>
 
+      {concurrentTabWarning ? (
+        <section className="rounded-2xl border border-coral/30 bg-coral/10 p-4">
+          <p className="text-[13px] font-semibold text-ink">This event is open in another tab or window</p>
+          <p className="mt-1 text-[12px] text-ink-60">
+            Another editor may have saved changes. Reload to see the latest server copy, or keep editing here — your
+            unsaved fields stay on this screen until you save.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-full bg-ink px-4 py-2 text-[12px] font-semibold text-white"
+              onClick={() => {
+                dismissConcurrentTabWarning();
+                void reloadFromServer();
+              }}
+            >
+              Reload from server
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink-60 hover:bg-ink-5"
+              onClick={dismissConcurrentTabWarning}
+            >
+              Dismiss
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Basics</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -506,7 +482,7 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
               value={event.title}
               onChange={(e) => updateLocal((cur) => ({ ...cur, title: e.target.value }))}
-              onBlur={(e) => save({ title: e.target.value })}
+              onBlur={(e) => saveEventPatch({ title: e.target.value })}
             />
           </Field>
           <Field label="Category">
@@ -518,7 +494,7 @@ export function EventEditorPage() {
                 const opt = eventCategories.find((c) => c.id === cid);
                 const label = opt?.name ?? '';
                 updateLocal((cur) => ({ ...cur, categoryId: cid || undefined, category: label || cur.category }));
-                save({ categoryId: cid || undefined, category: label });
+                saveEventPatch({ categoryId: cid || undefined, category: label });
               }}
             >
               <option value="">Select category</option>
@@ -534,7 +510,7 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
               value={event.venue}
               onChange={(e) => updateLocal((cur) => ({ ...cur, venue: e.target.value }))}
-              onBlur={(e) => save({ venue: e.target.value })}
+              onBlur={(e) => saveEventPatch({ venue: e.target.value })}
             />
           </Field>
           <div className="md:col-span-2">
@@ -548,7 +524,7 @@ export function EventEditorPage() {
                 if (mapCoordsSaveTimerRef.current) window.clearTimeout(mapCoordsSaveTimerRef.current);
                 mapCoordsSaveTimerRef.current = window.setTimeout(() => {
                   mapCoordsSaveTimerRef.current = null;
-                  save({ latitude: lat, longitude: lng });
+                  saveEventPatch({ latitude: lat, longitude: lng });
                 }, 400);
               }}
             />
@@ -560,7 +536,7 @@ export function EventEditorPage() {
               onChange={(e) => {
                 const rid = e.target.value;
                 updateLocal((cur) => ({ ...cur, regionId: rid || undefined, cityId: undefined, city: '' }));
-                save({ regionId: rid || undefined, cityId: undefined, city: '' });
+                saveEventPatch({ regionId: rid || undefined, cityId: undefined, city: '' });
               }}
             >
               <option value="">Select region</option>
@@ -580,7 +556,7 @@ export function EventEditorPage() {
                 const cid = e.target.value;
                 const opt = saudiCities.find((c) => c.id === cid);
                 updateLocal((cur) => ({ ...cur, cityId: cid || undefined, city: opt?.name ?? cur.city }));
-                save({ cityId: cid || undefined, city: opt?.name ?? '' });
+                saveEventPatch({ cityId: cid || undefined, city: opt?.name ?? '' });
               }}
             >
               <option value="">{regionIdForCities ? 'Select city' : 'Choose a region first'}</option>
@@ -597,7 +573,7 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
               value={toLocalInput(event.startsAt)}
               onChange={(e) => updateLocal((cur) => ({ ...cur, startsAt: fromLocalInput(e.target.value) }))}
-              onBlur={(e) => save({ startsAt: fromLocalInput(e.target.value) })}
+              onBlur={(e) => saveEventPatch({ startsAt: fromLocalInput(e.target.value) })}
             />
           </Field>
           <Field label="Ends">
@@ -606,7 +582,7 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
               value={toLocalInput(event.endsAt)}
               onChange={(e) => updateLocal((cur) => ({ ...cur, endsAt: fromLocalInput(e.target.value) }))}
-              onBlur={(e) => save({ endsAt: fromLocalInput(e.target.value) })}
+              onBlur={(e) => saveEventPatch({ endsAt: fromLocalInput(e.target.value) })}
             />
           </Field>
           <Field label="Description" className="md:col-span-2">
@@ -615,7 +591,7 @@ export function EventEditorPage() {
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
               value={event.description}
               onChange={(e) => updateLocal((cur) => ({ ...cur, description: e.target.value }))}
-              onBlur={(e) => save({ description: e.target.value })}
+              onBlur={(e) => saveEventPatch({ description: e.target.value })}
             />
           </Field>
         </div>
@@ -691,10 +667,10 @@ export function EventEditorPage() {
                   for (const file of files) {
                     await uploadEventGalleryImageApi(event.id, file);
                   }
-                  await reloadFromStore();
+                  await reloadFromServer();
                 } catch (err) {
                   setGalleryUploadError(err instanceof Error ? err.message : 'Gallery upload failed.');
-                  await reloadFromStore();
+                  await reloadFromServer();
                 } finally {
                   setGalleryBusy(false);
                 }
@@ -717,7 +693,7 @@ export function EventEditorPage() {
                   void (async () => {
                     try {
                       await deleteEventGalleryItemApi(event.id, g.id);
-                      await reloadFromStore();
+                      await reloadFromServer();
                     } catch (err) {
                       toastApiErr(err, 'Could not remove image.');
                     }
@@ -754,9 +730,8 @@ export function EventEditorPage() {
                     ticketTypes: next.ticketTypes,
                   });
                 }
-                latestEventRef.current = next;
-                setEvent(next);
-                save(
+                updateLocal(() => next);
+                saveEventPatch(
                   {
                     layoutType: next.layoutType,
                     rows: next.layoutType === 'free' ? 0 : next.rows,
@@ -798,7 +773,7 @@ export function EventEditorPage() {
               onBlur={() => {
                 const cur = latestEventRef.current;
                 if (!cur || cur.layoutType === 'free') return;
-                save({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
+                saveEventPatch({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
               }}
             />
           </Field>
@@ -829,7 +804,7 @@ export function EventEditorPage() {
               onBlur={() => {
                 const cur = latestEventRef.current;
                 if (!cur || cur.layoutType === 'free') return;
-                save({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
+                saveEventPatch({ rows: cur.rows, cols: cur.cols }, { localSnapshot: cur });
               }}
             />
           </Field>
@@ -839,7 +814,7 @@ export function EventEditorPage() {
             value={event.recurrence ?? null}
             onChange={(r) => {
               updateLocal((cur) => ({ ...cur, recurrence: r }));
-              save({ recurrence: r });
+              saveEventPatch({ recurrence: r });
             }}
           />
         </div>
@@ -858,7 +833,7 @@ export function EventEditorPage() {
                       onClick={() => {
                         void (async () => {
                           await cancelOccurrence(event.id, occ.id);
-                          await reloadFromStore();
+                          await reloadFromServer();
                         })();
                       }}
                     >
@@ -884,7 +859,7 @@ export function EventEditorPage() {
               const next = { ...event, rows: r, cols: c, seats };
               latestEventRef.current = next;
               updateLocal(() => next);
-              save({ rows: r, cols: c }, { localSnapshot: next });
+              saveEventPatch({ rows: r, cols: c }, { localSnapshot: next });
             }}
             onChangeSeats={(seats) => {
               updateLocal((cur) => {
@@ -894,11 +869,11 @@ export function EventEditorPage() {
                 return next;
               });
               const cur = latestEventRef.current;
-              if (cur) save({ seats }, { localSnapshot: cur });
+              if (cur) saveEventPatch({ seats }, { localSnapshot: cur });
             }}
             onChangeSpacing={(patch) => {
               updateLocal((cur) => ({ ...cur, ...patch }));
-              save(patch);
+              saveEventPatch(patch);
             }}
           />
         </div>
@@ -914,7 +889,7 @@ export function EventEditorPage() {
               onChange={(e) => {
                 const entryMode = e.target.value as EntryMode;
                 updateLocal((cur) => ({ ...cur, entryMode }));
-                save({ entryMode });
+                saveEventPatch({ entryMode });
               }}
             >
               <option value="one_time">One-time entry</option>
@@ -934,7 +909,7 @@ export function EventEditorPage() {
               }}
               onBlur={(e) => {
                 const v = e.target.value;
-                save({ purchaseLimitPerUser: v ? Number(v) : undefined });
+                saveEventPatch({ purchaseLimitPerUser: v ? Number(v) : undefined });
               }}
             />
           </Field>
@@ -946,7 +921,7 @@ export function EventEditorPage() {
                 onChange={(e) => {
                   const multiDaySingleTicket = e.target.checked;
                   updateLocal((cur) => ({ ...cur, multiDaySingleTicket }));
-                  save({ multiDaySingleTicket });
+                  saveEventPatch({ multiDaySingleTicket });
                 }}
               />
               One ticket covers full span (when applicable)
@@ -959,7 +934,7 @@ export function EventEditorPage() {
                 className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-[14px]"
                 value={event.capacity}
                 onChange={(e) => updateLocal((cur) => ({ ...cur, capacity: Number(e.target.value) }))}
-                onBlur={(e) => save({ capacity: Number(e.target.value) })}
+                onBlur={(e) => saveEventPatch({ capacity: Number(e.target.value) })}
               />
             </Field>
           ) : null}
@@ -986,7 +961,7 @@ export function EventEditorPage() {
                       try {
                         if (!tt.label.trim()) return;
                         if (!isServerNumericTicketTypeId(tt.id)) {
-                          await reloadFromStore();
+                          await refreshTicketTypes();
                           return;
                         }
                         await updateEventTicketTypeApi(event.id, tt.id, {
@@ -994,10 +969,9 @@ export function EventEditorPage() {
                           defaultPrice: tt.defaultPrice,
                           quantityLimit: tt.quantityLimit,
                         });
-                        await reloadFromStore();
+                        await refreshTicketTypes();
                       } catch (err) {
                         toastApiErr(err, 'Could not save ticket type.');
-                        await reloadFromStore();
                       }
                     })();
                   }}
@@ -1014,7 +988,7 @@ export function EventEditorPage() {
                     void (async () => {
                       try {
                         if (!isServerNumericTicketTypeId(tt.id)) {
-                          await reloadFromStore();
+                          await refreshTicketTypes();
                           return;
                         }
                         await updateEventTicketTypeApi(event.id, tt.id, {
@@ -1022,10 +996,9 @@ export function EventEditorPage() {
                           defaultPrice: tt.defaultPrice,
                           quantityLimit: tt.quantityLimit,
                         });
-                        await reloadFromStore();
+                        await refreshTicketTypes();
                       } catch (err) {
                         toastApiErr(err, 'Could not save ticket type.');
-                        await reloadFromStore();
                       }
                     })();
                   }}
@@ -1046,7 +1019,7 @@ export function EventEditorPage() {
                       void (async () => {
                         try {
                           if (!isServerNumericTicketTypeId(tt.id)) {
-                            await reloadFromStore();
+                            await refreshTicketTypes();
                             return;
                           }
                           await updateEventTicketTypeApi(event.id, tt.id, {
@@ -1054,10 +1027,9 @@ export function EventEditorPage() {
                             defaultPrice: tt.defaultPrice,
                             quantityLimit: tt.quantityLimit,
                           });
-                          await reloadFromStore();
+                          await refreshTicketTypes();
                         } catch (err) {
                           toastApiErr(err, 'Could not save ticket type.');
-                          await reloadFromStore();
                         }
                       })();
                     }}
@@ -1075,13 +1047,12 @@ export function EventEditorPage() {
                       try {
                         if (isServerNumericTicketTypeId(tt.id)) {
                           await deleteEventTicketTypeApi(event.id, tt.id);
-                          await reloadFromStore();
+                          await refreshTicketTypes();
                         } else {
                           updateLocal((cur) => (cur ? { ...cur, ticketTypes: next } : cur));
                         }
                       } catch (err) {
                         toastApiErr(err, 'Could not remove ticket type.');
-                        await reloadFromStore();
                       }
                     })();
                   }}
@@ -1113,7 +1084,7 @@ export function EventEditorPage() {
                       quantityLimit: event.layoutType === 'free' ? 1 : undefined,
                     });
                     setNewTicketTypeLabel('');
-                    await reloadFromStore();
+                    await refreshTicketTypes();
                   } catch (err) {
                     toastApiErr(err, 'Could not add ticket type.');
                   }
@@ -1154,7 +1125,7 @@ export function EventEditorPage() {
                 const nextMedia = [...event.postEventMedia, { kind: 'photo' as const, label: mediaLabel.trim() }];
                 setMediaLabel('');
                 updateLocal((cur) => ({ ...cur, postEventMedia: nextMedia }));
-                save({ postEventMedia: nextMedia });
+                saveEventPatch({ postEventMedia: nextMedia });
               }}
             >
               Add media (demo)
@@ -1193,7 +1164,7 @@ export function EventEditorPage() {
         onCancel={() => {
           setImpactOpen(false);
           setPendingPatch(null);
-          void reloadFromStore();
+          void reloadFromServer({ discardLocal: true });
         }}
         onConfirm={confirmImpactSave}
       />
@@ -1205,7 +1176,7 @@ export function EventEditorPage() {
           onClose={() => setCancelOpen(false)}
           onDone={() => {
             setCancelOpen(false);
-            void reloadFromStore();
+            void reloadFromServer();
           }}
         />
       ) : null}
