@@ -243,7 +243,10 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.title !== undefined) body.title = patch.title;
   if (patch.description !== undefined) body.description = patch.description;
   if (patch.category !== undefined) body.category = patch.category;
-  if (patch.venue !== undefined) body.venue = patch.venue;
+  if (patch.venue !== undefined) {
+    body.venue_name = patch.venue;
+    body.venue = patch.venue;
+  }
   if (patch.city !== undefined) body.city = patch.city;
   if (patch.latitude !== undefined && patch.latitude !== null && Number.isFinite(patch.latitude)) {
     body.latitude = patch.latitude;

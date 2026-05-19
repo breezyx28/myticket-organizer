@@ -40,8 +40,8 @@ describe('reconcilePatchedEvent', () => {
     const patch = { layoutType: 'grid' as const, rows: 6, cols: 10, seats };
 
     const reconciled = reconcilePatchedEvent(server, patch, local);
-    expect(reconciled?.layoutType).toBe('grid');
-    expect(reconciled?.seats).toHaveLength(1);
+    expect(reconciled.layoutType).toBe('grid');
+    expect(reconciled.seats).toHaveLength(1);
   });
 
   it('applies free layout when user explicitly selects free', () => {
@@ -50,9 +50,9 @@ describe('reconcilePatchedEvent', () => {
     const patch = { layoutType: 'free' as const, seats: [] };
 
     const reconciled = reconcilePatchedEvent(server, patch, local);
-    expect(reconciled?.layoutType).toBe('free');
-    expect(reconciled?.rows).toBe(0);
-    expect(reconciled?.seats).toHaveLength(0);
+    expect(reconciled.layoutType).toBe('free');
+    expect(reconciled.rows).toBe(0);
+    expect(reconciled.seats).toHaveLength(0);
   });
 
   it('keeps local seat map when server returns empty seats after row/col save', () => {
@@ -69,12 +69,19 @@ describe('reconcilePatchedEvent', () => {
     const patch = { rows: 2, cols: 2 };
 
     const reconciled = reconcilePatchedEvent(server, patch, local);
-    expect(reconciled?.rows).toBe(2);
-    expect(reconciled?.cols).toBe(2);
-    expect(reconciled?.seats).toHaveLength(4);
+    expect(reconciled.rows).toBe(2);
+    expect(reconciled.cols).toBe(2);
+    expect(reconciled.seats).toHaveLength(4);
   });
 
-  it('returns server event when layouts already match', () => {
+  it('does not discard merged fields for non-seat-map patches', () => {
+    const merged = baseEvent({ title: 'Edited title', startsAt: '2026-05-27T11:43:00.000Z' });
+    const reconciled = reconcilePatchedEvent(merged, { description: 'New body' }, merged);
+    expect(reconciled.title).toBe('Edited title');
+    expect(reconciled.startsAt).toBe('2026-05-27T11:43:00.000Z');
+  });
+
+  it('returns merged event when layouts already match', () => {
     const ev = baseEvent({ layoutType: 'section' });
     const reconciled = reconcilePatchedEvent(ev, { layoutType: 'section' }, ev);
     expect(reconciled).toBe(ev);

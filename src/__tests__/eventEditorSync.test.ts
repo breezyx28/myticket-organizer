@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applySavedPatchIntent,
   mergeAfterSave,
   mergePersistedDraftWithServer,
+  sanitizePersistedDraft,
   updateCommittedAfterSave,
 } from '@/lib/eventEditorSync';
 import type { OrganizerEvent } from '@/types/domain';
@@ -67,5 +69,34 @@ describe('eventEditorSync', () => {
     const next = updateCommittedAfterSave(committed, server, { title: 'B' });
     expect(next.title).toBe('B');
     expect(next.venue).toBe('V1');
+  });
+
+  it('keeps saved coordinates when server still returns null', () => {
+    const baseline = base({ latitude: null, longitude: null });
+    const draft = base({ latitude: 24.7, longitude: 46.6 });
+    const server = base({ latitude: null, longitude: null });
+    const patch = { latitude: 24.7, longitude: 46.6 };
+    const merged = mergeAfterSave(draft, server, baseline, patch);
+    expect(merged.latitude).toBe(24.7);
+    expect(merged.longitude).toBe(46.6);
+  });
+
+  it('applySavedPatchIntent preserves schedule when server lags', () => {
+    const startsAt = '2026-05-27T11:43:00.000Z';
+    const server = base({ startsAt: '2020-01-01T00:00:00.000Z' });
+    const draft = base({ startsAt });
+    const merged = applySavedPatchIntent(server, server, draft, { startsAt });
+    expect(merged.startsAt).toBe(startsAt);
+  });
+
+  it('sanitizes invalid persisted schedule from session storage', () => {
+    const server = base({
+      startsAt: '2026-05-27T11:43:00.000Z',
+      endsAt: '2026-05-31T14:48:00.000Z',
+    });
+    const persisted = base({ startsAt: '', endsAt: 'not-a-date' });
+    const safe = sanitizePersistedDraft(persisted, server);
+    expect(safe.startsAt).toBe(server.startsAt);
+    expect(safe.endsAt).toBe(server.endsAt);
   });
 });

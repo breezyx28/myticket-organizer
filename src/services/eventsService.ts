@@ -1,5 +1,6 @@
 import type { OrganizerEvent, EventStatus, LayoutType, EntryMode, SeatCell } from '@/types/domain';
 import { organizerApi, type ListEventsPage } from '@/store/api/organizerApi';
+import { asObjectArray } from '@/lib/api/json';
 import { mapApiSeats, organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
@@ -32,12 +33,12 @@ export async function getEvent(id: string): Promise<OrganizerEvent | null> {
   try {
     const ev = await apiUnwrap<OrganizerEvent>(apiDispatch(organizerApi.endpoints.getEvent.initiate(id)));
     if (!ev) return null;
-    if (ev.layoutType !== 'free' && ev.seats.length === 0) {
+    if (ev.layoutType !== 'free') {
       try {
-        const rows = await apiUnwrap<unknown[]>(apiDispatch(organizerApi.endpoints.listSeats.initiate(id)));
-        ev.seats = mapApiSeats(rows);
+        const raw = await apiUnwrap<unknown>(apiDispatch(organizerApi.endpoints.listSeats.initiate(id)));
+        ev.seats = mapApiSeats(asObjectArray(raw));
       } catch {
-        /* keep empty seats */
+        /* keep seats from event payload if any */
       }
     }
     return ev;
@@ -489,6 +490,11 @@ export async function patchEvent(
 
   if (seatsPatch?.length) {
     await syncSeatsIndividually(id, seatsPatch, current.seats, merged.ticketTypes);
+    const fresh = await getEvent(id);
+    if (fresh && fresh.seats.length === 0) {
+      return { ...fresh, seats: seatsPatch };
+    }
+    return fresh;
   }
 
   return getEvent(id);

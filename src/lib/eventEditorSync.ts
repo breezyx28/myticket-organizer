@@ -1,4 +1,5 @@
 import { reconcilePatchedEvent } from '@/lib/eventLayoutReconcile';
+import { isValidIso } from '@/lib/datetimeLocal';
 import type { OrganizerEvent } from '@/types/domain';
 
 /** Fields the editor may PATCH or bind to inputs (excludes gallery list when refreshed separately). */
@@ -50,6 +51,34 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+/** Keep values we just saved when GET still returns stale/null fields. */
+export function applySavedPatchIntent(
+  merged: OrganizerEvent,
+  server: OrganizerEvent,
+  draft: OrganizerEvent,
+  patch: Partial<OrganizerEvent>
+): OrganizerEvent {
+  const next = { ...merged };
+  for (const key of Object.keys(patch) as (keyof OrganizerEvent)[]) {
+    if (patch[key] === undefined) continue;
+    const intended = patch[key];
+    const draftVal = draft[key];
+    const serverVal = server[key];
+    if (jsonEqual(draftVal, intended) && !jsonEqual(serverVal, intended)) {
+      (next as Record<string, unknown>)[key as string] = draftVal;
+    }
+  }
+  return next;
+}
+
+/** Drop invalid schedule strings from a session draft before merging with server. */
+export function sanitizePersistedDraft(persisted: OrganizerEvent, server: OrganizerEvent): OrganizerEvent {
+  const next = { ...persisted };
+  if (!isValidIso(next.startsAt)) next.startsAt = server.startsAt;
+  if (!isValidIso(next.endsAt)) next.endsAt = server.endsAt;
+  return next;
+}
+
 /**
  * After a save completes: start from server, then keep draft values the user changed
  * since the save began (baseline snapshot).
@@ -72,20 +101,21 @@ export function mergeAfterSave(
     (next as Record<string, unknown>)[key as string] = server[key];
   }
 
-  const reconciled = reconcilePatchedEvent(next, patch, baseline);
-  return reconciled ?? next;
+  const withIntent = applySavedPatchIntent(next, server, draft, patch);
+  return reconcilePatchedEvent(withIntent, patch, baseline);
 }
 
 /** Restore session draft on top of fresh server load. */
 export function mergePersistedDraftWithServer(persisted: OrganizerEvent, server: OrganizerEvent): OrganizerEvent {
+  const safe = sanitizePersistedDraft(persisted, server);
   const baseline = server;
   const patch: Partial<OrganizerEvent> = {};
   for (const key of EVENT_EDITOR_DRAFT_KEYS) {
-    if (!jsonEqual(persisted[key], server[key])) {
-      (patch as Record<string, unknown>)[key as string] = persisted[key];
+    if (!jsonEqual(safe[key], server[key])) {
+      (patch as Record<string, unknown>)[key as string] = safe[key];
     }
   }
-  return mergeAfterSave(persisted, server, baseline, patch);
+  return mergeAfterSave(safe, server, baseline, patch);
 }
 
 /** Advance committed snapshot for fields included in a successful save. */

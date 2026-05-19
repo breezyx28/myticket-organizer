@@ -5,6 +5,7 @@ import { RecurrenceManager } from '@/components/events/RecurrenceManager';
 import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
 import { ApiBaseUrl } from '@/config/api';
+import { fromLocalInput, toLocalInput } from '@/lib/datetimeLocal';
 import { toast } from '@/lib/appToast';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
 import { useEventEditorSync } from '@/hooks/useEventEditorSync';
@@ -572,8 +573,14 @@ export function EventEditorPage() {
               type="datetime-local"
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
               value={toLocalInput(event.startsAt)}
-              onChange={(e) => updateLocal((cur) => ({ ...cur, startsAt: fromLocalInput(e.target.value) }))}
-              onBlur={(e) => saveEventPatch({ startsAt: fromLocalInput(e.target.value) })}
+              onChange={(e) => {
+                const iso = fromLocalInput(e.target.value);
+                if (iso) updateLocal((cur) => ({ ...cur, startsAt: iso }));
+              }}
+              onBlur={(e) => {
+                const iso = fromLocalInput(e.target.value);
+                if (iso) saveEventPatch({ startsAt: iso });
+              }}
             />
           </Field>
           <Field label="Ends">
@@ -581,8 +588,14 @@ export function EventEditorPage() {
               type="datetime-local"
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
               value={toLocalInput(event.endsAt)}
-              onChange={(e) => updateLocal((cur) => ({ ...cur, endsAt: fromLocalInput(e.target.value) }))}
-              onBlur={(e) => saveEventPatch({ endsAt: fromLocalInput(e.target.value) })}
+              onChange={(e) => {
+                const iso = fromLocalInput(e.target.value);
+                if (iso) updateLocal((cur) => ({ ...cur, endsAt: iso }));
+              }}
+              onBlur={(e) => {
+                const iso = fromLocalInput(e.target.value);
+                if (iso) saveEventPatch({ endsAt: iso });
+              }}
             />
           </Field>
           <Field label="Description" className="md:col-span-2">
@@ -1207,12 +1220,3 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
-function toLocalInput(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromLocalInput(v: string) {
-  return new Date(v).toISOString();
-}

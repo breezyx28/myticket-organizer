@@ -117,18 +117,10 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
     hasSavedCoords ? [latitude as number, longitude as number] : null
   );
 
-  const propsKey = hasSavedCoords ? `${latitude},${longitude}` : '';
-  const lastPropsKey = useRef<string | null>(null);
-
   useEffect(() => {
-    if (propsKey === lastPropsKey.current) return;
-    lastPropsKey.current = propsKey;
-    if (hasSavedCoords) {
-      setMarkerPos([latitude as number, longitude as number]);
-    } else {
-      setMarkerPos(null);
-    }
-  }, [propsKey, hasSavedCoords, latitude, longitude]);
+    if (!hasSavedCoords) return;
+    setMarkerPos([latitude as number, longitude as number]);
+  }, [hasSavedCoords, latitude, longitude]);
 
   const mapCenter = useMemo((): [number, number] => (markerPos ? markerPos : DEFAULT_CENTER), [markerPos]);
   const mapZoom = markerPos ? DEFAULT_ZOOM_WITH_PIN : DEFAULT_ZOOM_NO_PIN;

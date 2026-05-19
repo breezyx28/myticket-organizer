@@ -1,13 +1,14 @@
 import type { OrganizerEvent } from '@/types/domain';
 
-/** Merge server event with local intent when layout/seat-map PATCH is not reflected yet. */
+/**
+ * Merge server event with local intent when layout/seat-map PATCH is not reflected yet.
+ * Always returns `merged` for non-seat-map saves — never discard in-flight editor fields.
+ */
 export function reconcilePatchedEvent(
-  serverEvent: OrganizerEvent | null,
+  merged: OrganizerEvent,
   patch: Partial<OrganizerEvent>,
   localBeforeSave: OrganizerEvent
-): OrganizerEvent | null {
-  if (!serverEvent) return null;
-
+): OrganizerEvent {
   const patchTouchesSeatMap =
     patch.layoutType !== undefined ||
     patch.seats !== undefined ||
@@ -17,14 +18,14 @@ export function reconcilePatchedEvent(
   const intendedLayout = patch.layoutType ?? localBeforeSave.layoutType;
   const requestedFreeLayout = patch.layoutType === 'free';
   const intendedNonFree = intendedLayout !== 'free';
-  const serverFree = serverEvent.layoutType === 'free';
+  const serverFree = merged.layoutType === 'free';
   const intendedRows = patch.rows ?? localBeforeSave.rows;
   const intendedCols = patch.cols ?? localBeforeSave.cols;
   const intendedSeats = patch.seats ?? localBeforeSave.seats;
 
   if (serverFree && intendedNonFree && patchTouchesSeatMap && !requestedFreeLayout) {
     return {
-      ...serverEvent,
+      ...merged,
       layoutType: intendedLayout,
       rows: intendedRows,
       cols: intendedCols,
@@ -34,7 +35,7 @@ export function reconcilePatchedEvent(
 
   if (requestedFreeLayout) {
     return {
-      ...serverEvent,
+      ...merged,
       layoutType: 'free',
       rows: 0,
       cols: 0,
@@ -43,24 +44,24 @@ export function reconcilePatchedEvent(
   }
 
   if (!patchTouchesSeatMap || !intendedNonFree) {
-    return serverEvent;
+    return merged;
   }
 
-  const serverSeatsMissing = serverEvent.seats.length === 0 && intendedSeats.length > 0;
+  const serverSeatsMissing = merged.seats.length === 0 && intendedSeats.length > 0;
   const serverDimensionsStale =
     intendedRows > 0 &&
     intendedCols > 0 &&
-    (serverEvent.rows !== intendedRows || serverEvent.cols !== intendedCols);
+    (merged.rows !== intendedRows || merged.cols !== intendedCols);
 
   if (serverSeatsMissing || serverDimensionsStale) {
     return {
-      ...serverEvent,
+      ...merged,
       layoutType: intendedLayout,
       rows: intendedRows,
       cols: intendedCols,
-      seats: serverSeatsMissing ? intendedSeats : serverEvent.seats,
+      seats: serverSeatsMissing ? intendedSeats : merged.seats,
     };
   }
 
-  return serverEvent;
+  return merged;
 }
