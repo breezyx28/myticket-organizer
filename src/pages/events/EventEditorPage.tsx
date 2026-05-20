@@ -82,6 +82,7 @@ export function EventEditorPage() {
     concurrentTabWarning,
     dismissConcurrentTabWarning,
   } = useEventEditorSync(id);
+  const { activeTab, setActiveTab } = usePersistedEventEditorTab(id);
 
   function clampSeatMapDimension(value: number, max: number) {
     if (!Number.isFinite(value) || value < 1) return 1;
@@ -245,7 +246,6 @@ export function EventEditorPage() {
     return <div className="py-20 text-center text-[14px] text-ink-60">Loading…</div>;
   }
 
-  const { activeTab, setActiveTab } = usePersistedEventEditorTab(id);
   const freeValidation = validateFreeLayoutTotals(event);
   const notifications = listEventNotifications().filter((n) => n.eventId === event.id);
   const coverImageUrl = uploadedCoverPreview || (event.eventGallery?.length ? resolvePublicUrl(event.eventGallery[0].url) : '');
