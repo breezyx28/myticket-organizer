@@ -1,6 +1,12 @@
 import type { OrganizerEvent, EventStatus, LayoutType, EntryMode, SeatCell } from '@/types/domain';
 import { organizerApi, type ListEventsPage } from '@/store/api/organizerApi';
 import { asObjectArray } from '@/lib/api/json';
+import {
+  buildOrganizerEventPatchBody,
+  resolveNumericTicketTypeId,
+  tryBuildHomogeneousSeatUpdates,
+  type SeatingPatchOptions,
+} from '@/lib/api/eventSeatingPatch';
 import { mapApiSeats, organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
@@ -33,10 +39,10 @@ export async function getEvent(id: string): Promise<OrganizerEvent | null> {
   try {
     const ev = await apiUnwrap<OrganizerEvent>(apiDispatch(organizerApi.endpoints.getEvent.initiate(id)));
     if (!ev) return null;
-    if (ev.layoutType !== 'free') {
+    if (ev.layoutType !== 'free' && ev.seats.length === 0) {
       try {
         const raw = await apiUnwrap<unknown>(apiDispatch(organizerApi.endpoints.listSeats.initiate(id)));
-        ev.seats = mapApiSeats(asObjectArray(raw));
+        ev.seats = mapApiSeats(asObjectArray(raw), id);
       } catch {
         /* keep seats from event payload if any */
       }
@@ -45,19 +51,6 @@ export async function getEvent(id: string): Promise<OrganizerEvent | null> {
   } catch {
     return null;
   }
-}
-
-function resolveNumericTicketTypeId(
-  ticketTypes: OrganizerEvent['ticketTypes'],
-  preferredId?: string
-): number | undefined {
-  if (preferredId && /^\d+$/.test(preferredId.trim())) {
-    return Number(preferredId);
-  }
-  for (const t of ticketTypes) {
-    if (/^\d+$/.test(t.id.trim())) return Number(t.id);
-  }
-  return undefined;
 }
 
 function seatCellChanged(before: SeatCell, after: SeatCell): boolean {
@@ -82,6 +75,7 @@ function shouldBulkReplaceSeatMap(
   return serverIds < patch.seats.length * 0.5;
 }
 
+/** Regenerate seat map via unified event PATCH (`seating.regenerate`). */
 export async function bulkReplaceEventSeats(
   eventId: string,
   opts: {
@@ -91,18 +85,47 @@ export async function bulkReplaceEventSeats(
     ticketTypeId?: number;
     section?: string;
   }
-): Promise<void> {
-  const body: Record<string, unknown> = {
-    layout_type: opts.layoutType,
-    rows: opts.rows,
-    cols: opts.cols,
-    replace: true,
-  };
-  if (opts.ticketTypeId != null) body.ticket_type_id = opts.ticketTypeId;
-  if (opts.section) body.section = opts.section;
-  await apiUnwrap(
-    apiDispatch(organizerApi.endpoints.bulkSeats.initiate({ eventId, body }))
+): Promise<OrganizerEvent | null> {
+  const body = buildOrganizerEventPatchBody(
+    {
+      layoutType: opts.layoutType,
+      rows: opts.rows,
+      cols: opts.cols,
+    },
+    {
+      regenerate: {
+        layoutType: opts.layoutType,
+        rows: opts.rows,
+        cols: opts.cols,
+        replace: true,
+        ticketTypeId: opts.ticketTypeId,
+        section: opts.section,
+      },
+    }
   );
+  return patchEventApi(eventId, body);
+}
+
+async function patchEventApi(
+  eventId: string,
+  body: Record<string, unknown>
+): Promise<OrganizerEvent | null> {
+  if (Object.keys(body).length === 0) return null;
+  return apiUnwrap<OrganizerEvent>(
+    apiDispatch(organizerApi.endpoints.patchEvent.initiate({ id: eventId, body }))
+  );
+}
+
+function mergeSeatsAfterSave(
+  server: OrganizerEvent,
+  merged: OrganizerEvent,
+  patch: Partial<OrganizerEvent>
+): OrganizerEvent {
+  if (server.seats.length > 0) return server;
+  if (patch.seats?.length && merged.seats.length > 0) {
+    return { ...server, seats: merged.seats, rows: merged.rows, cols: merged.cols };
+  }
+  return server;
 }
 
 async function syncSeatsIndividually(
@@ -142,7 +165,7 @@ export async function upsertEvent(event: OrganizerEvent) {
       apiDispatch(
         organizerApi.endpoints.patchEvent.initiate({
           id: event.id,
-          patch: event,
+          body: organizerEventPatchToApiBody(event),
         })
       )
     );
@@ -366,13 +389,14 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
 
   let fresh = (await getEvent(ev.id)) ?? ev;
   if (fresh.layoutType !== 'free' && fresh.rows > 0 && fresh.cols > 0) {
-    await bulkReplaceEventSeats(fresh.id, {
-      layoutType: fresh.layoutType,
-      rows: fresh.rows,
-      cols: fresh.cols,
-      ticketTypeId: resolveNumericTicketTypeId(fresh.ticketTypes),
-    });
-    fresh = (await getEvent(fresh.id)) ?? fresh;
+    const regenerated =
+      (await bulkReplaceEventSeats(fresh.id, {
+        layoutType: fresh.layoutType,
+        rows: fresh.rows,
+        cols: fresh.cols,
+        ticketTypeId: resolveNumericTicketTypeId(fresh.ticketTypes),
+      })) ?? null;
+    fresh = regenerated ?? (await getEvent(fresh.id)) ?? fresh;
   }
   return fresh;
 }
@@ -455,46 +479,55 @@ export async function patchEvent(
     eventApiPatch.cols = 0;
   }
 
-  const body = organizerEventPatchToApiBody(eventApiPatch);
+  const seating: SeatingPatchOptions = {};
+  let needsIndividualSeatSync = false;
+
+  if (merged.layoutType !== 'free') {
+    if (shouldBulkReplaceSeatMap(patch, merged)) {
+      const { rows, cols } = seatMapDimensions(merged);
+      const defaultType = merged.ticketTypes[0];
+      seating.regenerate = {
+        layoutType: merged.layoutType,
+        rows,
+        cols,
+        replace: true,
+        ticketTypeId: resolveNumericTicketTypeId(merged.ticketTypes, defaultType?.id),
+        section: merged.layoutType === 'section' ? merged.seats[0]?.section : undefined,
+      };
+    } else if (seatsPatch?.length) {
+      const seatUpdates = tryBuildHomogeneousSeatUpdates(
+        current.seats,
+        seatsPatch,
+        merged.ticketTypes
+      );
+      if (seatUpdates) {
+        seating.seatUpdates = seatUpdates;
+      } else {
+        needsIndividualSeatSync = true;
+      }
+    }
+  }
+
+  const hasSeating = Boolean(seating.regenerate || seating.seatUpdates);
+  const body = buildOrganizerEventPatchBody(eventApiPatch, hasSeating ? seating : undefined);
+
+  let result: OrganizerEvent | null = null;
   if (Object.keys(body).length > 0) {
-    await apiUnwrap(
-      apiDispatch(
-        organizerApi.endpoints.patchEvent.initiate({
-          id,
-          patch: eventApiPatch,
-        })
-      )
-    );
+    result = await patchEventApi(id, body);
   }
 
   if (merged.layoutType === 'free') {
-    return getEvent(id);
+    return result ?? (await getEvent(id));
   }
 
-  if (shouldBulkReplaceSeatMap(patch, merged)) {
-    const { rows, cols } = seatMapDimensions(merged);
-    const defaultType = merged.ticketTypes[0];
-    await bulkReplaceEventSeats(id, {
-      layoutType: merged.layoutType,
-      rows,
-      cols,
-      ticketTypeId: resolveNumericTicketTypeId(merged.ticketTypes, defaultType?.id),
-      section: merged.layoutType === 'section' ? merged.seats[0]?.section : undefined,
-    });
-    const fresh = await getEvent(id);
-    if (fresh && fresh.seats.length === 0 && merged.seats.length > 0) {
-      return { ...fresh, rows, cols, seats: merged.seats };
-    }
-    return fresh;
-  }
-
-  if (seatsPatch?.length) {
+  if (needsIndividualSeatSync && seatsPatch?.length) {
     await syncSeatsIndividually(id, seatsPatch, current.seats, merged.ticketTypes);
     const fresh = await getEvent(id);
-    if (fresh && fresh.seats.length === 0) {
-      return { ...fresh, seats: seatsPatch };
-    }
-    return fresh;
+    return fresh ? mergeSeatsAfterSave(fresh, merged, patch) : fresh;
+  }
+
+  if (result) {
+    return mergeSeatsAfterSave(result, merged, patch);
   }
 
   return getEvent(id);
@@ -617,7 +650,12 @@ export async function cancelOccurrence(eventId: string, occurrenceId: string) {
   if (!e) return;
   const occurrences = e.occurrences.map((o) => (o.id === occurrenceId ? { ...o, status: 'cancelled' as const } : o));
   await apiUnwrap(
-    apiDispatch(organizerApi.endpoints.patchEvent.initiate({ id: eventId, patch: { occurrences } }))
+    apiDispatch(
+      organizerApi.endpoints.patchEvent.initiate({
+        id: eventId,
+        body: organizerEventPatchToApiBody({ occurrences }),
+      })
+    )
   );
 }
 

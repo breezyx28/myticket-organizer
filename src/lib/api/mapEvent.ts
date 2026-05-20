@@ -62,17 +62,19 @@ function mapTicketTypes(raw: unknown): TicketTypeDef[] {
   });
 }
 
-export function mapApiSeats(raw: unknown): SeatCell[] {
+export function mapApiSeats(raw: unknown, eventId?: string): SeatCell[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item, i) => {
     const o = asRecord(item) ?? {};
+    const seatEventId = toIdString(o.event_id ?? o.eventId);
     return {
       id: toIdString(o.id ?? `s-${i}`),
+      eventId: seatEventId || eventId,
       row: readNum(o, 'row', 'row_index') ?? 0,
       col: readNum(o, 'col', 'column', 'col_index') ?? 0,
       section: readString(o, 'section') || undefined,
       ticketTypeId: toIdString(o.ticket_type_id ?? o.ticketTypeId ?? 'tt_std'),
-      price: readNum(o, 'price') ?? 0,
+      price: readNum(o, 'price', 'price_override') ?? 0,
       accessibility: Boolean(o.accessibility ?? o.is_accessible),
     };
   });
@@ -198,7 +200,7 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
     colGaps: asGapMap(root.col_gaps ?? root.colGaps),
     capacity: readNum(root, 'capacity', 'seat_capacity') ?? 0,
     ticketTypes: mapTicketTypes(root.ticket_types ?? root.ticketTypes),
-    seats: mapApiSeats(root.seats),
+    seats: mapApiSeats(root.seats, id || undefined),
     entryMode: parseEntry(readString(root, 'entry_mode', 'entryMode') || 'one_time'),
     purchaseLimitPerUser: readNum(root, 'purchase_limit_per_user', 'purchaseLimitPerUser') ?? undefined,
     multiDaySingleTicket: Boolean(root.multi_day_single_ticket ?? root.multiDaySingleTicket ?? false),
@@ -248,11 +250,13 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
     body.venue = patch.venue;
   }
   if (patch.city !== undefined) body.city = patch.city;
-  if (patch.latitude !== undefined && patch.latitude !== null && Number.isFinite(patch.latitude)) {
-    body.latitude = patch.latitude;
+  if (patch.latitude !== undefined) {
+    body.latitude =
+      patch.latitude != null && Number.isFinite(patch.latitude) ? patch.latitude : null;
   }
-  if (patch.longitude !== undefined && patch.longitude !== null && Number.isFinite(patch.longitude)) {
-    body.longitude = patch.longitude;
+  if (patch.longitude !== undefined) {
+    body.longitude =
+      patch.longitude != null && Number.isFinite(patch.longitude) ? patch.longitude : null;
   }
   if (patch.startsAt !== undefined) body.starts_at = patch.startsAt;
   if (patch.endsAt !== undefined) body.ends_at = patch.endsAt;
@@ -289,6 +293,11 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
     }));
   }
   return body;
+}
+
+/** PATCH /events/{id} response: `{ data: Event, seating?: … }` — seats live on `data`. */
+export function mapApiPatchEventResponse(raw: unknown): OrganizerEvent {
+  return mapApiEventToOrganizerEvent(raw);
 }
 
 const EVENT_PATCH_DIFF_KEYS: (keyof OrganizerEvent)[] = [

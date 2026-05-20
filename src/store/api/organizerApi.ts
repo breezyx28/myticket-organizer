@@ -8,7 +8,7 @@ import {
   organizerScannerCreateSchema,
 } from '@/schemas/organizer/requests';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
-import { mapApiEventToOrganizerEvent, organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
+import { mapApiEventToOrganizerEvent, mapApiPatchEventResponse } from '@/lib/api/mapEvent';
 import { mapApiProfileToOrganizerUser, organizerUserToProfilePatch } from '@/lib/api/mapProfile';
 import { parseProfileDocumentUrl, parseProfileGalleryImageUrl } from '@/lib/api/parseProfileUpload';
 import { mapApiScannersList, mapApiScannerToScannerAccount } from '@/lib/api/mapScanner';
@@ -195,13 +195,13 @@ export const organizerApi = createApi({
       invalidatesTags: [{ type: 'EventList', id: 'LIST' }, 'ScanLog'],
     }),
 
-    patchEvent: builder.mutation<OrganizerEvent, { id: string; patch: Partial<OrganizerEvent> }>({
-      query: ({ id, patch }) => ({
+    patchEvent: builder.mutation<OrganizerEvent, { id: string; body: Record<string, unknown> }>({
+      query: ({ id, body }) => ({
         url: `${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(id)}`,
         method: 'PATCH',
-        body: organizerEventPatchToApiBody(patch),
+        body,
       }),
-      transformResponse: (raw: unknown) => mapApiEventToOrganizerEvent(raw),
+      transformResponse: (raw: unknown) => mapApiPatchEventResponse(raw),
       invalidatesTags: (_r, _e, { id }) => [{ type: 'Event', id }, { type: 'EventList', id: 'LIST' }, 'ScanLog'],
     }),
 

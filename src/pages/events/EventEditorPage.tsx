@@ -8,6 +8,7 @@ import { ApiBaseUrl } from '@/config/api';
 import { fromLocalInput, toLocalInput } from '@/lib/datetimeLocal';
 import { toast } from '@/lib/appToast';
 import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
+import { type EventEditorTabId, usePersistedEventEditorTab } from '@/hooks/usePersistedEventEditorTab';
 import { useEventEditorSync } from '@/hooks/useEventEditorSync';
 import {
   appendChangeLog,
@@ -34,7 +35,7 @@ import { getProfile, isProfileComplete } from '@/services/profileService';
 import { useListEventCategoriesQuery, useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import type { EntryMode, LayoutType, OrganizerEvent } from '@/types/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
+import { Armchair, FileText, Image, LayoutGrid, MoreHorizontal, RefreshCcw, Ticket } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 function toastApiErr(err: unknown, fallback: string) {
@@ -244,9 +245,21 @@ export function EventEditorPage() {
     return <div className="py-20 text-center text-[14px] text-ink-60">Loading…</div>;
   }
 
+  const { activeTab, setActiveTab } = usePersistedEventEditorTab(id);
   const freeValidation = validateFreeLayoutTotals(event);
   const notifications = listEventNotifications().filter((n) => n.eventId === event.id);
   const coverImageUrl = uploadedCoverPreview || (event.eventGallery?.length ? resolvePublicUrl(event.eventGallery[0].url) : '');
+  const showPostEventMedia = event.status === 'archived' || event.status === 'ended';
+  const moreHasContent = showPostEventMedia || notifications.length > 0;
+
+  const editorTabs: { id: EventEditorTabId; label: string; Icon: typeof FileText }[] = [
+    { id: 'basics', label: 'Basics', Icon: FileText },
+    { id: 'media', label: 'Media', Icon: Image },
+    { id: 'layout', label: 'Layout', Icon: LayoutGrid },
+    { id: 'seats', label: 'Seats', Icon: Armchair },
+    { id: 'tickets', label: 'Tickets', Icon: Ticket },
+    { id: 'more', label: 'More', Icon: MoreHorizontal },
+  ];
 
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
     const out: { field: string; old: string; new: string }[] = [];
@@ -475,6 +488,23 @@ export function EventEditorPage() {
         </section>
       ) : null}
 
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {editorTabs.map(({ id: tabId, label, Icon }) => (
+          <button
+            key={tabId}
+            type="button"
+            onClick={() => setActiveTab(tabId)}
+            className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-center text-[11px] font-bold leading-tight sm:flex-row sm:gap-2 sm:px-3 sm:text-[12px] ${
+              activeTab === tabId ? 'bg-ink text-white shadow-card-sm' : 'bg-ink-5 text-ink-60 ring-1 ring-ink-10 hover:bg-ink-5/80'
+            }`}
+          >
+            <Icon className="h-[18px] w-[18px] shrink-0 sm:h-5 sm:w-5" strokeWidth={2} aria-hidden />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'basics' ? (
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Basics</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -516,7 +546,7 @@ export function EventEditorPage() {
           </Field>
           <div className="md:col-span-2">
             <VenueLocationMap
-              visible
+              visible={activeTab === 'basics'}
               latitude={event.latitude ?? null}
               longitude={event.longitude ?? null}
               hint="Location updates save automatically shortly after you pick a place or finish moving the pin."
@@ -609,7 +639,9 @@ export function EventEditorPage() {
           </Field>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === 'media' ? (
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Event gallery</h2>
         <p className="mt-2 max-w-2xl text-[13px] text-ink-60">
@@ -719,7 +751,9 @@ export function EventEditorPage() {
           ))}
         </div>
       </section>
+      ) : null}
 
+      {activeTab === 'layout' ? (
       <section className="rounded-3xl border border-ink-10 bg-surface-tint p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Layout &amp; schedule</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -859,7 +893,9 @@ export function EventEditorPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {activeTab === 'seats' ? (
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Seat map</h2>
         <div className="mt-4">
@@ -891,7 +927,9 @@ export function EventEditorPage() {
           />
         </div>
       </section>
+      ) : null}
 
+      {activeTab === 'tickets' ? (
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">Ticketing rules</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -1120,8 +1158,11 @@ export function EventEditorPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
-      {event.status === 'archived' || event.status === 'ended' ? (
+      {activeTab === 'more' ? (
+        <>
+      {showPostEventMedia ? (
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
           <h2 className="text-lg font-extrabold text-ink">Post-event media</h2>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1169,6 +1210,14 @@ export function EventEditorPage() {
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {!moreHasContent ? (
+        <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
+          <p className="text-[14px] text-ink-60">No post-event content yet. Post-event media appears when the event is ended or archived.</p>
+        </section>
+      ) : null}
+        </>
       ) : null}
 
       <PublishImpactDialog

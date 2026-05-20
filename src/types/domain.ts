@@ -70,6 +70,8 @@ export type TicketTypeDef = {
 
 export type SeatCell = {
   id: string;
+  /** Parent event id from API (`event_id`); used to validate seat linkage. */
+  eventId?: string;
   row: number;
   col: number;
   section?: string;

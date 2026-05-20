@@ -31,7 +31,17 @@ describe('layout API mapping', () => {
     expect(body.layout_type).toBe('grid');
     expect(body.rows_count).toBe(6);
     expect(body.cols_count).toBe(10);
+    expect(body.seating).toBeUndefined();
     expect(body.seats).toBeUndefined();
+  });
+
+  it('maps event_id on seats from GET payload', () => {
+    const ev = mapApiEventToOrganizerEvent({
+      id: 18,
+      layout_type: 'grid',
+      seats: [{ id: 1, event_id: 18, row_index: 0, col_index: 0, ticket_type_id: 5, price: '100.00' }],
+    });
+    expect(ev.seats[0]?.eventId).toBe('18');
   });
 
   it('forces zero dimensions when layout is free', () => {

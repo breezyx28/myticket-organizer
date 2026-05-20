@@ -443,6 +443,16 @@ export function buildExtraOrganizerEndpoints(builder: OrganBuilder) {
       invalidatesTags: (_r, _e, { eventId }) => [{ type: 'Seat', id: eventId }, { type: 'Event', id: eventId }],
     }),
 
+    bulkUpdateSeats: builder.mutation<unknown, { eventId: string; body: Record<string, unknown> }>({
+      query: ({ eventId, body }) => ({
+        url: orgPath(`/events/${encodeURIComponent(eventId)}/seats/bulk-update`),
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (raw: unknown) => unwrapEnvelope(raw),
+      invalidatesTags: (_r, _e, { eventId }) => [{ type: 'Seat', id: eventId }, { type: 'Event', id: eventId }],
+    }),
+
     deleteSeat: builder.mutation<{ message: string }, { eventId: string; seatId: string | number }>({
       query: ({ eventId, seatId }) => ({
         url: orgPath(`/events/${encodeURIComponent(eventId)}/seats/${encodeURIComponent(String(seatId))}`),
