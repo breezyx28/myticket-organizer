@@ -4,14 +4,16 @@ import { organizerBaseQuery } from '@/store/api/organizerBaseQuery';
 import {
   organizerLoginRequestSchema,
   organizerProfilePatchSchema,
+  organizerEventScannerAssignmentsSchema,
   organizerScannerAssignmentSchema,
   organizerScannerCreateSchema,
 } from '@/schemas/organizer/requests';
+import { messageResponseSchema } from '@/schemas/organizer/responses/shared';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
 import { mapApiEventToOrganizerEvent, mapApiPatchEventResponse } from '@/lib/api/mapEvent';
 import { mapApiProfileToOrganizerUser, organizerUserToProfilePatch } from '@/lib/api/mapProfile';
 import { parseProfileDocumentUrl, parseProfileGalleryImageUrl } from '@/lib/api/parseProfileUpload';
-import { mapApiScannersList, mapApiScannerToScannerAccount } from '@/lib/api/mapScanner';
+import { mapApiCreateScannerResponse, mapApiScannersList, type CreateScannerResult } from '@/lib/api/mapScanner';
 import { mapApiScanLogsList } from '@/lib/api/mapScanLog';
 import { mapApiFinanceSummary } from '@/lib/api/mapFinance';
 import { laravelPaginatorShellSchema } from '@/schemas/organizer/responses/shared';
@@ -34,8 +36,10 @@ export type ListEventsPage = {
 type OrganizerScannerCreateInput = {
   name: string;
   email: string;
-  password?: string | null;
-  user_id?: number | null;
+  password?: string;
+  user_id?: number;
+  event_ids?: number[];
+  gate_label?: string;
 };
 
 export const organizerApi = createApi({
@@ -249,14 +253,45 @@ export const organizerApi = createApi({
           : [{ type: 'Scanner', id: 'LIST' }],
     }),
 
-    createScanner: builder.mutation<ScannerAccount, OrganizerScannerCreateInput>({
+    createScanner: builder.mutation<CreateScannerResult, OrganizerScannerCreateInput>({
       query: (body) => ({
         url: `${ORGANIZER_API_PREFIX}/scanners`,
         method: 'POST',
         body: organizerScannerCreateSchema.parse(body),
       }),
-      transformResponse: (raw: unknown) => mapApiScannerToScannerAccount(raw),
-      invalidatesTags: [{ type: 'Scanner', id: 'LIST' }],
+      transformResponse: (raw: unknown) => mapApiCreateScannerResponse(raw),
+      invalidatesTags: [{ type: 'Scanner', id: 'LIST' }, 'ScanLog'],
+    }),
+
+    deleteScanner: builder.mutation<{ message: string }, string>({
+      query: (scannerId) => ({
+        url: `${ORGANIZER_API_PREFIX}/scanners/${encodeURIComponent(scannerId)}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (raw: unknown) => {
+        const parsed = messageResponseSchema.safeParse(raw);
+        return parsed.success ? parsed.data : { message: 'Scanner account removed.' };
+      },
+      invalidatesTags: [{ type: 'Scanner', id: 'LIST' }, 'ScanLog'],
+    }),
+
+    bulkEventScannerAssignments: builder.mutation<
+      unknown,
+      { eventId: string; scannerAccountIds: string[]; gateLabel?: string }
+    >({
+      query: ({ eventId, scannerAccountIds, gateLabel }) => {
+        const ids = scannerAccountIds.map((id) => Number(id)).filter((n) => !Number.isNaN(n) && n > 0);
+        const body = organizerEventScannerAssignmentsSchema.parse({
+          scanner_account_ids: ids,
+          ...(gateLabel?.trim() ? { gate_label: gateLabel.trim() } : {}),
+        });
+        return {
+          url: `${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/scanner-assignments`,
+          method: 'POST',
+          body,
+        };
+      },
+      invalidatesTags: [{ type: 'Scanner', id: 'LIST' }, 'ScanLog'],
     }),
 
     assignScanner: builder.mutation<unknown, { scannerId: string; eventId: string }>({

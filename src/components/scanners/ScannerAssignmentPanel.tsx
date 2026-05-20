@@ -1,5 +1,11 @@
 import { Button } from '@/components/ui/Button';
-import { assignScanner, listScanners } from '@/services/scannersService';
+import { toast } from '@/lib/appToast';
+import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
+import {
+  assignScanner,
+  bulkAssignScannersToEvent,
+  listScanners,
+} from '@/services/scannersService';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
 import { CheckCircle2, QrCode, UsersRound } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -7,15 +13,20 @@ import { useEffect, useState, type ReactNode } from 'react';
 export function ScannerAssignmentPanel({
   events,
   initialEventId,
+  onAssignmentsChange,
 }: {
   events: OrganizerEvent[];
   initialEventId?: string;
+  onAssignmentsChange?: () => void | Promise<void>;
 }) {
   const [scanners, setScanners] = useState<ScannerAccount[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [gateLabel, setGateLabel] = useState('');
+  const [busy, setBusy] = useState(false);
 
   async function reload() {
     setScanners(await listScanners());
+    await onAssignmentsChange?.();
   }
 
   useEffect(() => {
@@ -44,6 +55,53 @@ export function ScannerAssignmentPanel({
     ? scanners.filter((s) => s.assignedEventIds.includes(selectedEvent.id)).length
     : 0;
   const activeScanners = scanners.filter((s) => s.active);
+  const unassignedActive = selectedEvent
+    ? activeScanners.filter((s) => !s.assignedEventIds.includes(selectedEvent.id))
+    : [];
+
+  async function handleAssign(scannerId: string) {
+    if (!selectedEvent || busy) return;
+    setBusy(true);
+    try {
+      await assignScanner(scannerId, selectedEvent.id, true);
+      await reload();
+    } catch (err) {
+      toast.error(formatOrganizerApiError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnassign(scannerId: string) {
+    if (!selectedEvent || busy) return;
+    setBusy(true);
+    try {
+      await assignScanner(scannerId, selectedEvent.id, false);
+      await reload();
+    } catch (err) {
+      toast.error(formatOrganizerApiError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAssignAllActive() {
+    if (!selectedEvent || busy || unassignedActive.length === 0) return;
+    setBusy(true);
+    try {
+      await bulkAssignScannersToEvent(
+        selectedEvent.id,
+        unassignedActive.map((s) => s.id),
+        gateLabel.trim() || undefined
+      );
+      toast.success(`Assigned ${unassignedActive.length} scanner(s) to ${selectedEvent.title}.`);
+      await reload();
+    } catch (err) {
+      toast.error(formatOrganizerApiError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
@@ -51,7 +109,8 @@ export function ScannerAssignmentPanel({
         <div>
           <h2 className="text-lg font-extrabold text-ink">Assign scanners to events</h2>
           <p className="mt-1 text-[13px] text-ink-60">
-            Event-first assignment flow. A single event can have multiple scanners.
+            One event can have multiple gate scanners. Assign uses the bulk assignments API; unassign revokes a single
+            assignment.
           </p>
         </div>
         <div className="grid min-w-[220px] grid-cols-2 gap-2">
@@ -102,6 +161,30 @@ export function ScannerAssignmentPanel({
                 </span>
               </div>
 
+              <div className="mt-4 flex flex-wrap items-end gap-2">
+                <label className="min-w-[200px] flex-1 text-[12px] font-semibold text-ink-60">
+                  Gate label (optional, UI only for bulk assign)
+                  <input
+                    className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[13px]"
+                    value={gateLabel}
+                    placeholder="e.g. Main Entrance"
+                    onChange={(e) => setGateLabel(e.target.value)}
+                    disabled={busy}
+                  />
+                </label>
+                {unassignedActive.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="dark"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void handleAssignAllActive()}
+                  >
+                    Assign all active ({unassignedActive.length})
+                  </Button>
+                ) : null}
+              </div>
+
               <div className="mt-4 space-y-3">
                 {scanners.map((s) => {
                   const assigned = s.assignedEventIds.includes(selectedEvent.id);
@@ -121,10 +204,10 @@ export function ScannerAssignmentPanel({
                         type="button"
                         variant={assigned ? 'dark' : 'outline'}
                         size="sm"
-                        disabled={!s.active}
+                        disabled={!s.active || busy}
                         onClick={() => {
-                          assignScanner(s.id, selectedEvent.id, !assigned);
-                          void reload();
+                          if (assigned) void handleUnassign(s.id);
+                          else void handleAssign(s.id);
                         }}
                       >
                         {assigned ? (
@@ -139,7 +222,9 @@ export function ScannerAssignmentPanel({
                     </div>
                   );
                 })}
-                {scanners.length === 0 ? <p className="text-[13px] text-ink-40">No scanners yet — create one in Accounts tab.</p> : null}
+                {scanners.length === 0 ? (
+                  <p className="text-[13px] text-ink-40">No scanners yet — add gate staff in the Accounts tab.</p>
+                ) : null}
               </div>
             </div>
           ) : null}

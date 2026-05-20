@@ -41,8 +41,10 @@ export type OrganizerProfilePatch = z.infer<typeof organizerProfilePatchSchema>;
 export const organizerScannerCreateSchema = z.object({
   name: z.string().min(1).max(160),
   email: z.string().email(),
-  password: z.string().min(8).nullable().optional(),
-  user_id: z.number().int().nullable().optional(),
+  password: z.string().min(8).optional(),
+  user_id: z.number().int().optional(),
+  event_ids: z.array(z.number().int()).optional(),
+  gate_label: z.string().max(160).optional(),
 });
 
 export type OrganizerScannerCreate = z.infer<typeof organizerScannerCreateSchema>;
@@ -53,3 +55,11 @@ export const organizerScannerAssignmentSchema = z.object({
 });
 
 export type OrganizerScannerAssignment = z.infer<typeof organizerScannerAssignmentSchema>;
+
+/** POST /api/v1/organizer/events/{eventId}/scanner-assignments */
+export const organizerEventScannerAssignmentsSchema = z.object({
+  scanner_account_ids: z.array(z.number().int()).min(1),
+  gate_label: z.string().max(160).optional(),
+});
+
+export type OrganizerEventScannerAssignments = z.infer<typeof organizerEventScannerAssignmentsSchema>;

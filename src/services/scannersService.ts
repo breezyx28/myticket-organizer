@@ -1,7 +1,19 @@
 import type { ScanLog, ScannerAccount } from '@/types/domain';
 import { organizerApi } from '@/store/api/organizerApi';
+import type { CreateScannerResult } from '@/lib/api/mapScanner';
 import { listEvents } from '@/services/eventsService';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
+
+export type { CreateScannerResult };
+
+export type CreateScannerInput = {
+  name: string;
+  email: string;
+  password?: string;
+  userId?: number;
+  eventIds?: string[];
+  gateLabel?: string;
+};
 
 export async function listScanners(): Promise<ScannerAccount[]> {
   return apiUnwrap<ScannerAccount[]>(apiDispatch(organizerApi.endpoints.listScanners.initiate()));
@@ -24,32 +36,54 @@ export async function listScanLogs(): Promise<ScanLog[]> {
   return merged;
 }
 
-/** Documented organizer API does not expose PATCH/DELETE on scanner accounts; use device revoke and unassign instead. */
-export async function upsertScanner(scanner: ScannerAccount) {
-  void scanner;
-  console.warn('[scanners] Account update is not supported by the organizer API.');
-}
+export async function createScanner(input: CreateScannerInput): Promise<CreateScannerResult> {
+  const event_ids = (input.eventIds ?? [])
+    .map((id) => Number(id))
+    .filter((n) => !Number.isNaN(n) && n > 0);
+  const password = input.password?.trim();
+  const gateLabel = input.gateLabel?.trim();
 
-export async function createScanner(partial: Omit<ScannerAccount, 'id'>): Promise<ScannerAccount> {
-  return apiUnwrap<ScannerAccount>(
+  return apiUnwrap<CreateScannerResult>(
     apiDispatch(
       organizerApi.endpoints.createScanner.initiate({
-        name: partial.name,
-        email: partial.email,
-        password: null,
+        name: input.name.trim(),
+        email: input.email.trim(),
+        ...(password ? { password } : {}),
+        ...(input.userId != null ? { user_id: input.userId } : {}),
+        ...(event_ids.length ? { event_ids } : {}),
+        ...(gateLabel ? { gate_label: gateLabel } : {}),
       })
     )
   );
 }
 
-export async function deleteScanner(id: string) {
-  void id;
-  console.warn('[scanners] Account delete is not supported by the organizer API.');
+export async function deleteScanner(id: string): Promise<void> {
+  await apiUnwrap(
+    apiDispatch(organizerApi.endpoints.deleteScanner.initiate(id))
+  );
+}
+
+/** Assign one or more scanner accounts to an event (bulk gate assignment API). */
+export async function bulkAssignScannersToEvent(
+  eventId: string,
+  scannerAccountIds: string[],
+  gateLabel?: string
+): Promise<void> {
+  if (!scannerAccountIds.length) return;
+  await apiUnwrap(
+    apiDispatch(
+      organizerApi.endpoints.bulkEventScannerAssignments.initiate({
+        eventId,
+        scannerAccountIds,
+        gateLabel,
+      })
+    )
+  );
 }
 
 export async function assignScanner(scannerId: string, eventId: string, assign: boolean) {
   if (assign) {
-    await apiUnwrap(apiDispatch(organizerApi.endpoints.assignScanner.initiate({ scannerId, eventId })));
+    await bulkAssignScannersToEvent(eventId, [scannerId]);
     return;
   }
   const scanners = await listScanners();

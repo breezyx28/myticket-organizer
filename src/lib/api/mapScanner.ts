@@ -45,3 +45,27 @@ export function mapApiScannersList(raw: unknown): ScannerAccount[] {
   }
   return [];
 }
+
+export type CreateScannerResult = {
+  account: ScannerAccount;
+  credentialsEmailed: boolean;
+};
+
+/** POST /scanners — envelope may include `credentials_emailed` and top-level `assignments`. */
+export function mapApiCreateScannerResponse(raw: unknown): CreateScannerResult {
+  const root = asRecord(raw) ?? {};
+  const data = root.data ?? raw;
+  const account = mapApiScannerToScannerAccount(data);
+  const assignmentsRaw = root.assignments ?? asRecord(data)?.assignments;
+  if (Array.isArray(assignmentsRaw)) {
+    const mapped = mapAssignments(assignmentsRaw);
+    if (mapped.eventIds.length) {
+      account.assignedEventIds = mapped.eventIds;
+      account.assignmentIdsByEventId = mapped.assignmentIdsByEventId;
+    }
+  }
+  return {
+    account,
+    credentialsEmailed: Boolean(root.credentials_emailed ?? root.credentialsEmailed),
+  };
+}
