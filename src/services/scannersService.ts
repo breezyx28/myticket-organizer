@@ -1,10 +1,10 @@
 import type { ScanLog, ScannerAccount } from '@/types/domain';
 import { organizerApi } from '@/store/api/organizerApi';
-import type { CreateScannerResult } from '@/lib/api/mapScanner';
+import type { CreateScannerResult, UpdateScannerResult } from '@/lib/api/mapScanner';
 import { listEvents } from '@/services/eventsService';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 
-export type { CreateScannerResult };
+export type { CreateScannerResult, UpdateScannerResult };
 
 export type CreateScannerInput = {
   name: string;
@@ -52,6 +52,42 @@ export async function createScanner(input: CreateScannerInput): Promise<CreateSc
         ...(input.userId != null ? { user_id: input.userId } : {}),
         ...(event_ids.length ? { event_ids } : {}),
         ...(gateLabel ? { gate_label: gateLabel } : {}),
+      })
+    )
+  );
+}
+
+export type UpdateScannerInput = {
+  id: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  isActive?: boolean;
+  emailCredentials?: boolean;
+};
+
+export async function updateScanner(input: UpdateScannerInput): Promise<UpdateScannerResult> {
+  const name = input.name?.trim();
+  const email = input.email?.trim();
+  const password = input.password?.trim();
+  const body: {
+    name?: string;
+    email?: string;
+    password?: string;
+    is_active?: boolean;
+    email_credentials?: boolean;
+  } = {};
+  if (name) body.name = name;
+  if (email) body.email = email;
+  if (password) body.password = password;
+  if (input.isActive !== undefined) body.is_active = input.isActive;
+  if (input.emailCredentials) body.email_credentials = true;
+
+  return apiUnwrap<UpdateScannerResult>(
+    apiDispatch(
+      organizerApi.endpoints.updateScanner.initiate({
+        scannerId: input.id,
+        ...body,
       })
     )
   );

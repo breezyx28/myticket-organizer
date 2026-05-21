@@ -49,6 +49,27 @@ export const organizerScannerCreateSchema = z.object({
 
 export type OrganizerScannerCreate = z.infer<typeof organizerScannerCreateSchema>;
 
+/** PATCH /api/v1/organizer/scanners/{id} — at least one field */
+export const organizerScannerPatchSchema = z
+  .object({
+    name: z.string().min(1).max(160).optional(),
+    email: z.string().email().optional(),
+    password: z.string().min(8).optional(),
+    is_active: z.boolean().optional(),
+    email_credentials: z.boolean().optional(),
+  })
+  .refine(
+    (body) =>
+      body.name !== undefined ||
+      body.email !== undefined ||
+      body.password !== undefined ||
+      body.is_active !== undefined ||
+      body.email_credentials !== undefined,
+    { message: 'At least one field is required.' }
+  );
+
+export type OrganizerScannerPatch = z.infer<typeof organizerScannerPatchSchema>;
+
 /** POST .../scanners/{id}/assignments */
 export const organizerScannerAssignmentSchema = z.object({
   event_id: z.number().int(),

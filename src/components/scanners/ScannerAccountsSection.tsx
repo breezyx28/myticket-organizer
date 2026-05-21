@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/Button';
 import { ScannerConfirmDialog } from '@/components/scanners/ScannerConfirmDialog';
+import { ScannerEditDialog } from '@/components/scanners/ScannerEditDialog';
 import { deleteScanner } from '@/services/scannersService';
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
-import { Mail, Trash2, Users } from 'lucide-react';
+import { Mail, Pencil, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export function ScannerAccountsSection({
@@ -20,6 +21,7 @@ export function ScannerAccountsSection({
   onGoToAssignments: (eventId?: string) => void;
   onChanged: () => void | Promise<void>;
 }) {
+  const [editTarget, setEditTarget] = useState<ScannerAccount | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ScannerAccount | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -50,8 +52,8 @@ export function ScannerAccountsSection({
             <h2 className="text-xl font-extrabold tracking-tight text-ink">Gate staff accounts</h2>
           </div>
           <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-60">
-            Each account receives login credentials by email. Delete removes access and revokes all event assignments
-            on the server.
+            Create staff, edit name or login email, reset passwords, and enable or disable accounts without deleting
+            them.
           </p>
         </div>
         <Button variant="dark" size="md" className="shrink-0 self-start" onClick={onAddStaff}>
@@ -120,6 +122,16 @@ export function ScannerAccountsSection({
                   <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-stretch xl:flex-row">
                     <Button
                       type="button"
+                      variant="dark"
+                      size="sm"
+                      className="min-w-[140px]"
+                      onClick={() => setEditTarget(s)}
+                    >
+                      <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Edit account
+                    </Button>
+                    <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       className="min-w-[140px]"
@@ -146,6 +158,12 @@ export function ScannerAccountsSection({
           })}
         </ul>
       )}
+
+      <ScannerEditDialog
+        scanner={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={onChanged}
+      />
 
       <ScannerConfirmDialog
         open={deleteTarget != null}

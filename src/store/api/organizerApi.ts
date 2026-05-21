@@ -7,13 +7,20 @@ import {
   organizerEventScannerAssignmentsSchema,
   organizerScannerAssignmentSchema,
   organizerScannerCreateSchema,
+  organizerScannerPatchSchema,
 } from '@/schemas/organizer/requests';
 import { messageResponseSchema } from '@/schemas/organizer/responses/shared';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
 import { mapApiEventToOrganizerEvent, mapApiPatchEventResponse } from '@/lib/api/mapEvent';
 import { mapApiProfileToOrganizerUser, organizerUserToProfilePatch } from '@/lib/api/mapProfile';
 import { parseProfileDocumentUrl, parseProfileGalleryImageUrl } from '@/lib/api/parseProfileUpload';
-import { mapApiCreateScannerResponse, mapApiScannersList, type CreateScannerResult } from '@/lib/api/mapScanner';
+import {
+  mapApiCreateScannerResponse,
+  mapApiScannersList,
+  mapApiUpdateScannerResponse,
+  type CreateScannerResult,
+  type UpdateScannerResult,
+} from '@/lib/api/mapScanner';
 import { mapApiScanLogsList } from '@/lib/api/mapScanLog';
 import { mapApiFinanceSummary } from '@/lib/api/mapFinance';
 import { laravelPaginatorShellSchema } from '@/schemas/organizer/responses/shared';
@@ -40,6 +47,15 @@ type OrganizerScannerCreateInput = {
   user_id?: number;
   event_ids?: number[];
   gate_label?: string;
+};
+
+type OrganizerScannerPatchInput = {
+  scannerId: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  is_active?: boolean;
+  email_credentials?: boolean;
 };
 
 export const organizerApi = createApi({
@@ -261,6 +277,20 @@ export const organizerApi = createApi({
       }),
       transformResponse: (raw: unknown) => mapApiCreateScannerResponse(raw),
       invalidatesTags: [{ type: 'Scanner', id: 'LIST' }, 'ScanLog'],
+    }),
+
+    updateScanner: builder.mutation<UpdateScannerResult, OrganizerScannerPatchInput>({
+      query: ({ scannerId, ...body }) => ({
+        url: `${ORGANIZER_API_PREFIX}/scanners/${encodeURIComponent(scannerId)}`,
+        method: 'PATCH',
+        body: organizerScannerPatchSchema.parse(body),
+      }),
+      transformResponse: (raw: unknown) => mapApiUpdateScannerResponse(raw),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'Scanner', id: 'LIST' },
+        { type: 'Scanner', id: arg.scannerId },
+        'ScanLog',
+      ],
     }),
 
     deleteScanner: builder.mutation<{ message: string }, string>({

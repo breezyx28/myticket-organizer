@@ -46,13 +46,16 @@ export function mapApiScannersList(raw: unknown): ScannerAccount[] {
   return [];
 }
 
-export type CreateScannerResult = {
+export type ScannerMutationResult = {
   account: ScannerAccount;
   credentialsEmailed: boolean;
+  /** Present when mail failed but server generated a password (create/update). */
+  temporaryPassword?: string;
 };
 
-/** POST /scanners — envelope may include `credentials_emailed` and top-level `assignments`. */
-export function mapApiCreateScannerResponse(raw: unknown): CreateScannerResult {
+export type CreateScannerResult = ScannerMutationResult;
+
+function mapScannerMutationEnvelope(raw: unknown): ScannerMutationResult {
   const root = asRecord(raw) ?? {};
   const data = root.data ?? raw;
   const account = mapApiScannerToScannerAccount(data);
@@ -64,8 +67,22 @@ export function mapApiCreateScannerResponse(raw: unknown): CreateScannerResult {
       account.assignmentIdsByEventId = mapped.assignmentIdsByEventId;
     }
   }
+  const temporaryPassword = readString(root, 'temporary_password', 'temporaryPassword');
   return {
     account,
     credentialsEmailed: Boolean(root.credentials_emailed ?? root.credentialsEmailed),
+    ...(temporaryPassword ? { temporaryPassword } : {}),
   };
+}
+
+/** POST /scanners — envelope may include `credentials_emailed` and top-level `assignments`. */
+export function mapApiCreateScannerResponse(raw: unknown): CreateScannerResult {
+  return mapScannerMutationEnvelope(raw);
+}
+
+export type UpdateScannerResult = ScannerMutationResult;
+
+/** PATCH /scanners/{id} — same envelope as create. */
+export function mapApiUpdateScannerResponse(raw: unknown): UpdateScannerResult {
+  return mapScannerMutationEnvelope(raw);
 }
