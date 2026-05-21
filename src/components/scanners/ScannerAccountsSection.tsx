@@ -1,11 +1,18 @@
 import { Button } from '@/components/ui/Button';
 import { ScannerConfirmDialog } from '@/components/scanners/ScannerConfirmDialog';
 import { ScannerEditDialog } from '@/components/scanners/ScannerEditDialog';
+import {
+  ScannerAvatar,
+  ScannerChipList,
+  ScannerEmptyState,
+  ScannerPanelToolbar,
+  ScannerStatusBadge,
+} from '@/components/scanners/scannerUi';
 import { deleteScanner } from '@/services/scannersService';
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
-import { Mail, Pencil, Trash2, Users } from 'lucide-react';
+import { Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 export function ScannerAccountsSection({
@@ -25,7 +32,6 @@ export function ScannerAccountsSection({
   const [deleteTarget, setDeleteTarget] = useState<ScannerAccount | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const activeCount = scanners.filter((s) => s.active).length;
   const eventTitleById = Object.fromEntries(events.map((e) => [e.id, e.title]));
 
   async function confirmDelete() {
@@ -44,114 +50,81 @@ export function ScannerAccountsSection({
   }
 
   return (
-    <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm sm:p-8">
-      <div className="flex flex-col gap-4 border-b border-ink-10 pb-6 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 shrink-0 text-ink-50" strokeWidth={2} aria-hidden />
-            <h2 className="text-xl font-extrabold tracking-tight text-ink">Gate staff accounts</h2>
-          </div>
-          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-60">
-            Create staff, edit name or login email, reset passwords, and enable or disable accounts without deleting
-            them.
-          </p>
-        </div>
-        <Button variant="dark" size="md" className="shrink-0 self-start" onClick={onAddStaff}>
-          Add gate staff
-        </Button>
-      </div>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <MetricTile label="Total accounts" value={String(scanners.length)} />
-        <MetricTile label="Active" value={String(activeCount)} />
-        <MetricTile label="Inactive" value={String(scanners.length - activeCount)} />
-      </div>
+    <>
+      <ScannerPanelToolbar
+        title="Gate staff"
+        description="Edit login details, enable or disable accounts, or remove staff entirely."
+        action={
+          <Button variant="outline" size="sm" onClick={onAddStaff} className="sm:hidden">
+            Add staff
+          </Button>
+        }
+      />
 
       {scanners.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-ink-20 bg-ink-5/30 px-6 py-10 text-center">
-          <p className="text-[15px] font-semibold text-ink">No gate staff yet</p>
-          <p className="mt-2 text-[13px] text-ink-50">Create a scanner account to assign staff to event entrances.</p>
-          <Button variant="dark" size="md" className="mt-5" onClick={onAddStaff}>
-            Add gate staff
-          </Button>
-        </div>
+        <ScannerEmptyState
+          title="No gate staff yet"
+          description="Create scanner accounts so your team can check in tickets at event entrances."
+          action={
+            <Button variant="dark" size="md" onClick={onAddStaff}>
+              Add gate staff
+            </Button>
+          }
+        />
       ) : (
-        <ul className="mt-8 space-y-4">
+        <ul className="divide-y divide-ink-10 rounded-2xl border border-ink-10">
           {scanners.map((s) => {
             const assignmentLabels = s.assignedEventIds.map((id) => eventTitleById[id] ?? `Event #${id}`);
             return (
-              <li
-                key={s.id}
-                className="rounded-2xl border border-ink-10 bg-ink-5/20 p-4 sm:p-5"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <li key={s.id} className="flex flex-col gap-4 bg-white p-4 first:rounded-t-2xl last:rounded-b-2xl sm:flex-row sm:items-start sm:p-5">
+                <div className="flex min-w-0 flex-1 gap-3">
+                  <ScannerAvatar name={s.name} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[16px] font-extrabold text-ink">{s.name}</p>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                          s.active ? 'bg-mint/20 text-ink' : 'bg-ink-10 text-ink-50'
-                        }`}
-                      >
-                        {s.active ? 'Active' : 'Inactive'}
-                      </span>
+                      <p className="truncate text-[15px] font-extrabold text-ink">{s.name}</p>
+                      <ScannerStatusBadge active={s.active} />
                     </div>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-[13px] text-ink-60">
+                    <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-ink-60">
                       <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
                       {s.email}
                     </p>
                     {assignmentLabels.length > 0 ? (
-                      <div className="mt-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-40">Assigned events</p>
-                        <ul className="mt-2 flex flex-wrap gap-2">
-                          {assignmentLabels.map((label, i) => (
-                            <li
-                              key={`${s.id}-${i}`}
-                              className="rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-ink ring-1 ring-ink-10"
-                            >
-                              {label}
-                            </li>
-                          ))}
-                        </ul>
+                      <div className="mt-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">Events</p>
+                        <ScannerChipList items={assignmentLabels} />
                       </div>
                     ) : (
-                      <p className="mt-3 text-[12px] text-ink-40">Not assigned to any live event.</p>
+                      <p className="mt-2 text-[12px] text-ink-40">No live event assignments</p>
                     )}
                   </div>
+                </div>
 
-                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-stretch xl:flex-row">
-                    <Button
-                      type="button"
-                      variant="dark"
-                      size="sm"
-                      className="min-w-[140px]"
-                      onClick={() => setEditTarget(s)}
-                    >
-                      <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />
-                      Edit account
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="min-w-[140px]"
-                      onClick={() =>
-                        onGoToAssignments(s.assignedEventIds.length === 1 ? s.assignedEventIds[0] : undefined)
-                      }
-                    >
-                      Manage assignments
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      className="min-w-[140px]"
-                      onClick={() => setDeleteTarget(s)}
-                    >
-                      <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-                      Delete account
-                    </Button>
-                  </div>
+                <div className="flex flex-wrap gap-2 border-t border-ink-10 pt-3 sm:w-auto sm:flex-col sm:border-0 sm:pt-0 lg:min-w-[148px]">
+                  <Button type="button" variant="dark" size="sm" className="flex-1 sm:flex-none" onClick={() => setEditTarget(s)}>
+                    <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none"
+                    onClick={() =>
+                      onGoToAssignments(s.assignedEventIds.length === 1 ? s.assignedEventIds[0] : undefined)
+                    }
+                  >
+                    Assignments
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-coral/30 text-coral hover:bg-coral/10 sm:flex-none"
+                    onClick={() => setDeleteTarget(s)}
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Delete
+                  </Button>
                 </div>
               </li>
             );
@@ -159,11 +132,7 @@ export function ScannerAccountsSection({
         </ul>
       )}
 
-      <ScannerEditDialog
-        scanner={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSaved={onChanged}
-      />
+      <ScannerEditDialog scanner={editTarget} onClose={() => setEditTarget(null)} onSaved={onChanged} />
 
       <ScannerConfirmDialog
         open={deleteTarget != null}
@@ -178,15 +147,6 @@ export function ScannerAccountsSection({
         onCancel={() => !deleting && setDeleteTarget(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </section>
-  );
-}
-
-function MetricTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-ink-10 bg-white px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">{label}</p>
-      <p className="mt-1 font-mono text-[22px] font-bold leading-none text-ink">{value}</p>
-    </div>
+    </>
   );
 }

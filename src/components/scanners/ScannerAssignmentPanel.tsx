@@ -1,14 +1,21 @@
 import { Button } from '@/components/ui/Button';
 import { ScannerConfirmDialog } from '@/components/scanners/ScannerConfirmDialog';
+import {
+  ScannerEmptyState,
+  ScannerPanelToolbar,
+  ScannerStatusBadge,
+  ScannerSubsectionTitle,
+} from '@/components/scanners/scannerUi';
 import { toast } from '@/lib/appToast';
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
+import { cn } from '@/lib/utils';
 import {
   assignScanner,
   bulkAssignScannersToEvent,
   listScanners,
 } from '@/services/scannersService';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
-import { QrCode, UserMinus, UserPlus, UsersRound } from 'lucide-react';
+import { UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 export function ScannerAssignmentPanel({
@@ -54,7 +61,6 @@ export function ScannerAssignmentPanel({
   }, [events, initialEventId, selectedEventId]);
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
-  const activeScanners = scanners.filter((s) => s.active);
   const assignedToEvent = selectedEvent
     ? scanners.filter((s) => s.assignedEventIds.includes(selectedEvent.id))
     : [];
@@ -127,154 +133,150 @@ export function ScannerAssignmentPanel({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm sm:p-8">
-        <div className="flex flex-col gap-4 border-b border-ink-10 pb-6 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold tracking-tight text-ink">Event assignments</h2>
-            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-60">
-              Choose an event, then assign or unassign gate staff. Multiple scanners can work the same entrance.
-            </p>
-          </div>
-          <div className="grid min-w-[200px] grid-cols-2 gap-3">
-            <StatBadge label="Live events" value={String(events.length)} icon={<QrCode className="h-4 w-4" />} />
-            <StatBadge
-              label="Active staff"
-              value={String(activeScanners.length)}
-              icon={<UsersRound className="h-4 w-4" />}
-            />
-          </div>
-        </div>
+  if (events.length === 0) {
+    return (
+      <ScannerEmptyState
+        title="No live events"
+        description="Publish an event before you can assign gate staff to scan tickets."
+      />
+    );
+  }
 
-        {events.length === 0 ? (
-          <p className="mt-6 rounded-2xl border border-ink-10 bg-ink-5/40 px-5 py-4 text-[14px] text-ink-50">
-            No live or published events yet. Publish an event before assigning scanners.
-          </p>
-        ) : (
-          <>
-            <p className="mt-6 text-[11px] font-semibold uppercase tracking-wide text-ink-40">Select event</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {events.map((ev) => {
-                const count = scanners.filter((s) => s.assignedEventIds.includes(ev.id)).length;
-                const selected = ev.id === selectedEventId;
-                return (
+  return (
+    <>
+      <ScannerPanelToolbar
+        title="Per-event assignments"
+        description="Pick an event, then assign or remove gate staff. Multiple scanners can share one entrance."
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-8">
+        <aside>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-40">Events</p>
+          <ul className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto rounded-2xl border border-ink-10 bg-ink-5/25 p-1.5">
+            {events.map((ev) => {
+              const count = scanners.filter((s) => s.assignedEventIds.includes(ev.id)).length;
+              const selected = ev.id === selectedEventId;
+              return (
+                <li key={ev.id}>
                   <button
-                    key={ev.id}
                     type="button"
                     onClick={() => setSelectedEventId(ev.id)}
-                    className={`rounded-2xl border px-4 py-3.5 text-left transition ${
-                      selected
-                        ? 'border-ink bg-ink text-white shadow-card-sm'
-                        : 'border-ink-10 bg-ink-5/30 text-ink hover:border-ink-20 hover:bg-ink-5'
-                    }`}
+                    className={cn(
+                      'w-full rounded-xl px-3 py-2.5 text-left transition',
+                      selected ? 'bg-ink text-white shadow-card-sm' : 'text-ink hover:bg-white'
+                    )}
                   >
-                    <p className="truncate text-[14px] font-bold leading-snug">{ev.title}</p>
-                    <p className={`mt-1.5 text-[12px] ${selected ? 'text-white/75' : 'text-ink-50'}`}>
+                    <p className="truncate text-[13px] font-bold leading-snug">{ev.title}</p>
+                    <p className={cn('mt-0.5 text-[11px]', selected ? 'text-white/70' : 'text-ink-50')}>
                       {count} assigned
                     </p>
                   </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </section>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
 
-      {selectedEvent && events.length > 0 ? (
-        <section className="rounded-3xl border border-ink-10 bg-surface-tint p-6 shadow-card-sm sm:p-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-40">Working on</p>
-              <p className="text-[18px] font-extrabold text-ink">{selectedEvent.title}</p>
+        {selectedEvent ? (
+          <div className="min-w-0 rounded-2xl border border-ink-10 bg-surface-tint/80 p-4 sm:p-5">
+            <div className="flex flex-col gap-2 border-b border-ink-10/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">Selected</p>
+                <p className="text-[17px] font-extrabold leading-tight text-ink">{selectedEvent.title}</p>
+              </div>
+              <p className="text-[12px] font-semibold text-ink-60">
+                <span className="text-ink">{assignedToEvent.length}</span> assigned ·{' '}
+                <span className="text-ink">{availableActiveCount}</span> ready
+              </p>
             </div>
-            <span className="inline-flex w-fit rounded-full bg-white px-3.5 py-1.5 text-[12px] font-bold text-ink ring-1 ring-ink-10">
-              {assignedToEvent.length} assigned · {availableActiveCount} ready to assign
-            </span>
-          </div>
 
-          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-ink-10 bg-white p-4 sm:flex-row sm:items-end">
-            <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-              Gate label (optional, for bulk assign email)
-              <input
-                className="mt-1.5 h-10 w-full rounded-xl border border-ink-10 bg-white px-3 text-[14px] text-ink"
-                value={gateLabel}
-                placeholder="e.g. North Entrance"
-                onChange={(e) => setGateLabel(e.target.value)}
-                disabled={busy}
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-ink-10 bg-white p-3 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
+                Gate label (optional)
+                <input
+                  className="mt-1.5 h-10 w-full rounded-xl border border-ink-10 px-3 text-[14px] text-ink outline-none focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
+                  value={gateLabel}
+                  placeholder="e.g. North Entrance"
+                  onChange={(e) => setGateLabel(e.target.value)}
+                  disabled={busy}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableActiveCount > 0 ? (
+                  <Button type="button" variant="dark" size="sm" disabled={busy} onClick={() => void handleAssignAllActive()}>
+                    <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Assign all ({availableActiveCount})
+                  </Button>
+                ) : null}
+                {assignedToEvent.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-coral/40 text-coral hover:bg-coral/10"
+                    disabled={busy}
+                    onClick={() => setUnassignAllOpen(true)}
+                  >
+                    <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Unassign all
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+              <StaffColumn
+                title="Assigned"
+                count={assignedToEvent.length}
+                emptyHint="No staff on this event yet."
+                scanners={assignedToEvent}
+                variant="assigned"
+                renderActions={(s) => (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-coral/40 text-coral hover:bg-coral/10 sm:w-auto"
+                    disabled={busy}
+                    onClick={() => setUnassignTarget(s)}
+                  >
+                    <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Unassign
+                  </Button>
+                )}
               />
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {availableActiveCount > 0 ? (
-                <Button type="button" variant="dark" size="sm" disabled={busy} onClick={() => void handleAssignAllActive()}>
-                  <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Assign all active ({availableActiveCount})
-                </Button>
-              ) : null}
-              {assignedToEvent.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-coral/40 text-coral hover:bg-coral/10"
-                  disabled={busy}
-                  onClick={() => setUnassignAllOpen(true)}
-                >
-                  <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Unassign all ({assignedToEvent.length})
-                </Button>
-              ) : null}
+              <StaffColumn
+                title="Available"
+                count={availableForEvent.length}
+                emptyHint={
+                  scanners.length === 0
+                    ? 'Add gate staff in the Accounts tab first.'
+                    : 'Everyone active is already assigned here.'
+                }
+                scanners={availableForEvent}
+                variant="available"
+                renderActions={(s) => (
+                  <Button
+                    type="button"
+                    variant="dark"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={busy || !s.active}
+                    onClick={() => void handleAssign(s.id)}
+                  >
+                    <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Assign
+                  </Button>
+                )}
+              />
             </div>
-          </div>
 
-          <div className="mt-8">
-            <ScannerListSection
-              title="Assigned to this event"
-              emptyHint="No scanners assigned yet. Use the list below to assign staff."
-              scanners={assignedToEvent}
-              renderActions={(s) => (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[130px] border-coral/40 text-coral hover:bg-coral/10"
-                  disabled={busy}
-                  onClick={() => setUnassignTarget(s)}
-                >
-                  <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Unassign
-                </Button>
-              )}
-            />
+            {scanners.some((s) => !s.active) ? (
+              <p className="mt-4 text-[12px] text-ink-40">Inactive accounts must be reactivated before assigning.</p>
+            ) : null}
           </div>
-
-          <div className="mt-8">
-            <ScannerListSection
-              title="Available to assign"
-              emptyHint={scanners.length === 0 ? 'No gate staff — add accounts in the Accounts tab.' : 'All active staff are already assigned to this event.'}
-              scanners={availableForEvent}
-              muted
-              renderActions={(s) => (
-                <Button
-                  type="button"
-                  variant="dark"
-                  size="sm"
-                  className="min-w-[130px]"
-                  disabled={busy || !s.active}
-                  onClick={() => void handleAssign(s.id)}
-                >
-                  <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Assign
-                </Button>
-              )}
-            />
-          </div>
-
-          {scanners.some((s) => !s.active) ? (
-            <p className="mt-6 text-[12px] text-ink-40">Inactive accounts cannot be assigned until reactivated on the server.</p>
-          ) : null}
-        </section>
-      ) : null}
+        ) : null}
+      </div>
 
       <ScannerConfirmDialog
         open={unassignTarget != null}
@@ -303,67 +305,54 @@ export function ScannerAssignmentPanel({
         onCancel={() => !busy && setUnassignAllOpen(false)}
         onConfirm={() => void handleUnassignAll()}
       />
-    </div>
+    </>
   );
 }
 
-function ScannerListSection({
+function StaffColumn({
   title,
+  count,
   emptyHint,
   scanners,
+  variant,
   renderActions,
-  muted,
 }: {
   title: string;
+  count: number;
   emptyHint: string;
   scanners: ScannerAccount[];
+  variant: 'assigned' | 'available';
   renderActions: (s: ScannerAccount) => ReactNode;
-  muted?: boolean;
 }) {
   return (
     <div>
-      <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-50">{title}</h3>
+      <ScannerSubsectionTitle count={count}>{title}</ScannerSubsectionTitle>
       {scanners.length === 0 ? (
-        <p className="mt-3 rounded-xl border border-dashed border-ink-20 bg-white/60 px-4 py-5 text-[13px] text-ink-40">
+        <p className="rounded-xl border border-dashed border-ink-20 bg-white/70 px-3 py-6 text-center text-[12px] leading-relaxed text-ink-40">
           {emptyHint}
         </p>
       ) : (
-        <ul className="mt-3 space-y-3">
+        <ul className="space-y-2">
           {scanners.map((s) => (
             <li
               key={s.id}
-              className={`flex flex-col gap-3 rounded-2xl border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between ${
-                muted ? 'border-ink-10 bg-white' : 'border-mint/40 bg-mint/10'
-              }`}
+              className={cn(
+                'flex flex-col gap-2 rounded-xl border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between',
+                variant === 'assigned' ? 'border-mint/35 bg-mint/10' : 'border-ink-10 bg-white'
+              )}
             >
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[14px] font-bold text-ink">{s.name}</p>
-                  {!s.active ? (
-                    <span className="rounded-full bg-ink-10 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-50">
-                      Inactive
-                    </span>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-[13px] font-bold text-ink">{s.name}</p>
+                  {!s.active ? <ScannerStatusBadge active={false} /> : null}
                 </div>
-                <p className="mt-0.5 truncate text-[13px] text-ink-60">{s.email}</p>
+                <p className="truncate text-[12px] text-ink-60">{s.email}</p>
               </div>
               <div className="shrink-0">{renderActions(s)}</div>
             </li>
           ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-function StatBadge({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-ink-10 bg-ink-5/40 px-4 py-3">
-      <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-40">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-1 font-mono text-[18px] font-bold leading-none text-ink">{value}</p>
     </div>
   );
 }
