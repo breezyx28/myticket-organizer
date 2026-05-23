@@ -17,8 +17,10 @@ import { parseProfileDocumentUrl, parseProfileGalleryImageUrl } from '@/lib/api/
 import {
   mapApiCreateScannerResponse,
   mapApiScannersList,
+  mapApiResendScannerCredentialsResponse,
   mapApiUpdateScannerResponse,
   type CreateScannerResult,
+  type ResendScannerCredentialsResult,
   type UpdateScannerResult,
 } from '@/lib/api/mapScanner';
 import { mapApiScanLogsList } from '@/lib/api/mapScanLog';
@@ -290,6 +292,18 @@ export const organizerApi = createApi({
         { type: 'Scanner', id: 'LIST' },
         { type: 'Scanner', id: arg.scannerId },
         'ScanLog',
+      ],
+    }),
+
+    resendScannerCredentials: builder.mutation<ResendScannerCredentialsResult, string>({
+      query: (scannerId) => ({
+        url: `${ORGANIZER_API_PREFIX}/scanners/${encodeURIComponent(scannerId)}/resend-credentials`,
+        method: 'POST',
+      }),
+      transformResponse: (raw: unknown) => mapApiResendScannerCredentialsResponse(raw),
+      invalidatesTags: (_r, _e, scannerId) => [
+        { type: 'Scanner', id: 'LIST' },
+        { type: 'Scanner', id: scannerId },
       ],
     }),
 

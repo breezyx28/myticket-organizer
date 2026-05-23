@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { getMainSiteOrigin } from '@/config/site';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
@@ -134,11 +135,11 @@ export function LoginPage() {
                 </label>
                 <label className="block">
                   <span className="text-[12px] font-semibold text-ink-60">Password</span>
-                  <input
-                    type="password"
-                    className={`mt-1.5 w-full rounded-xl border px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30 ${
+                  <PasswordInput
+                    className={`mt-1.5 rounded-xl border px-4 py-3 text-[14px] outline-none focus:border-coral focus:ring-2 focus:ring-coral/30 ${
                       fieldErrors.password ? 'border-coral' : 'border-ink-10'
                     }`}
+                    hasError={Boolean(fieldErrors.password)}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);

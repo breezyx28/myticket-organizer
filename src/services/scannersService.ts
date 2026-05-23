@@ -1,10 +1,28 @@
 import type { ScanLog, ScannerAccount } from '@/types/domain';
 import { organizerApi } from '@/store/api/organizerApi';
-import type { CreateScannerResult, UpdateScannerResult } from '@/lib/api/mapScanner';
+import type {
+  CreateScannerResult,
+  ResendScannerCredentialsResult,
+  ScannerMutationResult,
+  UpdateScannerResult,
+} from '@/lib/api/mapScanner';
 import { listEvents } from '@/services/eventsService';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 
-export type { CreateScannerResult, UpdateScannerResult };
+export type { CreateScannerResult, ResendScannerCredentialsResult, UpdateScannerResult };
+
+/** Toast + optional temp password callback for create / update / resend credential flows. */
+export function applyScannerCredentialsOutcome(
+  result: ScannerMutationResult,
+  onTemporaryPassword?: (password: string) => void
+): 'emailed' | 'temporary' | 'silent' {
+  if (result.credentialsEmailed) return 'emailed';
+  if (result.temporaryPassword) {
+    onTemporaryPassword?.(result.temporaryPassword);
+    return 'temporary';
+  }
+  return 'silent';
+}
 
 export type CreateScannerInput = {
   name: string;
@@ -90,6 +108,12 @@ export async function updateScanner(input: UpdateScannerInput): Promise<UpdateSc
         ...body,
       })
     )
+  );
+}
+
+export async function resendScannerCredentials(id: string): Promise<ResendScannerCredentialsResult> {
+  return apiUnwrap<ResendScannerCredentialsResult>(
+    apiDispatch(organizerApi.endpoints.resendScannerCredentials.initiate(id))
   );
 }
 

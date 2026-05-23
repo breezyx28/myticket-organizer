@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { ScannerConfirmDialog } from '@/components/scanners/ScannerConfirmDialog';
 import { ScannerEditDialog } from '@/components/scanners/ScannerEditDialog';
+import { ScannerResendCredentialsResultDialog } from '@/components/scanners/ScannerResendCredentialsDialog';
 import {
   ScannerAvatar,
   ScannerChipList,
@@ -8,7 +9,11 @@ import {
   ScannerPanelToolbar,
   ScannerStatusBadge,
 } from '@/components/scanners/scannerUi';
-import { deleteScanner } from '@/services/scannersService';
+import {
+  applyScannerCredentialsOutcome,
+  deleteScanner,
+  resendScannerCredentials,
+} from '@/services/scannersService';
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
@@ -30,7 +35,12 @@ export function ScannerAccountsSection({
 }) {
   const [editTarget, setEditTarget] = useState<ScannerAccount | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ScannerAccount | null>(null);
+  const [resendTarget, setResendTarget] = useState<ScannerAccount | null>(null);
+  const [resendTempPassword, setResendTempPassword] = useState<{ scanner: ScannerAccount; password: string } | null>(
+    null
+  );
   const [deleting, setDeleting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const eventTitleById = Object.fromEntries(events.map((e) => [e.id, e.title]));
 
@@ -49,11 +59,33 @@ export function ScannerAccountsSection({
     }
   }
 
+  async function confirmResend() {
+    if (!resendTarget) return;
+    setResending(true);
+    try {
+      const result = await resendScannerCredentials(resendTarget.id);
+      const outcome = applyScannerCredentialsOutcome(result, (password) => {
+        setResendTempPassword({ scanner: resendTarget, password });
+      });
+      if (outcome === 'emailed') {
+        toast.success(`New login details were emailed to ${result.account.email}.`);
+      } else if (outcome === 'silent') {
+        toast.success('New password generated.');
+      }
+      setResendTarget(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(formatOrganizerApiError(err));
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <>
       <ScannerPanelToolbar
         title="Gate staff"
-        description="Edit login details, enable or disable accounts, or remove staff entirely."
+        description="Edit accounts, resend login emails, or remove staff. Resend generates a new password and emails scanner app login details."
         action={
           <Button variant="outline" size="sm" onClick={onAddStaff} className="sm:hidden">
             Add staff
@@ -99,16 +131,19 @@ export function ScannerAccountsSection({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 border-t border-ink-10 pt-3 sm:w-auto sm:flex-col sm:border-0 sm:pt-0 lg:min-w-[148px]">
-                  <Button type="button" variant="dark" size="sm" className="flex-1 sm:flex-none" onClick={() => setEditTarget(s)}>
+                <div className="grid grid-cols-2 gap-2 border-t border-ink-10 pt-3 sm:w-auto sm:min-w-[200px] sm:border-0 sm:pt-0 lg:min-w-[220px]">
+                  <Button type="button" variant="dark" size="sm" onClick={() => setEditTarget(s)}>
                     <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />
                     Edit
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setResendTarget(s)}>
+                    <Mail className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Resend creds
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="flex-1 sm:flex-none"
                     onClick={() =>
                       onGoToAssignments(s.assignedEventIds.length === 1 ? s.assignedEventIds[0] : undefined)
                     }
@@ -119,7 +154,7 @@ export function ScannerAccountsSection({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-coral/30 text-coral hover:bg-coral/10 sm:flex-none"
+                    className="border-coral/30 text-coral hover:bg-coral/10"
                     onClick={() => setDeleteTarget(s)}
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
@@ -135,6 +170,20 @@ export function ScannerAccountsSection({
       <ScannerEditDialog scanner={editTarget} onClose={() => setEditTarget(null)} onSaved={onChanged} />
 
       <ScannerConfirmDialog
+        open={resendTarget != null}
+        title="Resend login credentials?"
+        description={
+          resendTarget
+            ? `Generate a new password and email login details to ${resendTarget.email}? Assigned gate and event names are included when present.`
+            : ''
+        }
+        confirmLabel="Resend credentials"
+        loading={resending}
+        onCancel={() => !resending && setResendTarget(null)}
+        onConfirm={() => void confirmResend()}
+      />
+
+      <ScannerConfirmDialog
         open={deleteTarget != null}
         title="Delete scanner account?"
         description={
@@ -147,6 +196,15 @@ export function ScannerAccountsSection({
         onCancel={() => !deleting && setDeleteTarget(null)}
         onConfirm={() => void confirmDelete()}
       />
+
+      {resendTempPassword ? (
+        <ScannerResendCredentialsResultDialog
+          scannerName={resendTempPassword.scanner.name}
+          email={resendTempPassword.scanner.email}
+          temporaryPassword={resendTempPassword.password}
+          onClose={() => setResendTempPassword(null)}
+        />
+      ) : null}
     </>
   );
 }

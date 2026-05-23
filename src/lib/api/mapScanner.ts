@@ -86,3 +86,10 @@ export type UpdateScannerResult = ScannerMutationResult;
 export function mapApiUpdateScannerResponse(raw: unknown): UpdateScannerResult {
   return mapScannerMutationEnvelope(raw);
 }
+
+export type ResendScannerCredentialsResult = ScannerMutationResult;
+
+/** POST /scanners/{id}/resend-credentials */
+export function mapApiResendScannerCredentialsResponse(raw: unknown): ResendScannerCredentialsResult {
+  return mapScannerMutationEnvelope(raw);
+}

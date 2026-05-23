@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   mapApiCreateScannerResponse,
+  mapApiResendScannerCredentialsResponse,
   mapApiScannerToScannerAccount,
   mapApiUpdateScannerResponse,
 } from '@/lib/api/mapScanner';
@@ -23,6 +24,15 @@ describe('mapScanner', () => {
     expect(result.account.email).toBe('gate@example.com');
     expect(result.account.assignedEventIds).toContain('18');
     expect(result.account.assignmentIdsByEventId?.['18']).toBe('12');
+  });
+
+  it('maps resend-credentials response', () => {
+    const result = mapApiResendScannerCredentialsResponse({
+      data: { id: 2, name: 'Gate', email: 'g@test.com', is_active: true },
+      credentials_emailed: true,
+    });
+    expect(result.credentialsEmailed).toBe(true);
+    expect(result.account.id).toBe('2');
   });
 
   it('maps PATCH scanner with temporary_password when email fails', () => {

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { ScannerAccountsSection } from '@/components/scanners/ScannerAccountsSection';
 import { ScannerAssignmentPanel } from '@/components/scanners/ScannerAssignmentPanel';
 import {
@@ -295,10 +296,10 @@ export function ScannerManagementPage() {
             </ScannerFormLabel>
             <ScannerFormLabel error={scannerFieldErrors.password}>
               Password (optional)
-              <input
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 className={scannerInputErrorClass(Boolean(scannerFieldErrors.password))}
+                hasError={Boolean(scannerFieldErrors.password)}
                 value={password}
                 placeholder="Leave blank to email a generated password"
                 onChange={(e) => {

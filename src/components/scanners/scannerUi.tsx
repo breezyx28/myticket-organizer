@@ -216,6 +216,16 @@ export function ScannerChipList({ items }: { items: string[] }) {
   );
 }
 
+export function ScannerTemporaryPasswordAlert({ password }: { password: string }) {
+  return (
+    <div className="rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-[13px] text-ink">
+      <p className="font-bold">Email could not be sent</p>
+      <p className="mt-1 text-ink-60">Share this temporary password with the staff member securely:</p>
+      <p className="mt-2 font-mono text-[15px] font-bold tracking-tight text-ink">{password}</p>
+    </div>
+  );
+}
+
 export function ScannerSubsectionTitle({ children, count }: { children: ReactNode; count?: number }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-2">
