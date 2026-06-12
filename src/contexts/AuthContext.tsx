@@ -1,9 +1,10 @@
 import { AuthContext, type AuthContextValue, type SessionUser } from '@/contexts/organizerAuthContext';
+import { disconnectEcho } from '@/lib/realtime/echo';
 import { organizerApi, useLoginMutation, useLogoutMutation } from '@/store/api/organizerApi';
 import { useAppDispatch } from '@/store/hooks';
 import { setAccessToken, ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
-import type { OrganizerUser } from '@/types/domain';
+import type { OrganizerUser, UserRole } from '@/types/domain';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 const SESSION_KEY = 'myticket_organizer_session_v1';
@@ -21,6 +22,29 @@ function loadSession(): SessionUser | null {
 function saveSession(u: SessionUser | null) {
   if (!u) sessionStorage.removeItem(SESSION_KEY);
   else sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
+}
+
+function sessionFromProfile(profile: OrganizerUser): SessionUser {
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    role: 'organizer',
+  };
+}
+
+function sessionFromLoginUser(
+  user: { id?: string; email: string; name: string; role: UserRole } | null,
+  profile?: OrganizerUser
+): SessionUser | null {
+  if (profile) return sessionFromProfile(profile);
+  if (!user?.email) return null;
+  return {
+    id: user.id ?? '',
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,17 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return { ok: false as const, reason: 'invalid' as const };
           }
           dispatch(setAccessToken(result.accessToken));
-          let nextUser = result.user;
-          if (!nextUser) {
+          let profile: OrganizerUser | undefined;
+          if (!result.user?.id) {
             try {
-              const profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
-              nextUser = { email: profile.email, name: profile.name, role: 'organizer' };
+              profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
             } catch {
               dispatch(setAccessToken(null));
               return { ok: false as const, reason: 'invalid' as const };
             }
           }
-          if (nextUser.role !== 'organizer') {
+          const nextUser = sessionFromLoginUser(result.user, profile);
+          if (!nextUser || nextUser.role !== 'organizer') {
             dispatch(setAccessToken(null));
             return { ok: false as const, reason: 'not_organizer' as const };
           }
@@ -86,17 +110,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { ok: false as const, reason: 'invalid' as const };
         }
         dispatch(setAccessToken(result.accessToken));
-        let nextUser = result.user;
-        if (!nextUser) {
+        let profile: OrganizerUser | undefined;
+        if (!result.user?.id) {
           try {
-            const profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
-            nextUser = { email: profile.email, name: profile.name, role: 'organizer' };
+            profile = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.getProfile.initiate()));
           } catch {
             dispatch(setAccessToken(null));
             return { ok: false as const, reason: 'invalid' as const };
           }
         }
-        if (nextUser.role !== 'organizer') {
+        const nextUser = sessionFromLoginUser(result.user, profile);
+        if (!nextUser || nextUser.role !== 'organizer') {
           dispatch(setAccessToken(null));
           return { ok: false as const, reason: 'not_organizer' as const };
         }
@@ -116,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* still clear client session */
     }
+    disconnectEcho();
     dispatch(setAccessToken(null));
     setUser(null);
     saveSession(null);

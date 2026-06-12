@@ -1,4 +1,5 @@
 import { RequireOrganizer } from '@/components/auth/RequireOrganizer';
+import { RealtimeProvider } from '@/components/realtime/RealtimeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppToaster } from '@/lib/AppToaster';
 import { OrganizerShell } from '@/layouts/OrganizerShell';
@@ -14,6 +15,8 @@ import { EventEditorPage } from '@/pages/events/EventEditorPage';
 import { EventListPage } from '@/pages/events/EventListPage';
 import { FinancialOverviewPage } from '@/pages/finance/FinancialOverviewPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
+import { EngagementsPage } from '@/pages/engagements/EngagementsPage';
+import { EngagementThreadPage } from '@/pages/engagements/EngagementThreadPage';
 import { RatingsPage } from '@/pages/ratings/RatingsPage';
 import { ScannerManagementPage } from '@/pages/scanners/ScannerManagementPage';
 import { Navigate, Route, Routes } from 'react-router-dom';
@@ -29,11 +32,14 @@ export function App() {
         <Route path="/access-denied" element={<AccessDeniedPage />} />
 
         <Route path="/" element={<RequireOrganizer />}>
-          <Route element={<OrganizerShell />}>
+          <Route element={<RealtimeProvider><OrganizerShell /></RealtimeProvider>}>
             <Route index element={<HomePage />} />
             <Route path="events" element={<EventListPage />} />
             <Route path="events/archive" element={<EventArchivePage />} />
             <Route path="events/:id" element={<EventEditorPage />} />
+            <Route path="engagements" element={<EngagementsPage />}>
+              <Route path=":conversationId" element={<EngagementThreadPage />} />
+            </Route>
             <Route path="scanners" element={<ScannerManagementPage />} />
             <Route path="analytics/sales" element={<SalesAnalyticsPage />} />
             <Route path="analytics/attendance" element={<AttendancePage />} />

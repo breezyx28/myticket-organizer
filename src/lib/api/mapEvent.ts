@@ -2,6 +2,7 @@ import type {
   EntryMode,
   EventGalleryItem,
   EventOccurrence,
+  EventPartnerLink,
   EventStatus,
   LayoutType,
   OrganizerEvent,
@@ -9,7 +10,7 @@ import type {
   SeatCell,
   TicketTypeDef,
 } from '@/types/domain';
-import { readApiNumericId, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
+import { readApiNumericId, readBool, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
@@ -126,6 +127,38 @@ function optionalIntId(raw: string | undefined): number | null | undefined {
   return Number(t);
 }
 
+function mapEventPartners(raw: unknown, role: 'talent' | 'vendor'): EventPartnerLink[] {
+  if (!Array.isArray(raw)) return [];
+  const out: EventPartnerLink[] = [];
+  for (const item of raw) {
+    const o = asRecord(item);
+    if (!o) continue;
+    const nested = asRecord(o.talent) ?? asRecord(o.vendor) ?? asRecord(o.profile);
+    const profileId = toIdString(
+      o.talent_profile_id ??
+        o.vendor_profile_id ??
+        o.profile_id ??
+        nested?.id ??
+        o.talent_id ??
+        o.vendor_id
+    );
+    const displayName =
+      readString(o, 'display_name', 'name') ||
+      (nested ? readString(nested, 'display_name', 'name', 'business_name') : '') ||
+      `${role === 'talent' ? 'Talent' : 'Vendor'} #${profileId || '?'}`;
+    const linkId = toIdString(o.id ?? o.link_id);
+    if (!linkId) continue;
+    out.push({
+      id: linkId,
+      profileId: profileId || linkId,
+      displayName,
+      slug: readString(o, 'slug', 'handle') || (nested ? readString(nested, 'slug') : undefined) || undefined,
+      role,
+    });
+  }
+  return out;
+}
+
 function mapRecurrence(raw: unknown): RecurrencePattern | null {
   const o = asRecord(raw);
   if (!o) return null;
@@ -211,6 +244,10 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
     waitlistCount: readNum(root, 'waitlist_count', 'waitlistCount') ?? undefined,
     eventGallery: mapEventGallery(root),
     postEventMedia,
+    talents: mapEventPartners(root.talents ?? root.event_talents, 'talent'),
+    vendors: mapEventPartners(root.vendors ?? root.event_vendors, 'vendor'),
+    showTalents: readBool(root, 'show_talents', 'showTalents') ?? true,
+    showVendors: readBool(root, 'show_vendors', 'showVendors') ?? true,
     lastChangeLog: undefined,
   };
 }
@@ -292,6 +329,8 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
       label: m.label,
     }));
   }
+  if (patch.showTalents !== undefined) body.show_talents = patch.showTalents;
+  if (patch.showVendors !== undefined) body.show_vendors = patch.showVendors;
   return body;
 }
 

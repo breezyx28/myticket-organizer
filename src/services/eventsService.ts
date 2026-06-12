@@ -348,6 +348,10 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
     waitlistCount: 0,
     postEventMedia: [],
     eventGallery: [],
+    talents: [],
+    vendors: [],
+    showTalents: true,
+    showVendors: true,
     id: newId,
   };
   const ev = { ...defaults, ...partial, id: newId };

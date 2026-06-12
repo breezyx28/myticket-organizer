@@ -6,6 +6,7 @@ import {
   QrCode,
   LineChart,
   Wallet,
+  MessageCircle,
   Star,
   UserRound,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ export type NavItem = {
   to: string;
   label: string;
   icon: LucideIcon;
+  badge?: 'engagements';
 };
 
 export const NAV_MAIN: NavItem[] = [
@@ -21,6 +23,7 @@ export const NAV_MAIN: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard },
   { to: '/events', label: 'Events', icon: CalendarDays },
   { to: '/events/archive', label: 'Archive', icon: Archive },
+  { to: '/engagements', label: 'Engagements', icon: MessageCircle, badge: 'engagements' },
   { to: '/scanners', label: 'Scanners', icon: QrCode },
   { to: '/analytics/sales', label: 'Sales', icon: LineChart },
   { to: '/analytics/attendance', label: 'Attendance', icon: LineChart },

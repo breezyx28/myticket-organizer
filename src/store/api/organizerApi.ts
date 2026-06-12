@@ -83,6 +83,9 @@ export const organizerApi = createApi({
     'Waitlist',
     'Engagement',
     'EngagementMessage',
+    'Conversation',
+    'ConversationMessage',
+    'ConversationUnread',
     'Notification',
   ],
   endpoints: (builder) => ({

@@ -102,6 +102,102 @@ export type EventGalleryItem = {
   url: string;
 };
 
+export type EventPartnerLink = {
+  id: string;
+  profileId: string;
+  displayName: string;
+  slug?: string;
+  role: 'talent' | 'vendor';
+};
+
+export type MarketplaceMetadata = {
+  targetType: 'talent' | 'vendor';
+  targetId: string;
+  brief?: string;
+  eventId?: string;
+};
+
+export type ConversationParticipant = {
+  id: string;
+  userId: string;
+  role: 'organizer' | 'talent' | 'vendor';
+  displayName: string;
+  email?: string;
+};
+
+export type Conversation = {
+  id: string;
+  type: string;
+  subject: string;
+  status: 'open' | 'closed';
+  contextType?: string;
+  contextId?: string;
+  metadata?: MarketplaceMetadata;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  participants: ConversationParticipant[];
+  unread: boolean;
+};
+
+export type ConversationMessage = {
+  id: string;
+  conversationId: string;
+  senderUserId: string;
+  senderRole: string;
+  body: string;
+  attachmentUrl?: string;
+  readAt?: string;
+  createdAt: string;
+};
+
+export type ConversationsListPage = {
+  data: Conversation[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
+export type MarketplaceCategoryOption = {
+  id: string;
+  name: string;
+  slug?: string;
+};
+
+export type TalentListing = {
+  profileId: string;
+  slug: string;
+  displayName: string;
+  headline: string;
+  city: string;
+  coverImageUrl: string;
+  categoryLabel?: string;
+  ratingSummary?: string;
+  regionId?: string;
+  cityId?: string;
+  categories: MarketplaceCategoryOption[];
+};
+
+export type VendorListing = {
+  profileId: string;
+  slug: string;
+  displayName: string;
+  headline: string;
+  city: string;
+  coverImageUrl: string;
+  serviceLabel?: string;
+  ratingSummary?: string;
+  regionId?: string;
+  cityId?: string;
+  categories: MarketplaceCategoryOption[];
+};
+
+export type MarketplaceProfileDetail = (TalentListing | VendorListing) & {
+  description?: string;
+  bio?: string;
+};
+
 export type OrganizerEvent = {
   id: string;
   title: string;
@@ -147,6 +243,11 @@ export type OrganizerEvent = {
   /** Marketing / hero gallery (from GET event; manage via POST/DELETE gallery endpoints). */
   eventGallery: EventGalleryItem[];
   postEventMedia: { kind: 'video' | 'photo'; label: string }[];
+  /** Linked talent/vendor profiles on this event. */
+  talents: EventPartnerLink[];
+  vendors: EventPartnerLink[];
+  showTalents: boolean;
+  showVendors: boolean;
   /** Last impactful edit simulation */
   lastChangeLog?: { field: string; old: string; new: string; at: string }[];
 };

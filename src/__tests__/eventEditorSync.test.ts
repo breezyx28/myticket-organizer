@@ -34,6 +34,10 @@ function base(overrides: Partial<OrganizerEvent> = {}): OrganizerEvent {
     revenueGross: 0,
     eventGallery: [],
     postEventMedia: [],
+    talents: [],
+    vendors: [],
+    showTalents: true,
+    showVendors: true,
     ...overrides,
   };
 }

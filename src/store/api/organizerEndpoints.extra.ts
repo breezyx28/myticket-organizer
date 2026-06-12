@@ -13,7 +13,23 @@ import { healthResponseSchema, versionResponseSchema } from '@/schemas/organizer
 import { financeExportsResponseSchema } from '@/schemas/organizer/responses/finance';
 import { notificationsListResponseSchema } from '@/schemas/organizer/responses/notifications';
 import { mapApiNotificationRow } from '@/lib/api/mapNotification';
-import type { NotificationsListPage, OrganizerNotification } from '@/types/domain';
+import {
+  mapApiConversation,
+  mapApiConversationMessage,
+  mapApiConversationMessagesList,
+  mapApiConversationsList,
+} from '@/lib/api/mapConversation';
+import {
+  createConversationSchema,
+  postConversationMessageSchema,
+} from '@/schemas/organizer/conversations';
+import type {
+  Conversation,
+  ConversationMessage,
+  ConversationsListPage,
+  NotificationsListPage,
+  OrganizerNotification,
+} from '@/types/domain';
 
 type OrganBuilder = EndpointBuilder<
   BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
@@ -36,6 +52,9 @@ type OrganBuilder = EndpointBuilder<
   | 'Waitlist'
   | 'Engagement'
   | 'EngagementMessage'
+  | 'Conversation'
+  | 'ConversationMessage'
+  | 'ConversationUnread'
   | 'Notification',
   'organizerApi'
 >;
@@ -616,6 +635,106 @@ export function buildExtraOrganizerEndpoints(builder: OrganBuilder) {
       invalidatesTags: (_r, _e, id) => [
         { type: 'Notification', id },
         { type: 'Notification', id: 'LIST' },
+      ],
+    }),
+
+    getConversationsUnreadCount: builder.query<{ unread_count: number }, void>({
+      query: () => orgPath('/me/conversations/unread-count'),
+      transformResponse: (raw: unknown) => {
+        const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+        const inner = o.data && typeof o.data === 'object' ? (o.data as Record<string, unknown>) : o;
+        return { unread_count: Number(inner.unread_count ?? inner.unreadCount ?? 0) || 0 };
+      },
+      providesTags: [{ type: 'ConversationUnread', id: 'COUNT' }],
+    }),
+
+    listConversations: builder.query<
+      ConversationsListPage,
+      { page?: number; per_page?: number; type?: string; unread_only?: boolean } | void
+    >({
+      query: (arg) => {
+        const page = typeof arg === 'object' && arg?.page != null ? arg.page : 1;
+        const perPage = typeof arg === 'object' && arg?.per_page != null ? arg.per_page : 20;
+        const params = new URLSearchParams({ page: String(page), per_page: String(perPage), type: 'marketplace' });
+        if (typeof arg === 'object' && arg?.unread_only) params.set('unread_only', '1');
+        return orgPath(`/me/conversations?${params.toString()}`);
+      },
+      transformResponse: (raw: unknown): ConversationsListPage => {
+        const shell = safeParseResponse(laravelPaginatorShellSchema, raw, 'conversations');
+        const data = mapApiConversationsList(raw);
+        return {
+          data,
+          current_page: shell.current_page,
+          last_page: shell.last_page,
+          per_page: shell.per_page,
+          total: shell.total,
+        };
+      },
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.data.map((c) => ({ type: 'Conversation' as const, id: c.id })),
+              { type: 'Conversation' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Conversation', id: 'LIST' }],
+    }),
+
+    getConversation: builder.query<Conversation, string>({
+      query: (id) => orgPath(`/me/conversations/${encodeURIComponent(id)}`),
+      transformResponse: (raw: unknown) => mapApiConversation(raw),
+      providesTags: (_r, _e, id) => [{ type: 'Conversation', id }],
+    }),
+
+    createConversation: builder.mutation<Conversation, z.infer<typeof createConversationSchema>>({
+      query: (body) => ({
+        url: orgPath('/me/conversations'),
+        method: 'POST',
+        body: createConversationSchema.parse(body),
+      }),
+      transformResponse: (raw: unknown) => mapApiConversation(raw),
+      invalidatesTags: [
+        { type: 'Conversation', id: 'LIST' },
+        { type: 'ConversationUnread', id: 'COUNT' },
+        'Engagement',
+      ],
+    }),
+
+    listConversationMessages: builder.query<ConversationMessage[], string>({
+      query: (conversationId) => orgPath(`/me/conversations/${encodeURIComponent(conversationId)}/messages`),
+      transformResponse: (raw: unknown) => mapApiConversationMessagesList(raw),
+      providesTags: (_r, _e, conversationId) => [{ type: 'ConversationMessage', id: conversationId }],
+    }),
+
+    postConversationMessage: builder.mutation<
+      ConversationMessage,
+      { conversationId: string; body: string; attachmentUrl?: string }
+    >({
+      query: ({ conversationId, body, attachmentUrl }) => ({
+        url: orgPath(`/me/conversations/${encodeURIComponent(conversationId)}/messages`),
+        method: 'POST',
+        body: postConversationMessageSchema.parse({
+          body,
+          ...(attachmentUrl ? { attachment_url: attachmentUrl } : {}),
+        }),
+      }),
+      transformResponse: (raw: unknown) => mapApiConversationMessage(raw),
+      invalidatesTags: (_r, _e, { conversationId }) => [
+        { type: 'ConversationMessage', id: conversationId },
+        { type: 'Conversation', id: conversationId },
+        { type: 'Conversation', id: 'LIST' },
+        { type: 'ConversationUnread', id: 'COUNT' },
+      ],
+    }),
+
+    markConversationRead: builder.mutation<void, string>({
+      query: (conversationId) => ({
+        url: orgPath(`/me/conversations/${encodeURIComponent(conversationId)}/read`),
+        method: 'POST',
+      }),
+      invalidatesTags: (_r, _e, conversationId) => [
+        { type: 'Conversation', id: conversationId },
+        { type: 'Conversation', id: 'LIST' },
+        { type: 'ConversationUnread', id: 'COUNT' },
       ],
     }),
 

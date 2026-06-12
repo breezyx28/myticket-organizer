@@ -35,7 +35,8 @@ import { getProfile, isProfileComplete } from '@/services/profileService';
 import { useListEventCategoriesQuery, useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import type { EntryMode, LayoutType, OrganizerEvent } from '@/types/domain';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Armchair, FileText, Image, LayoutGrid, MoreHorizontal, RefreshCcw, Ticket } from 'lucide-react';
+import { EventPartnersTab } from '@/components/events/EventPartnersTab';
+import { Armchair, FileText, Handshake, Image, LayoutGrid, MoreHorizontal, RefreshCcw, Ticket } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 function toastApiErr(err: unknown, fallback: string) {
@@ -258,6 +259,7 @@ export function EventEditorPage() {
     { id: 'layout', label: 'Layout', Icon: LayoutGrid },
     { id: 'seats', label: 'Seats', Icon: Armchair },
     { id: 'tickets', label: 'Tickets', Icon: Ticket },
+    { id: 'partners', label: 'Partners', Icon: Handshake },
     { id: 'more', label: 'More', Icon: MoreHorizontal },
   ];
 
@@ -488,7 +490,7 @@ export function EventEditorPage() {
         </section>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
         {editorTabs.map(({ id: tabId, label, Icon }) => (
           <button
             key={tabId}
@@ -1158,6 +1160,10 @@ export function EventEditorPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
+
+      {activeTab === 'partners' ? (
+        <EventPartnersTab event={event} onPatch={(patch) => saveEventPatch(patch)} />
       ) : null}
 
       {activeTab === 'more' ? (

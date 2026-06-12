@@ -6,6 +6,7 @@ export const EVENT_EDITOR_TAB_IDS = [
   'layout',
   'seats',
   'tickets',
+  'partners',
   'more',
 ] as const;
 

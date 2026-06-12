@@ -18,16 +18,19 @@ export function parseLoginMutationResult(raw: unknown): LoginMutationResult {
         : typeof u.email === 'string'
           ? u.email.split('@')[0] || 'Organizer'
           : 'Organizer';
+    const userId = u.id != null ? String(u.id) : '';
     const user: SessionUser | null =
       typeof u.email === 'string' && u.email
-        ? { email: u.email, name, role: 'organizer' }
+        ? { id: userId, email: u.email, name, role: 'organizer' }
         : null;
     return { kind: 'success', accessToken: ok.data.token, user };
   }
   const legacy = extractAccessTokenFromLoginResponse(raw);
   if (legacy) {
     const u = extractUserFromLoginResponse(raw);
-    const user: SessionUser | null = u ? { email: u.email, name: u.name, role: 'organizer' } : null;
+    const user: SessionUser | null = u
+      ? { id: u.id ?? '', email: u.email, name: u.name, role: 'organizer' }
+      : null;
     return { kind: 'success', accessToken: legacy, user };
   }
   throw new Error('Invalid login response');

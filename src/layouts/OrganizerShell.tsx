@@ -2,6 +2,7 @@ import { NAV_MAIN } from '@/config/nav';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/profileService';
+import { EngagementsNavBadge } from '@/components/engagements/EngagementsNavBadge';
 import { NotificationBellMenu } from '@/components/notifications/NotificationBellMenu';
 import { LayoutDashboard, LogOut, Menu, Ticket, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -154,7 +155,10 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
                   ) : (
                     <item.icon size={18} strokeWidth={2} />
                   )}
-                  {item.label}
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.badge === 'engagements' ? <EngagementsNavBadge /> : null}
+                  </span>
                 </NavLink>
               );
             })}

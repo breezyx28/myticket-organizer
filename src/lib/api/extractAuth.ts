@@ -14,7 +14,7 @@ export function extractAccessTokenFromLoginResponse(data: unknown): string | nul
   return null;
 }
 
-export function extractUserFromLoginResponse(data: unknown): { email: string; name: string } | null {
+export function extractUserFromLoginResponse(data: unknown): { id?: string; email: string; name: string } | null {
   if (data == null || typeof data !== 'object') return null;
   const o = data as Record<string, unknown>;
   const u = (o.user ?? o.organizer ?? (o.data as Record<string, unknown> | undefined)?.user) as Record<string, unknown> | undefined;
@@ -29,5 +29,6 @@ export function extractUserFromLoginResponse(data: unknown): { email: string; na
           ? u.display_name
           : email.split('@')[0] || 'Organizer';
   if (!email) return null;
-  return { email, name };
+  const id = u.id != null ? String(u.id) : undefined;
+  return { id, email, name };
 }
