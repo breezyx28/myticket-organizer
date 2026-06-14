@@ -180,3 +180,34 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+@keyframes scan-live-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scan-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+
+.scan-live-enter {
+  animation: scan-live-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.scan-live-pulse {
+  animation: scan-live-pulse 2s ease-in-out infinite;
+}

@@ -1,4 +1,4 @@
-import type { ScanLog, ScannerAccount } from '@/types/domain';
+import type { ScanLiveBootstrap, ScanLog, ScannerAccount } from '@/types/domain';
 import { organizerApi } from '@/store/api/organizerApi';
 import type {
   CreateScannerResult,
@@ -158,5 +158,22 @@ export async function assignScanner(scannerId: string, eventId: string, assign: 
 export async function revokeScannerDevice(scannerId: string, deviceId: string) {
   return apiUnwrap<unknown>(
     apiDispatch(organizerApi.endpoints.revokeScannerDevice.initiate({ scannerId, deviceId }))
+  );
+}
+
+export async function fetchScanLive(eventId: string): Promise<ScanLiveBootstrap> {
+  return apiUnwrap<ScanLiveBootstrap>(
+    apiDispatch(organizerApi.endpoints.getEventScanLive.initiate(eventId))
+  );
+}
+
+export async function pollScanLogsSince(eventId: string, since?: string): Promise<ScanLog[]> {
+  return apiUnwrap<ScanLog[]>(
+    apiDispatch(
+      organizerApi.endpoints.getEventScanLogs.initiate({
+        eventId,
+        since: since?.trim() || undefined,
+      })
+    )
   );
 }

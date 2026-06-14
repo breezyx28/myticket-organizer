@@ -24,3 +24,23 @@ export type MessagePayload = {
   attachment_url: string | null;
   created_at: string | null;
 };
+
+export type ScanLiveStatsPayload = {
+  event_id: number;
+  stats: {
+    ok: number;
+    duplicate: number;
+    invalid: number;
+    expired: number;
+    wrong_event: number;
+    total: number;
+    last_scan_at?: string | null;
+    active_scanners?: number;
+  };
+};
+
+export type ScanBatchPayload = {
+  event_id: number;
+  count: number;
+  items: Record<string, unknown>[];
+};

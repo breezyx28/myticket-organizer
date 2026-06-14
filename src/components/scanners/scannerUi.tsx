@@ -150,7 +150,15 @@ export function ScannerEmptyState({
   );
 }
 
-export function ScannerDialogOverlay({ children, onBackdropClick }: { children: ReactNode; onBackdropClick?: () => void }) {
+export function ScannerDialogOverlay({
+  children,
+  onBackdropClick,
+  panelClassName,
+}: {
+  children: ReactNode;
+  onBackdropClick?: () => void;
+  panelClassName?: string;
+}) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 p-4 sm:items-center">
       <button
@@ -159,7 +167,12 @@ export function ScannerDialogOverlay({ children, onBackdropClick }: { children: 
         aria-label="Close dialog"
         onClick={onBackdropClick}
       />
-      <div className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl border border-ink-10 bg-white p-6 shadow-card-xl sm:p-8">
+      <div
+        className={cn(
+          'relative max-h-[90dvh] w-full overflow-y-auto rounded-3xl border border-ink-10 bg-white p-6 shadow-card-xl sm:p-8',
+          panelClassName ?? 'max-w-lg'
+        )}
+      >
         {children}
       </div>
     </div>

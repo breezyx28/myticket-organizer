@@ -1,4 +1,5 @@
 import type { ScanLog } from '@/types/domain';
+import { mapApiScanLiveRow, parseScanResult } from '@/lib/api/mapScanLive';
 import { readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
 import { extractPaginatorData } from '@/lib/api/parseResponse';
 
@@ -8,19 +9,20 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 }
 
 export function mapApiScanLogToScanLog(raw: unknown, fallbackEventId: string): ScanLog {
+  const mapped = mapApiScanLiveRow(raw, fallbackEventId);
+  if (mapped) return mapped;
   const root = asRecord(unwrapEnvelope(raw)) ?? asRecord(raw) ?? {};
-  const resultRaw = readString(root, 'result', 'outcome', 'status').toLowerCase();
-  let result: ScanLog['result'] = 'invalid';
-  if (resultRaw === 'ok' || resultRaw === 'success' || resultRaw === 'valid') result = 'ok';
-  else if (resultRaw === 'duplicate' || resultRaw === 'already_used') result = 'duplicate';
-
   return {
     id: toIdString(root.id ?? root.log_id),
     eventId: toIdString(root.event_id ?? root.eventId) || fallbackEventId,
-    scannerId: toIdString(root.scanner_id ?? root.scannerId),
+    scannerId: toIdString(root.scanner_id ?? root.scannerId ?? root.scanner_account_id),
+    scannerAccountId: toIdString(root.scanner_account_id) || undefined,
+    scannerName: readString(root, 'scanner_name', 'scannerName') || undefined,
+    deviceId: toIdString(root.device_id) || undefined,
     ticketRef: readString(root, 'ticket_ref', 'ticketRef', 'reference', 'code'),
     at: readString(root, 'at', 'created_at', 'scanned_at', 'timestamp') || new Date().toISOString(),
-    result,
+    result: parseScanResult(root),
+    failureReason: readString(root, 'failure_reason', 'failureReason') || null,
   };
 }
 

@@ -262,13 +262,44 @@ export type ScannerAccount = {
   assignmentIdsByEventId?: Record<string, string>;
 };
 
+export type ScanResult = 'ok' | 'duplicate' | 'invalid' | 'expired' | 'wrong_event';
+
 export type ScanLog = {
   id: string;
   eventId: string;
   scannerId: string;
+  scannerAccountId?: string;
+  scannerName?: string;
+  deviceId?: string;
   ticketRef: string;
   at: string;
-  result: 'ok' | 'duplicate' | 'invalid';
+  result: ScanResult;
+  failureReason?: string | null;
+};
+
+export type ScanLiveRow = ScanLog;
+
+export type ScanLiveStats = {
+  ok: number;
+  duplicate: number;
+  invalid: number;
+  expired: number;
+  wrong_event: number;
+  total: number;
+  lastScanAt?: string | null;
+  activeScanners?: number;
+};
+
+export type ScanLiveBootstrap = {
+  transport: 'reverb' | 'polling';
+  channel?: string;
+  authEndpoint?: string;
+  initialStats: ScanLiveStats;
+  events?: Record<string, string>;
+  fallback?: {
+    transport: 'polling';
+    endpoint?: string;
+  };
 };
 
 export type BookingActivity = {

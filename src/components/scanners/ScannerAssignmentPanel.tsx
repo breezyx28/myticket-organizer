@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { ScanLiveDialog } from '@/components/scanners/ScanLiveDialog';
 import { ScannerConfirmDialog } from '@/components/scanners/ScannerConfirmDialog';
 import {
   ScannerEmptyState,
@@ -15,7 +16,7 @@ import {
   listScanners,
 } from '@/services/scannersService';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
-import { UserMinus, UserPlus } from 'lucide-react';
+import { Radio, UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 export function ScannerAssignmentPanel({
@@ -33,6 +34,7 @@ export function ScannerAssignmentPanel({
   const [busy, setBusy] = useState(false);
   const [unassignTarget, setUnassignTarget] = useState<ScannerAccount | null>(null);
   const [unassignAllOpen, setUnassignAllOpen] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
 
   async function reload() {
     setScanners(await listScanners());
@@ -147,6 +149,22 @@ export function ScannerAssignmentPanel({
       <ScannerPanelToolbar
         title="Per-event assignments"
         description="Pick an event, then assign or remove gate staff. Multiple scanners can share one entrance."
+        action={
+          selectedEvent ? (
+            <Button
+              type="button"
+              variant="dark"
+              size="sm"
+              className="active:scale-[0.96]"
+              disabled={assignedToEvent.length === 0}
+              title={assignedToEvent.length === 0 ? 'Assign at least one scanner to watch live scans' : undefined}
+              onClick={() => setLiveOpen(true)}
+            >
+              <Radio className="mr-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
+              Watch live
+            </Button>
+          ) : null
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-8">
@@ -305,6 +323,15 @@ export function ScannerAssignmentPanel({
         onCancel={() => !busy && setUnassignAllOpen(false)}
         onConfirm={() => void handleUnassignAll()}
       />
+
+      {selectedEvent ? (
+        <ScanLiveDialog
+          open={liveOpen}
+          eventId={selectedEvent.id}
+          eventTitle={selectedEvent.title}
+          onClose={() => setLiveOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

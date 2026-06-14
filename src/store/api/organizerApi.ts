@@ -24,11 +24,12 @@ import {
   type UpdateScannerResult,
 } from '@/lib/api/mapScanner';
 import { mapApiScanLogsList } from '@/lib/api/mapScanLog';
+import { mapApiScanLiveBootstrap } from '@/lib/api/mapScanLive';
 import { mapApiFinanceSummary } from '@/lib/api/mapFinance';
 import { laravelPaginatorShellSchema } from '@/schemas/organizer/responses/shared';
 import { refreshTokenResponseSchema } from '@/schemas/organizer/responses/auth';
 import { safeParseResponse } from '@/lib/api/parseResponse';
-import type { FinanceSnapshot, OrganizerEvent, OrganizerUser, ScanLog, ScannerAccount } from '@/types/domain';
+import type { FinanceSnapshot, OrganizerEvent, OrganizerUser, ScanLiveBootstrap, ScanLog, ScannerAccount } from '@/types/domain';
 import { buildExtraOrganizerEndpoints } from '@/store/api/organizerEndpoints.extra';
 import { parseLoginMutationResult, type LoginMutationResult } from '@/lib/api/parseLoginMutation';
 
@@ -372,11 +373,22 @@ export const organizerApi = createApi({
       invalidatesTags: [{ type: 'Scanner', id: 'LIST' }],
     }),
 
-    getEventScanLogs: builder.query<ScanLog[], { eventId: string; page?: number }>({
-      query: ({ eventId, page }) =>
-        `${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/scan-logs${page != null && page > 1 ? `?page=${page}` : ''}`,
+    getEventScanLogs: builder.query<ScanLog[], { eventId: string; page?: number; since?: string }>({
+      query: ({ eventId, page, since }) => {
+        const sp = new URLSearchParams();
+        if (page != null && page > 1) sp.set('page', String(page));
+        if (since?.trim()) sp.set('since', since.trim());
+        const q = sp.toString();
+        return `${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/scan-logs${q ? `?${q}` : ''}`;
+      },
       transformResponse: (raw: unknown, _meta, arg) => mapApiScanLogsList(raw, arg.eventId),
       providesTags: (_r, _e, arg) => [{ type: 'ScanLog', id: arg.eventId }],
+    }),
+
+    getEventScanLive: builder.query<ScanLiveBootstrap, string>({
+      query: (eventId) => `${ORGANIZER_API_PREFIX}/events/${encodeURIComponent(eventId)}/scan-live`,
+      transformResponse: (raw: unknown) => mapApiScanLiveBootstrap(raw),
+      providesTags: (_r, _e, eventId) => [{ type: 'ScanLog', id: `live-${eventId}` }],
     }),
 
     getFinanceSummary: builder.query<FinanceSnapshot, void>({

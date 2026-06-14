@@ -1,0 +1,33 @@
+{
+  "scope": "page",
+  "isRedesign": true,
+  "targetPath": "src/pages/auth/",
+  "targetName": "OrganizerAuth",
+  "painPoints": ["Outdated look", "Unclear hierarchy", "Password reset redirects off-app"],
+  "inspiration": {
+    "visual": ["Stripe"],
+    "functional": ["Progressive disclosure"]
+  },
+  "brand": {
+    "adjectives": ["minimal", "utilitarian", "trustworthy"],
+    "density": "comfortable",
+    "darkMode": false
+  },
+  "persona": {
+    "primary": "Business user",
+    "context": "both equally",
+    "keyTasks": ["Sign in to dashboard", "Reset forgotten password via email OTP", "Set new password and return to work"]
+  },
+  "constraints": {
+    "mustKeep": ["current fields/inputs", "organizer-only messaging"],
+    "technical": ["no new dependencies", "use existing components", "WCAG accessible"]
+  },
+  "framework": "vite-react-router",
+  "packageManager": "npm",
+  "stylingSystem": "tailwind-v4",
+  "flows": {
+    "login": "single page with optional 2FA step",
+    "forgotPassword": ["email", "verify-otp", "new-password"]
+  },
+  "designTone": "meaningful for organizer — not over-designed"
+}

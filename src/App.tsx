@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { AppToaster } from '@/lib/AppToaster';
 import { OrganizerShell } from '@/layouts/OrganizerShell';
 import { AccessDeniedPage } from '@/pages/auth/AccessDeniedPage';
+import { DesignLabPage } from '@/pages/__design_lab/page';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
@@ -26,6 +27,7 @@ export function App() {
     <AuthProvider>
       <AppToaster />
       <Routes>
+        <Route path="/__design_lab" element={<DesignLabPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
