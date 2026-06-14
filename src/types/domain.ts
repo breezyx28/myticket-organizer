@@ -17,8 +17,10 @@ export type OrganizerUser = {
   cityId?: string;
   /** Saudi region id from reference API (`region_id`, integer as string) */
   regionId?: string;
-  /** Logo image URL (optional) */
+  /** Business / public organizer logo (POST /me/profile/logo) */
   logoUrl: string;
+  /** User profile photo (POST /me/profile-image; separate from business logo) */
+  profileImageUrl: string;
   /** Required organization document (e.g. CR/permit scan) */
   organizationDocument?: string;
   /** Gallery of venue/past event images */

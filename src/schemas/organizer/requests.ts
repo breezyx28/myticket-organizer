@@ -29,6 +29,7 @@ export const organizerProfilePatchSchema = z.object({
   city: z.string().max(180).nullable().optional(),
   city_id: z.number().int().nullable().optional(),
   logo_url: z.string().max(500).nullable().optional(),
+  avatar_url: z.string().max(800).nullable().optional(),
   region: z.string().max(64).nullable().optional(),
   region_id: z.number().int().nullable().optional(),
   document_url: z.string().max(500).nullable().optional(),

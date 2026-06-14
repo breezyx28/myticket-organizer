@@ -7,7 +7,7 @@ import { firstMessagesFromApiError, pickApiFieldMessage } from '@/lib/api/apiVal
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 import { toast } from '@/lib/appToast';
 import { cn } from '@/lib/utils';
-import { isProfileComplete, loadProfileBundle, saveOrganizerProfile, uploadProfileDocument, uploadProfileGalleryImage, uploadProfileLogo, type ProfileResourceContext } from '@/services/profileService';
+import { isProfileComplete, loadProfileBundle, saveOrganizerProfile, uploadProfileDocument, uploadProfileGalleryImage, uploadProfileImage, uploadProfileLogo, clearProfileImage, type ProfileResourceContext } from '@/services/profileService';
 import type { OrganizerUser } from '@/types/domain';
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import { Briefcase, Building2, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
@@ -68,6 +68,9 @@ export function ProfilePage() {
   const [facilityInput, setFacilityInput] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
+  const [profileImageUploadError, setProfileImageUploadError] = useState<string | null>(null);
+  const [profileImageRemoving, setProfileImageRemoving] = useState(false);
   const [saveFieldErrors, setSaveFieldErrors] = useState<Record<string, string>>({});
   const [galleryPreviewByKey, setGalleryPreviewByKey] = useState<Record<string, string>>({});
   const previewUrlsRef = useRef<Set<string>>(new Set());
@@ -153,6 +156,12 @@ export function ProfilePage() {
   const logoDisplaySrc =
     logoPreviewUrl ?? (p.logoUrl && (isRemoteMediaUrl(p.logoUrl) || p.logoUrl.startsWith('blob:')) ? p.logoUrl : null);
 
+  const profileImageDisplaySrc =
+    profileImagePreviewUrl ??
+    (p.profileImageUrl && (isRemoteMediaUrl(p.profileImageUrl) || p.profileImageUrl.startsWith('blob:'))
+      ? p.profileImageUrl
+      : null);
+
   return (
     <div className="space-y-8">
       <div>
@@ -217,6 +226,80 @@ export function ProfilePage() {
         {tab === 'info' ? (
           <section className="space-y-6 p-6 md:p-8">
             <h2 className="text-lg font-extrabold text-ink">Personal &amp; contact</h2>
+            <div className="md:col-span-2">
+              <p className="text-[12px] font-semibold text-ink-60">Profile photo</p>
+              <p className="mt-0.5 text-[11px] text-ink-40">
+                Your account photo (JPEG, PNG, GIF, or WebP — max 4 MB). Separate from your public business logo.
+              </p>
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink-10 bg-ink-5 ring-1 ring-ink/5">
+                  {profileImageDisplaySrc ? (
+                    <img src={profileImageDisplaySrc} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserRound className="h-10 w-10 text-ink-30" strokeWidth={1.25} aria-hidden />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <UploadTileInput
+                    title="Upload profile photo"
+                    subtitle="JPEG, PNG, GIF, or WebP — max 4 MB"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onPick={(file) => {
+                      void (async () => {
+                        revokePreview(profileImagePreviewUrl ?? undefined);
+                        setProfileImageUploadError(null);
+                        try {
+                          const url = await uploadProfileImage(file);
+                          setProfileImagePreviewUrl(null);
+                          patch({ profileImageUrl: url });
+                          toast.success('Profile photo updated');
+                        } catch (err) {
+                          setProfileImageUploadError(err instanceof Error ? err.message : 'Profile photo upload failed');
+                          const url = trackPreview(URL.createObjectURL(file));
+                          setProfileImagePreviewUrl(url);
+                        }
+                      })();
+                    }}
+                  />
+                  {profileImageUploadError ? (
+                    <p className="text-[12px] font-semibold text-coral">{profileImageUploadError}</p>
+                  ) : null}
+                  {(p.profileImageUrl || profileImagePreviewUrl) && (
+                    <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-60">
+                      <span className="truncate font-mono text-[11px]">
+                        {displayFileLabel(p.profileImageUrl || 'upload')}
+                      </span>
+                      <button
+                        type="button"
+                        className="font-semibold text-coral hover:underline disabled:opacity-50"
+                        disabled={profileImageRemoving}
+                        onClick={() => {
+                          void (async () => {
+                            revokePreview(profileImagePreviewUrl ?? undefined);
+                            setProfileImagePreviewUrl(null);
+                            setProfileImageUploadError(null);
+                            setProfileImageRemoving(true);
+                            try {
+                              await clearProfileImage();
+                              patch({ profileImageUrl: '' });
+                              toast.success('Profile photo removed');
+                            } catch (err) {
+                              setProfileImageUploadError(
+                                err instanceof Error ? err.message : 'Could not remove profile photo'
+                              );
+                            } finally {
+                              setProfileImageRemoving(false);
+                            }
+                          })();
+                        }}
+                      >
+                        {profileImageRemoving ? 'Removing…' : 'Remove'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="grid gap-6 md:grid-cols-2">
               <label className="block text-[12px] font-semibold text-ink-60">
                 Display name
@@ -307,8 +390,10 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <div className="md:col-span-2">
-                <p className="text-[12px] font-semibold text-ink-60">Logo</p>
-                <p className="mt-0.5 text-[11px] text-ink-40">PNG, JPG, or WebP — max 4 MB. Uploads to the organizer API and sets your public logo URL.</p>
+                <p className="text-[12px] font-semibold text-ink-60">Business logo</p>
+                <p className="mt-0.5 text-[11px] text-ink-40">
+                  Public organizer logo for listings and branding — not your personal profile photo.
+                </p>
                 <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
                   <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-ink-10 bg-ink-5 ring-1 ring-ink/5">
                     {logoDisplaySrc ? (

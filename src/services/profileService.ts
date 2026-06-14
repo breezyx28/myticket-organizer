@@ -15,6 +15,8 @@ import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 const SOCIAL_PLATFORMS = ['website', 'instagram', 'twitter', 'tiktok'] as const satisfies readonly (keyof SocialLinkIds)[];
 
 const PROFILE_LOGO_MAX_BYTES = 4 * 1024 * 1024;
+const PROFILE_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+const PROFILE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 const PROFILE_DOC_MAX_BYTES = 12 * 1024 * 1024;
 const PROFILE_GALLERY_IMAGE_MAX_BYTES = 6 * 1024 * 1024;
 
@@ -29,6 +31,31 @@ export async function uploadProfileLogo(file: File): Promise<string> {
   const url = (user.logoUrl || '').trim();
   if (!url) throw new Error('Upload succeeded but no logo URL was returned.');
   return url;
+}
+
+/** POST /me/profile-image (multipart `image`); returns absolute profile image URL. */
+export async function uploadProfileImage(file: File): Promise<string> {
+  if (file.size > PROFILE_IMAGE_MAX_BYTES) {
+    throw new Error('Profile image must be 4 MB or smaller.');
+  }
+  if (file.type && !PROFILE_IMAGE_TYPES.has(file.type)) {
+    throw new Error('Use JPEG, PNG, GIF, or WebP for your profile photo.');
+  }
+  const formData = new FormData();
+  formData.append('image', file);
+  const url = await apiUnwrap<string>(apiDispatch(organizerApi.endpoints.postProfileImage.initiate(formData)));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('organizer-dashboard-changed'));
+  }
+  return url;
+}
+
+/** Clears profile photo via PATCH /me/profile (`avatar_url: null`). */
+export async function clearProfileImage(): Promise<void> {
+  await apiUnwrap(apiDispatch(organizerApi.endpoints.patchProfile.initiate({ profileImageUrl: '' })));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('organizer-dashboard-changed'));
+  }
 }
 
 /** POST /me/profile/document (multipart `document`); returns public document URL. */

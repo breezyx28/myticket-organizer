@@ -113,6 +113,8 @@ export function mapApiProfileToOrganizerUser(raw: unknown): OrganizerUser {
     cityId: cityId || undefined,
     regionId: regionId || undefined,
     logoUrl: readString(root, 'logo_url', 'logoUrl'),
+    profileImageUrl:
+      readString(root, 'profile_image_url', 'profileImageUrl', 'avatar_url', 'avatarUrl') || '',
     organizationDocument:
       readString(root, 'document_url', 'organization_document', 'organizationDocument') || undefined,
     gallery,
@@ -172,6 +174,14 @@ export function organizerUserToProfilePatch(patch: Partial<OrganizerUser>): Reco
     if (!u) body.logo_url = null;
     else if (/^https?:\/\//i.test(u) || u.startsWith('data:')) {
       if (u.length <= 500) body.logo_url = u;
+    }
+  }
+
+  if (patch.profileImageUrl !== undefined) {
+    const u = (patch.profileImageUrl || '').trim();
+    if (!u) body.avatar_url = null;
+    else if (/^https?:\/\//i.test(u) || u.startsWith('/')) {
+      if (u.length <= 800) body.avatar_url = u;
     }
   }
 

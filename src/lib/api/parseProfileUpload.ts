@@ -11,6 +11,15 @@ function profileRecordFromEnvelope(raw: unknown): Record<string, unknown> | null
   return asRecord(root.data) ?? root;
 }
 
+/** Resolve absolute profile image URL from POST /me/profile-image (201) or GET/PATCH /me profile. */
+export function parseProfileImageUrl(raw: unknown): string | undefined {
+  const profile = profileRecordFromEnvelope(raw);
+  if (!profile) return undefined;
+  const u = readString(profile, 'profile_image_url', 'profileImageUrl', 'avatar_url', 'avatarUrl').trim();
+  if (/^https?:\/\//i.test(u) || (u.startsWith('/') && u.length >= 2)) return u;
+  return undefined;
+}
+
 /** Resolve absolute document URL from POST /me/profile/document (or full profile) responses. */
 export function parseProfileDocumentUrl(raw: unknown): string | undefined {
   const profile = profileRecordFromEnvelope(raw);

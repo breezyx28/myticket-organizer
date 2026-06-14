@@ -27,9 +27,9 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [sidebarProfile, setSidebarProfile] = useState<{ displayName: string; logoUrl: string | null }>({
+  const [sidebarProfile, setSidebarProfile] = useState<{ displayName: string; avatarUrl: string | null }>({
     displayName: '',
-    logoUrl: null,
+    avatarUrl: null,
   });
 
   useEffect(() => {
@@ -38,9 +38,11 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
       const profile = await getProfile();
       if (cancelled) return;
       const logo = profile.logoUrl?.trim() ?? '';
+      const profileImage = profile.profileImageUrl?.trim() ?? '';
+      const avatarCandidate = profileImage || logo;
       setSidebarProfile({
         displayName: profile.displayName?.trim() || profile.name || user?.name || '',
-        logoUrl: logo && isDisplayableImageUrl(logo) ? logo : null,
+        avatarUrl: avatarCandidate && isDisplayableImageUrl(avatarCandidate) ? avatarCandidate : null,
       });
     }
     void loadSidebarProfile();
@@ -146,8 +148,8 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
                       className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-lemon/90 to-coral/25 text-[11px] font-bold text-ink shadow-inner ring-2 ring-white"
                       aria-hidden
                     >
-                      {sidebarProfile.logoUrl ? (
-                        <img src={sidebarProfile.logoUrl} alt="" className="h-full w-full object-cover" />
+                      {sidebarProfile.avatarUrl ? (
+                        <img src={sidebarProfile.avatarUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
                         initials
                       )}

@@ -13,7 +13,7 @@ import { messageResponseSchema } from '@/schemas/organizer/responses/shared';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
 import { mapApiEventToOrganizerEvent, mapApiPatchEventResponse } from '@/lib/api/mapEvent';
 import { mapApiProfileToOrganizerUser, organizerUserToProfilePatch } from '@/lib/api/mapProfile';
-import { parseProfileDocumentUrl, parseProfileGalleryImageUrl } from '@/lib/api/parseProfileUpload';
+import { parseProfileDocumentUrl, parseProfileGalleryImageUrl, parseProfileImageUrl } from '@/lib/api/parseProfileUpload';
 import {
   mapApiCreateScannerResponse,
   mapApiScannersList,
@@ -151,6 +151,21 @@ export const organizerApi = createApi({
         body: formData,
       }),
       transformResponse: (raw: unknown) => mapApiProfileToOrganizerUser(raw),
+      invalidatesTags: ['Profile'],
+    }),
+
+    /** Multipart field `image` — user profile photo (not business logo). */
+    postProfileImage: builder.mutation<string, FormData>({
+      query: (formData) => ({
+        url: `${ORGANIZER_API_PREFIX}/me/profile-image`,
+        method: 'POST',
+        body: formData,
+      }),
+      transformResponse: (raw: unknown) => {
+        const u = parseProfileImageUrl(raw);
+        if (!u) throw new Error('Profile image upload succeeded but no URL was returned.');
+        return u;
+      },
       invalidatesTags: ['Profile'],
     }),
 
