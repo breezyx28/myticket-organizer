@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource/tajawal/400.css";
+@import "@fontsource/tajawal/500.css";
+@import "@fontsource/tajawal/700.css";
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
@@ -63,6 +66,12 @@
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     @apply bg-background text-foreground;
+  }
+  html[lang="ar"] {
+    --font-sans: "Tajawal", system-ui, sans-serif;
+  }
+  html[lang="en"] {
+    --font-sans: "Geist Variable", "Plus Jakarta Sans", system-ui, sans-serif;
   }
   * {
     @apply border-border outline-ring/50;

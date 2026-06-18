@@ -1,5 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { getApiLanguage } from '@/lib/locale/apiHeaders';
 import { apiUrl, reverbConfig } from '@/lib/realtime/config';
 
 declare global {
@@ -56,6 +57,7 @@ export function connectEcho(token: string): Echo<'reverb'> {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
+        'Accept-Language': getApiLanguage(),
       },
     },
   });

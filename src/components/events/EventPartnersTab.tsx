@@ -4,6 +4,7 @@ import { MarketplaceProfileDrawer } from '@/components/marketplace/MarketplacePr
 import { StartConversationDialog } from '@/components/engagements/StartConversationDialog';
 import type { OrganizerEvent, TalentListing, VendorListing } from '@/types/domain';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 type RequestTarget = { kind: 'talent' | 'vendor'; listing: TalentListing | VendorListing };
 
@@ -14,6 +15,7 @@ export function EventPartnersTab({
   event: OrganizerEvent;
   onPatch: (patch: Partial<OrganizerEvent>) => void;
 }) {
+  const { t } = useTranslation('marketplace');
   const [requestTarget, setRequestTarget] = useState<RequestTarget | null>(null);
   const [drawer, setDrawer] = useState<{ kind: 'talent' | 'vendor'; slug: string } | null>(null);
   const [listingCache, setListingCache] = useState<Record<string, TalentListing | VendorListing>>({});
@@ -25,10 +27,8 @@ export function EventPartnersTab({
   return (
     <div className="space-y-12">
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold tracking-tight text-ink">Event visibility</h2>
-        <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-60">
-          Control whether linked partners appear on the public event page.
-        </p>
+        <h2 className="text-lg font-extrabold tracking-tight text-ink">{t('partners.visibility.title')}</h2>
+        <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-60">{t('partners.visibility.description')}</p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:gap-8">
           <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-ink">
             <input
@@ -37,7 +37,7 @@ export function EventPartnersTab({
               checked={event.showTalents}
               onChange={(e) => onPatch({ showTalents: e.target.checked })}
             />
-            Show talents on event page
+            {t('partners.visibility.showTalents')}
           </label>
           <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-ink">
             <input
@@ -46,14 +46,14 @@ export function EventPartnersTab({
               checked={event.showVendors}
               onChange={(e) => onPatch({ showVendors: e.target.checked })}
             />
-            Show vendors on event page
+            {t('partners.visibility.showVendors')}
           </label>
         </div>
       </section>
 
       {event.talents.length > 0 || event.vendors.length > 0 ? (
         <section className="rounded-3xl border border-ink-10 bg-surface-tint/60 p-6 shadow-card-sm">
-          <h2 className="text-lg font-extrabold tracking-tight text-ink">Linked partners</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-ink">{t('partners.linked.title')}</h2>
           <ul className="mt-4 flex flex-wrap gap-2">
             {[...event.talents, ...event.vendors].map((p) => (
               <li
@@ -65,7 +65,7 @@ export function EventPartnersTab({
             ))}
           </ul>
           <p className="mt-4 text-[13px] text-ink-50">
-            Manage hiring requests in{' '}
+            {t('partners.linked.manageInEngagements')}{' '}
             <Link to="/engagements" className="font-semibold text-coral hover:underline">
               Engagements
             </Link>
@@ -77,9 +77,9 @@ export function EventPartnersTab({
       <div className="space-y-14">
         <MarketplaceBrowseSection
           kind="talent"
-          title="Request a talent for your event"
-          description="Browse all approved marketplace talents. Use search and filters to narrow by specialty, region, or city."
-          categoryFieldLabel="Talent category"
+          title={t('browse.talent.title')}
+          description={t('browse.talent.description')}
+          categoryFieldLabel={t('browse.talent.categoryLabel')}
           onRequest={(listing) => {
             rememberListing(listing);
             setRequestTarget({ kind: 'talent', listing: listing as TalentListing });
@@ -92,9 +92,9 @@ export function EventPartnersTab({
 
         <MarketplaceBrowseSection
           kind="vendor"
-          title="Services for your event"
-          description="Browse all approved vendors — catering, AV, décor, and more. Refine by service type or location when needed."
-          categoryFieldLabel="Service category"
+          title={t('browse.vendor.title')}
+          description={t('browse.vendor.description')}
+          categoryFieldLabel={t('browse.vendor.categoryLabel')}
           onRequest={(listing) => {
             rememberListing(listing);
             setRequestTarget({ kind: 'vendor', listing: listing as VendorListing });

@@ -10,6 +10,9 @@ import {
 import { mapApiSeats, organizerEventPatchToApiBody } from '@/lib/api/mapEvent';
 import { appendNotification, listEventNotifications as listStoredNotifications } from '@/services/localDashboardExtras';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
+import { defaultTicketTypeLabel } from '@/lib/events/mediaLabels';
+import { tError } from '@/lib/i18n/translateError';
+import { tNs } from '@/lib/i18n/translateNs';
 import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
 
@@ -189,7 +192,7 @@ export function canArchiveEventStatus(status: EventStatus): boolean {
 export async function removeEvent(id: string): Promise<void> {
   const ev = await getEvent(id);
   if (ev && !canRemoveEventStatus(ev.status)) {
-    throw new Error('Delete is allowed only for draft or rejected events.');
+    throw new Error(tError('events.deleteNotAllowed'));
   }
   await deleteEvent(id);
 }
@@ -251,9 +254,7 @@ export async function setEventStatus(id: string, status: EventStatus): Promise<v
     }
   }
 
-  throw new Error(
-    `Status “${status}” cannot be changed from the organizer app (no PATCH status). Use admin tools for publishing / sold-out / in-progress, or add organizer endpoints.`
-  );
+  throw new Error(tError('events.statusTransitionNotAllowed', { status }));
 }
 
 export async function cancelEvent(id: string) {
@@ -273,7 +274,7 @@ export async function cancelEvent(id: string) {
 export async function archiveEvent(id: string) {
   const ev = await getEvent(id);
   if (ev && !canArchiveEventStatus(ev.status)) {
-    throw new Error('Archive is allowed only after the event has ended.');
+    throw new Error(tError('events.archiveNotAllowed'));
   }
   await apiUnwrap(apiDispatch(organizerApi.endpoints.archiveEvent.initiate(id)));
 }
@@ -305,7 +306,7 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
   const endsAt = partial?.endsAt ?? defaultEnd;
 
   const createBody = organizerEventPatchToApiBody({
-    title: partial?.title ?? 'Untitled event',
+    title: partial?.title ?? tNs('events', 'defaults.untitled'),
     startsAt,
     endsAt,
   });
@@ -315,15 +316,15 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
   );
   const newId = (created.id ?? '').trim();
   if (!newId || newId === '0') {
-    throw new Error('Create event succeeded but the API did not return a valid event id.');
+    throw new Error(tError('events.createNoId'));
   }
   const defaults: OrganizerEvent = {
     ...created,
-    title: partial?.title ?? 'Untitled event',
+    title: partial?.title ?? tNs('events', 'defaults.untitled'),
     description: '',
-    category: 'Music',
+    category: '',
     venue: '',
-    city: 'Riyadh',
+    city: '',
     startsAt,
     endsAt,
     status: 'draft',
@@ -334,9 +335,9 @@ export async function createDraftEvent(partial?: Partial<OrganizerEvent>): Promi
     colGap: 8,
     capacity: 60,
     ticketTypes: [
-      { id: 'tt_std', label: 'Standard', defaultPrice: 100 },
-      { id: 'tt_vip', label: 'VIP', defaultPrice: 250 },
-      { id: 'tt_acc', label: 'Accessibility', defaultPrice: 100 },
+      { id: 'tt_std', label: defaultTicketTypeLabel('tt_std'), defaultPrice: 100 },
+      { id: 'tt_vip', label: tNs('events', 'defaults.ticketVip'), defaultPrice: 250 },
+      { id: 'tt_acc', label: defaultTicketTypeLabel('tt_acc'), defaultPrice: 100 },
     ],
     seats: [],
     entryMode: 'one_time',
@@ -575,7 +576,7 @@ export async function deleteEventTicketTypeApi(eventId: string, ticketTypeId: st
 
 export async function uploadEventGalleryImageApi(eventId: string, file: File): Promise<void> {
   if (file.size > GALLERY_IMAGE_MAX_BYTES) {
-    throw new Error('Each gallery image must be 6 MB or smaller.');
+    throw new Error(tError('events.galleryImageTooLarge'));
   }
   const fd = new FormData();
   fd.append('image', file);
@@ -584,10 +585,10 @@ export async function uploadEventGalleryImageApi(eventId: string, file: File): P
 
 export async function uploadEventCoverImageApi(eventId: string, file: File): Promise<void> {
   if (!file.type || !ACCEPTED_IMAGE_MIME_TYPES.has(file.type.toLowerCase())) {
-    throw new Error('Cover image must be JPG, PNG, GIF, or WEBP.');
+    throw new Error(tError('events.coverType'));
   }
   if (file.size > COVER_IMAGE_MAX_BYTES) {
-    throw new Error('Cover image must be 6 MB or smaller.');
+    throw new Error(tError('events.coverTooLarge'));
   }
   await uploadEventCoverImageWithProgress(eventId, file);
 }
@@ -598,13 +599,13 @@ export function uploadEventCoverImageWithProgress(
   onProgress?: (percent: number) => void
 ): Promise<void> {
   if (!file.type || !ACCEPTED_IMAGE_MIME_TYPES.has(file.type.toLowerCase())) {
-    return Promise.reject(new Error('Cover image must be JPG, PNG, GIF, or WEBP.'));
+    return Promise.reject(new Error(tError('events.coverType')));
   }
   if (file.size > COVER_IMAGE_MAX_BYTES) {
-    return Promise.reject(new Error('Cover image must be 6 MB or smaller.'));
+    return Promise.reject(new Error(tError('events.coverTooLarge')));
   }
   const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) : null;
-  if (!token) return Promise.reject(new Error('You are not authenticated. Please sign in again.'));
+  if (!token) return Promise.reject(new Error(tError('api.notAuthenticated')));
 
   const fd = new FormData();
   fd.append('image', file);
@@ -622,15 +623,15 @@ export function uploadEventCoverImageWithProgress(
       onProgress?.(p);
     };
 
-    xhr.onerror = () => reject(new Error('Cover image upload failed. Please try again.'));
-    xhr.onabort = () => reject(new Error('Cover image upload was cancelled.'));
+    xhr.onerror = () => reject(new Error(tError('events.coverUploadFailed')));
+    xhr.onabort = () => reject(new Error(tError('events.coverUploadCancelled')));
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(100);
         resolve();
         return;
       }
-      let message = `Cover image upload failed (${xhr.status}).`;
+      let message = tError('events.coverUploadFailedWithStatus', { status: xhr.status });
       try {
         const parsed = JSON.parse(xhr.responseText) as { message?: string; error?: string };
         const m = typeof parsed?.message === 'string' ? parsed.message : typeof parsed?.error === 'string' ? parsed.error : '';

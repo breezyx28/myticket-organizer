@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { OrganizerEvent, SeatCell, TicketTypeDef } from '@/types/domain';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function SeatLayoutBuilder({
   event,
@@ -20,6 +21,7 @@ export function SeatLayoutBuilder({
   onChangeSpacing: (patch: Partial<Pick<OrganizerEvent, 'rowGap' | 'colGap' | 'rowGaps' | 'colGaps'>>) => void;
   onApplyTemplate?: (rows: number, cols: number) => void;
 }) {
+  const { t } = useTranslation(['events', 'common']);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [overrideRow, setOverrideRow] = useState<number>(1);
@@ -39,7 +41,7 @@ export function SeatLayoutBuilder({
   const singleSelected = selectedList.length === 1 ? selectedList[0]! : null;
 
   if (event.layoutType === 'free') {
-    return <p className="text-[14px] text-ink-60">Free layout uses capacity + ticket type quantity limits (no seat map).</p>;
+    return <p className="text-[14px] text-ink-60">{t('seats.freeLayoutNote')}</p>;
   }
 
   function patchSeats(updater: (seats: SeatCell[]) => SeatCell[]) {
@@ -83,7 +85,7 @@ export function SeatLayoutBuilder({
         if (patch.ticketTypeId !== undefined) {
           next.ticketTypeId = patch.ticketTypeId;
           if (patch.price === undefined) {
-            next.price = types.find((t) => t.id === patch.ticketTypeId)?.defaultPrice ?? s.price;
+            next.price = types.find((tt) => tt.id === patch.ticketTypeId)?.defaultPrice ?? s.price;
           }
         }
         if (patch.price !== undefined) next.price = patch.price;
@@ -100,26 +102,26 @@ export function SeatLayoutBuilder({
           className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(6, 10)}
         >
-          Template: Small (6x10)
+          {t('seats.templates.small')}
         </button>
         <button
           type="button"
           className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(8, 12)}
         >
-          Template: Medium (8x12)
+          {t('seats.templates.medium')}
         </button>
         <button
           type="button"
           className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
           onClick={() => onApplyTemplate?.(10, 14)}
         >
-          Template: Large (10x14)
+          {t('seats.templates.large')}
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-[12px] font-semibold text-ink-60">
-          Rows
+          {t('seats.rows')}
           <input
             type="number"
             min={1}
@@ -130,7 +132,7 @@ export function SeatLayoutBuilder({
           />
         </label>
         <label className="text-[12px] font-semibold text-ink-60">
-          Columns
+          {t('seats.columns')}
           <input
             type="number"
             min={1}
@@ -141,7 +143,7 @@ export function SeatLayoutBuilder({
           />
         </label>
         <label className="text-[12px] font-semibold text-ink-60">
-          Row gap (px)
+          {t('seats.rowGap')}
           <input
             type="number"
             min={0}
@@ -151,7 +153,7 @@ export function SeatLayoutBuilder({
           />
         </label>
         <label className="text-[12px] font-semibold text-ink-60">
-          Column gap (px)
+          {t('seats.colGap')}
           <input
             type="number"
             min={0}
@@ -164,7 +166,7 @@ export function SeatLayoutBuilder({
       <div className="grid gap-3 rounded-2xl border border-ink-10 bg-white p-3 sm:grid-cols-2">
         <div className="flex items-end gap-2">
           <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-            Row override index
+            {t('seats.rowOverrideIndex')}
             <input
               type="number"
               min={1}
@@ -175,7 +177,7 @@ export function SeatLayoutBuilder({
             />
           </label>
           <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-            Gap
+            {t('seats.gap')}
             <input
               type="number"
               min={0}
@@ -193,12 +195,12 @@ export function SeatLayoutBuilder({
               })
             }
           >
-            Apply row
+            {t('seats.applyRow')}
           </button>
         </div>
         <div className="flex items-end gap-2">
           <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-            Column override index
+            {t('seats.colOverrideIndex')}
             <input
               type="number"
               min={1}
@@ -209,7 +211,7 @@ export function SeatLayoutBuilder({
             />
           </label>
           <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-            Gap
+            {t('seats.gap')}
             <input
               type="number"
               min={0}
@@ -227,15 +229,16 @@ export function SeatLayoutBuilder({
               })
             }
           >
-            Apply col
+            {t('seats.applyCol')}
           </button>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[12px] text-ink-60">
-          <strong>Click</strong> to select · <strong>Ctrl/Cmd+click</strong> to add/remove · <strong>Shift+click</strong>{' '}
-          for a range · <strong>Double-click</strong> toggles accessibility
+          <strong>{t('seats.selectionClick')}</strong> {t('seats.selectionToSelect')} · <strong>{t('seats.selectionCtrlClick')}</strong>{' '}
+          {t('seats.selectionToAddRemove')} · <strong>{t('seats.selectionShiftClick')}</strong> {t('seats.selectionForRange')} ·{' '}
+          <strong>{t('seats.selectionDoubleClick')}</strong> {t('seats.selectionTogglesAccessibility')}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -243,7 +246,7 @@ export function SeatLayoutBuilder({
             className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink-60 hover:bg-ink-5 hover:text-ink"
             onClick={selectAllSeats}
           >
-            Select all
+            {t('seats.selectAll')}
           </button>
           <button
             type="button"
@@ -251,7 +254,7 @@ export function SeatLayoutBuilder({
             className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink-60 hover:bg-ink-5 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
             onClick={clearSelection}
           >
-            Clear
+            {t('clear', { ns: 'common' })}
           </button>
         </div>
       </div>
@@ -320,12 +323,14 @@ function SeatInspector({
   types: TicketTypeDef[];
   onApply: (patch: Partial<Pick<SeatCell, 'ticketTypeId' | 'price'>>) => void;
 }) {
+  const { t } = useTranslation('events');
+
   if (!seat) {
-    return <p className="text-[13px] text-ink-40">Select a seat to edit ticket type and price.</p>;
+    return <p className="text-[13px] text-ink-40">{t('seats.inspectorEmpty')}</p>;
   }
   return (
     <div className="rounded-2xl border border-dashed border-ink-20 bg-ink-5/40 p-4 text-[13px] text-ink-60">
-      <p className="font-bold text-ink">Seat inspector</p>
+      <p className="font-bold text-ink">{t('seats.inspectorTitle')}</p>
       <p className="mt-1 font-mono text-[12px] text-ink">{seat.id}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <select
@@ -334,13 +339,13 @@ function SeatInspector({
           onChange={(e) =>
             onApply({
               ticketTypeId: e.target.value,
-              price: types.find((t) => t.id === e.target.value)?.defaultPrice ?? seat.price,
+              price: types.find((tt) => tt.id === e.target.value)?.defaultPrice ?? seat.price,
             })
           }
         >
-          {types.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.label}
+          {types.map((tt) => (
+            <option key={tt.id} value={tt.id}>
+              {tt.label}
             </option>
           ))}
         </select>
@@ -366,13 +371,14 @@ function SeatBulkInspector({
   onApply: (patch: { ticketTypeId?: string; price?: number }) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation(['events', 'common']);
   const [applyType, setApplyType] = useState(true);
   const [applyPrice, setApplyPrice] = useState(false);
   const [ticketTypeId, setTicketTypeId] = useState(types[0]?.id ?? '');
   const [price, setPrice] = useState('');
 
   useEffect(() => {
-    if (types.length > 0 && !types.some((t) => t.id === ticketTypeId)) {
+    if (types.length > 0 && !types.some((tt) => tt.id === ticketTypeId)) {
       setTicketTypeId(types[0]!.id);
     }
   }, [types, ticketTypeId]);
@@ -383,17 +389,15 @@ function SeatBulkInspector({
     <div className="rounded-2xl border border-coral/25 bg-lemon/15 p-4 text-[13px] text-ink-60 shadow-card-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-bold text-ink">Bulk edit</p>
-          <p className="mt-0.5 text-[12px] text-ink-60">
-            {count} seat{count === 1 ? '' : 's'} selected — changes apply when you click Apply
-          </p>
+          <p className="font-bold text-ink">{t('seats.bulkEdit')}</p>
+          <p className="mt-0.5 text-[12px] text-ink-60">{t('seats.bulkSelected', { count })}</p>
         </div>
         <button
           type="button"
           className="text-[12px] font-semibold text-ink-60 underline-offset-2 hover:text-ink hover:underline"
           onClick={onClear}
         >
-          Clear selection
+          {t('seats.clearSelection')}
         </button>
       </div>
 
@@ -405,7 +409,7 @@ function SeatBulkInspector({
             onChange={(e) => setApplyType(e.target.checked)}
             className="h-4 w-4 rounded border-ink-20"
           />
-          Ticket type
+          {t('seats.ticketType')}
         </label>
         <select
           disabled={!applyType}
@@ -413,9 +417,9 @@ function SeatBulkInspector({
           value={ticketTypeId}
           onChange={(e) => setTicketTypeId(e.target.value)}
         >
-          {types.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.label}
+          {types.map((tt) => (
+            <option key={tt.id} value={tt.id}>
+              {tt.label}
             </option>
           ))}
         </select>
@@ -427,13 +431,13 @@ function SeatBulkInspector({
             onChange={(e) => setApplyPrice(e.target.checked)}
             className="h-4 w-4 rounded border-ink-20"
           />
-          Price
+          {t('seats.price')}
         </label>
         <input
           type="number"
           min={0}
           disabled={!applyPrice}
-          placeholder="SAR"
+          placeholder={t('seats.pricePlaceholder')}
           className="w-28 rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-[13px] disabled:opacity-50"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
@@ -450,7 +454,7 @@ function SeatBulkInspector({
             onApply(patch);
           }}
         >
-          Apply to {count} seats
+          {t('seats.applyToSeats', { count })}
         </Button>
       </div>
     </div>

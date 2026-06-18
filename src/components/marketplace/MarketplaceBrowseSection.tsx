@@ -15,6 +15,7 @@ import {
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import type { TalentListing, VendorListing } from '@/types/domain';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Listing = TalentListing | VendorListing;
 
@@ -53,6 +54,7 @@ export function MarketplaceBrowseSection({
   onRequest: (listing: Listing) => void;
   onViewDetails: (listing: Listing) => void;
 }) {
+  const { t } = useTranslation('marketplace');
   const [filters, setFilters] = useState<MarketplaceFilterValues>(EMPTY_MARKETPLACE_FILTERS);
   const { data: regions = [] } = useListSaudiRegionsQuery();
   const { data: cities = [] } = useListSaudiCitiesQuery(filters.regionId);
@@ -141,12 +143,10 @@ export function MarketplaceBrowseSection({
         ) : (
           <div className="rounded-2xl border border-dashed border-ink-20 bg-ink-5/20 px-6 py-12 text-center">
             <p className="text-[15px] font-semibold text-ink">
-              {hasActiveFilters ? 'No matches for these filters' : `No approved ${kind === 'talent' ? 'talents' : 'vendors'} yet`}
+              {hasActiveFilters ? t('browse.empty') : kind === 'talent' ? t('browse.emptyNoTalents') : t('browse.emptyNoVendors')}
             </p>
             <p className="mt-2 text-[13px] leading-relaxed text-ink-50">
-              {hasActiveFilters
-                ? 'Try clearing filters or broadening your search.'
-                : 'Approved profiles will appear here once they are published on the marketplace.'}
+              {hasActiveFilters ? t('browse.empty') : t('browse.emptyNoPublished')}
             </p>
             {hasActiveFilters ? (
               <button
@@ -154,7 +154,7 @@ export function MarketplaceBrowseSection({
                 onClick={() => setFilters(EMPTY_MARKETPLACE_FILTERS)}
                 className="mt-4 rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink transition hover:bg-ink-5 active:scale-[0.98]"
               >
-                Clear filters
+                {t('browse.actions.clearFilters')}
               </button>
             ) : null}
           </div>

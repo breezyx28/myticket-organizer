@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'dark' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -33,6 +34,8 @@ export function Button({
   loading?: boolean;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation('common');
+
   return (
     <button
       type="button"
@@ -47,7 +50,7 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? '…' : children}
+      {loading ? t('loading') : children}
     </button>
   );
 }

@@ -1,0 +1,27 @@
+{
+  "items": {
+    "profile": "Profile",
+    "home": "Home",
+    "events": "Events",
+    "archive": "Archive",
+    "engagements": "Engagements",
+    "scanners": "Scanners",
+    "sales": "Sales",
+    "attendance": "Attendance",
+    "finance": "Finance",
+    "ratings": "Ratings"
+  },
+  "sections": {
+    "dashboard": "Dashboard",
+    "account": "Account",
+    "operations": "Operations",
+    "hiring": "Hiring",
+    "analytics": "Analytics",
+    "reputation": "Reputation"
+  },
+  "aria": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "closeOverlay": "Close overlay"
+  }
+}

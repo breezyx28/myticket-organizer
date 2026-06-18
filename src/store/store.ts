@@ -3,6 +3,7 @@ import { mainMarketplaceApi } from '@/store/api/mainMarketplaceApi';
 import { organizerApi } from '@/store/api/organizerApi';
 import { referenceApi } from '@/store/api/referenceApi';
 import authReducer from '@/store/slices/authSlice';
+import localeReducer from '@/store/slices/localeSlice';
 import { rtkToastMiddleware } from '@/store/middleware/rtkToastMiddleware';
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     [referenceApi.reducerPath]: referenceApi.reducer,
     [mainMarketplaceApi.reducerPath]: mainMarketplaceApi.reducer,
     auth: authReducer,
+    locale: localeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(

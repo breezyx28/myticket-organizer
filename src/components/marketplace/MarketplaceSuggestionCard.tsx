@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import type { TalentListing, VendorListing } from '@/types/domain';
 import { MapPin, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type Listing = TalentListing | VendorListing;
 
@@ -15,6 +16,7 @@ export function MarketplaceSuggestionCard({
   onRequest: () => void;
   onViewDetails: () => void;
 }) {
+  const { t } = useTranslation('marketplace');
   const subtitle =
     kind === 'talent'
       ? (listing as TalentListing).categoryLabel ?? listing.headline
@@ -27,7 +29,7 @@ export function MarketplaceSuggestionCard({
           <img src={listing.coverImageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full items-center justify-center text-[12px] font-semibold uppercase tracking-wide text-ink-40">
-            {kind === 'talent' ? 'Talent' : 'Vendor'}
+            {kind === 'talent' ? t('browse.kind.talent') : t('browse.kind.vendor')}
           </div>
         )}
       </div>
@@ -56,7 +58,7 @@ export function MarketplaceSuggestionCard({
             className="w-full active:scale-[0.98]"
             onClick={onRequest}
           >
-            Request
+            {t('browse.actions.request')}
           </Button>
           <Button
             type="button"
@@ -65,7 +67,7 @@ export function MarketplaceSuggestionCard({
             className="w-full active:scale-[0.98]"
             onClick={onViewDetails}
           >
-            View details
+            {t('browse.actions.viewDetails')}
           </Button>
         </div>
       </div>

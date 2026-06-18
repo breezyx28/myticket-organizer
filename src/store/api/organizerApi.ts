@@ -32,6 +32,7 @@ import { safeParseResponse } from '@/lib/api/parseResponse';
 import type { FinanceSnapshot, OrganizerEvent, OrganizerUser, ScanLiveBootstrap, ScanLog, ScannerAccount } from '@/types/domain';
 import { buildExtraOrganizerEndpoints } from '@/store/api/organizerEndpoints.extra';
 import { parseLoginMutationResult, type LoginMutationResult } from '@/lib/api/parseLoginMutation';
+import { tError } from '@/lib/i18n/translateError';
 
 export type { LoginMutationResult } from '@/lib/api/parseLoginMutation';
 
@@ -163,7 +164,7 @@ export const organizerApi = createApi({
       }),
       transformResponse: (raw: unknown) => {
         const u = parseProfileImageUrl(raw);
-        if (!u) throw new Error('Profile image upload succeeded but no URL was returned.');
+        if (!u) throw new Error(tError('api.profileImageUploadNoUrl'));
         return u;
       },
       invalidatesTags: ['Profile'],
@@ -178,7 +179,7 @@ export const organizerApi = createApi({
       }),
       transformResponse: (raw: unknown) => {
         const u = parseProfileDocumentUrl(raw);
-        if (!u) throw new Error('Document upload succeeded but no public URL was returned.');
+        if (!u) throw new Error(tError('api.documentUploadNoUrl'));
         return u;
       },
       invalidatesTags: ['Profile'],
@@ -193,7 +194,7 @@ export const organizerApi = createApi({
       }),
       transformResponse: (raw: unknown) => {
         const u = parseProfileGalleryImageUrl(raw);
-        if (!u) throw new Error('Gallery upload succeeded but no public URL was returned.');
+        if (!u) throw new Error(tError('api.galleryUploadNoUrl'));
         return u;
       },
       invalidatesTags: ['Profile'],
@@ -333,7 +334,7 @@ export const organizerApi = createApi({
       }),
       transformResponse: (raw: unknown) => {
         const parsed = messageResponseSchema.safeParse(raw);
-        return parsed.success ? parsed.data : { message: 'Scanner account removed.' };
+        return parsed.success ? parsed.data : { message: tError('scanners.accountRemoved') };
       },
       invalidatesTags: [{ type: 'Scanner', id: 'LIST' }, 'ScanLog'],
     }),

@@ -1,0 +1,61 @@
+{
+  "api": {
+    "requestFailed": "Request failed.",
+    "uploadNoUrl": "Upload succeeded but no URL was returned.",
+    "notAuthenticated": "You are not authenticated. Please sign in again.",
+    "invalidLoginResponse": "Invalid login response.",
+    "profileImageUploadNoUrl": "Profile image upload succeeded but no URL was returned.",
+    "documentUploadNoUrl": "Document upload succeeded but no public URL was returned.",
+    "galleryUploadNoUrl": "Gallery upload succeeded but no public URL was returned."
+  },
+  "profile": {
+    "logoTooLarge": "Logo must be 4 MB or smaller.",
+    "imageTooLarge": "Profile image must be 4 MB or smaller.",
+    "imageType": "Use JPEG, PNG, GIF, or WebP for your profile photo.",
+    "documentTooLarge": "Document must be 12 MB or smaller.",
+    "galleryTooLarge": "Each gallery image must be 6 MB or smaller."
+  },
+  "events": {
+    "deleteNotAllowed": "Delete is allowed only for draft or rejected events.",
+    "archiveNotAllowed": "Archive is allowed only after the event has ended.",
+    "createNoId": "Create event succeeded but the API did not return a valid event id.",
+    "statusTransitionNotAllowed": "Status “{{status}}” cannot be changed from the organizer app. Use admin tools for publishing, sold-out, or in-progress, or add organizer endpoints.",
+    "coverType": "Cover image must be JPG, PNG, GIF, or WEBP.",
+    "coverTooLarge": "Cover image must be 6 MB or smaller.",
+    "coverUploadFailed": "Cover image upload failed. Please try again.",
+    "coverUploadFailedWithStatus": "Cover image upload failed ({{status}}).",
+    "coverUploadCancelled": "Cover image upload was cancelled.",
+    "galleryImageTooLarge": "Each gallery image must be 6 MB or smaller."
+  },
+  "rtk": {
+    "createEvent": "Event created successfully.",
+    "submitEvent": "Event submitted for review.",
+    "cancelEvent": "Event cancelled successfully.",
+    "archiveEvent": "Event archived successfully.",
+    "deleteEvent": "Event deleted successfully."
+  },
+  "scanFailure": {
+    "scannerNotOwned": "Scanner is not owned by this event organizer"
+  },
+  "scanners": {
+    "accountRemoved": "Scanner account removed."
+  },
+  "validationFields": {
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirmation": "Password confirmation",
+    "name": "Name",
+    "phone": "Phone",
+    "username": "Username",
+    "displayName": "Display name",
+    "businessName": "Business name",
+    "stageName": "Stage name",
+    "slug": "Slug",
+    "otp": "Verification code",
+    "token": "Token",
+    "image": "Image",
+    "file": "File",
+    "logo": "Logo",
+    "coverImage": "Cover image"
+  }
+}

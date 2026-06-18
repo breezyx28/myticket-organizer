@@ -5,8 +5,10 @@ import { ScannerDialogOverlay } from '@/components/scanners/scannerUi';
 import { useEventScanLive } from '@/hooks/useEventScanLive';
 import { cn } from '@/lib/utils';
 import { Radio, RefreshCcw, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function LiveStatusPill({ connection }: { connection: ReturnType<typeof useEventScanLive>['connection'] }) {
+  const { t } = useTranslation(['scanners', 'common']);
   const live = connection === 'live';
   const polling = connection === 'polling';
   return (
@@ -26,7 +28,13 @@ function LiveStatusPill({ connection }: { connection: ReturnType<typeof useEvent
         )}
         aria-hidden
       />
-      {live ? 'Live' : polling ? 'Polling' : connection === 'connecting' ? 'Connecting' : 'Reconnecting'}
+      {live
+        ? t('live.transport.live')
+        : polling
+          ? t('live.transport.polling')
+          : connection === 'connecting'
+            ? t('connecting', { ns: 'common' })
+            : t('live.transport.reconnecting')}
     </span>
   );
 }
@@ -42,6 +50,7 @@ export function ScanLiveDialog({
   eventTitle: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(['scanners', 'common']);
   const { rows, stats, connection, error, retry } = useEventScanLive(eventId, open);
 
   if (!open) return null;
@@ -51,11 +60,11 @@ export function ScanLiveDialog({
       <div className="flex max-h-[85dvh] flex-col">
         <div className="flex items-start justify-between gap-4 border-b border-ink-10 px-6 py-5 sm:px-8">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Live scanning</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('live.title')}</p>
             <h2 className="mt-1 text-xl font-extrabold tracking-tight text-balance text-ink sm:text-2xl">
               {eventTitle}
             </h2>
-            <p className="mt-1.5 text-[13px] text-ink-60">Newest scan results appear at the top.</p>
+            <p className="mt-1.5 text-[13px] text-ink-60">{t('live.subtitle')}</p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <LiveStatusPill connection={connection} />
@@ -63,7 +72,7 @@ export function ScanLiveDialog({
               type="button"
               onClick={onClose}
               className="rounded-full border border-ink-10 p-2 text-ink-60 transition-transform hover:bg-ink-5 active:scale-[0.96]"
-              aria-label="Close live scan dialog"
+              aria-label={t('close', { ns: 'common' })}
             >
               <X className="h-4 w-4" strokeWidth={2} />
             </button>
@@ -74,8 +83,7 @@ export function ScanLiveDialog({
 
         {error ? (
           <div className="mx-6 mt-4 rounded-2xl border border-coral/25 bg-coral/10 px-4 py-3 text-[13px] text-ink sm:mx-8">
-            <p className="font-semibold text-coral">Could not connect to live feed</p>
-            <p className="mt-1 text-ink-60">{error}</p>
+            <p className="font-semibold text-coral">{error}</p>
             <Button
               type="button"
               variant="outline"
@@ -83,8 +91,8 @@ export function ScanLiveDialog({
               className="mt-3 active:scale-[0.96]"
               onClick={() => void retry()}
             >
-              <RefreshCcw className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              Retry connection
+              <RefreshCcw className="me-1.5 h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+              {t('retry', { ns: 'common' })}
             </Button>
           </div>
         ) : null}
@@ -93,9 +101,9 @@ export function ScanLiveDialog({
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-[12px] font-semibold text-ink-50">
               <Radio className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              Scan feed
+              {t('live.title')}
             </div>
-            <span className="font-mono text-[11px] tabular-nums text-ink-40">{rows.length} shown</span>
+            <span className="font-mono text-[11px] tabular-nums text-ink-40">{rows.length}</span>
           </div>
           <ScanLiveFeedStack rows={rows} eventTitle={eventTitle} activeScanners={stats.activeScanners} />
         </div>

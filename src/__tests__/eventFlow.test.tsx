@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import { validateFreeLayoutTotals } from '@/services/eventsService';
 import type { OrganizerEvent } from '@/types/domain';
+import { setupI18nTest } from '@/test/i18nTestUtils';
 
 describe('event validation', () => {
+  beforeAll(async () => {
+    await setupI18nTest('en');
+  });
   it('flags free layout when ticket limits exceed capacity', () => {
     const ev = {
       layoutType: 'free' as const,

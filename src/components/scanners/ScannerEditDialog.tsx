@@ -18,6 +18,7 @@ import { toast } from '@/lib/appToast';
 import type { ScannerAccount } from '@/types/domain';
 import { Mail } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function ScannerEditDialog({
   scanner,
@@ -28,6 +29,7 @@ export function ScannerEditDialog({
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
+  const { t } = useTranslation(['scanners', 'common']);
   const open = scanner != null;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -80,9 +82,9 @@ export function ScannerEditDialog({
       const result = await resendScannerCredentials(scanner.id);
       const outcome = applyScannerCredentialsOutcome(result, setResendTempPassword);
       if (outcome === 'emailed') {
-        toast.success(`New login details were emailed to ${result.account.email}.`);
+        toast.success(t('toasts.credentialsResentEmailed', { email: result.account.email }));
       } else if (outcome === 'silent') {
-        toast.success('New password generated.');
+        toast.success(t('toasts.passwordGenerated'));
       }
       await onSaved();
     } catch (err) {
@@ -95,11 +97,8 @@ export function ScannerEditDialog({
   return (
     <>
       <ScannerDialogOverlay>
-        <h3 className="text-xl font-extrabold text-ink">Edit gate staff</h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-60">
-          Update display name, login email, password, or account status. Send at least one change, or resend credentials
-          below.
-        </p>
+        <h3 className="text-xl font-extrabold text-ink">{t('edit.title')}</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-60">{t('edit.description')}</p>
 
         {temporaryPassword ? (
           <div className="mt-4">
@@ -115,10 +114,10 @@ export function ScannerEditDialog({
             const nm = name.trim();
             const em = email.trim();
             const pw = password.trim();
-            if (!nm) next.name = 'Name is required.';
-            if (!em) next.email = 'Email is required.';
-            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) next.email = 'Enter a valid email address.';
-            if (pw && pw.length < 8) next.password = 'Password must be at least 8 characters.';
+            if (!nm) next.name = t('create.validation.nameRequired');
+            if (!em) next.email = t('create.validation.emailRequired');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) next.email = t('create.validation.emailInvalid');
+            if (pw && pw.length < 8) next.password = t('create.validation.passwordMinLength');
             if (Object.keys(next).length > 0) {
               setFieldErrors(next);
               return;
@@ -126,7 +125,7 @@ export function ScannerEditDialog({
 
             const patch = buildPatchBody();
             if (Object.keys(patch).length === 0) {
-              toast.error('Change at least one field before saving.');
+              toast.error(t('edit.validation.changeAtLeastOne'));
               return;
             }
 
@@ -137,13 +136,13 @@ export function ScannerEditDialog({
                 const result = await updateScanner({ id: scanner.id, ...patch });
                 const outcome = applyScannerCredentialsOutcome(result, setTemporaryPassword);
                 if (outcome === 'emailed') {
-                  toast.success(`Updated login details were emailed to ${result.account.email}.`);
+                  toast.success(t('toasts.updatedCredentialsEmailed', { email: result.account.email }));
                   onClose();
                   await onSaved();
                 } else if (outcome === 'temporary') {
                   await onSaved();
                 } else {
-                  toast.success('Scanner account updated.');
+                  toast.success(t('toasts.accountUpdated'));
                   onClose();
                   await onSaved();
                 }
@@ -167,7 +166,7 @@ export function ScannerEditDialog({
           }}
         >
           <ScannerFormLabel error={fieldErrors.name}>
-            Name
+            {t('create.fields.name')}
             <input
               className={scannerInputErrorClass(Boolean(fieldErrors.name))}
               value={name}
@@ -179,7 +178,7 @@ export function ScannerEditDialog({
           </ScannerFormLabel>
 
           <ScannerFormLabel error={fieldErrors.email}>
-            Email (scanner app login)
+            {t('create.fields.email')}
             <input
               type="email"
               className={scannerInputErrorClass(Boolean(fieldErrors.email))}
@@ -192,13 +191,13 @@ export function ScannerEditDialog({
           </ScannerFormLabel>
 
           <ScannerFormLabel error={fieldErrors.password}>
-            New password (optional)
+            {t('edit.fields.newPassword')}
             <PasswordInput
               autoComplete="new-password"
               className={scannerInputErrorClass(Boolean(fieldErrors.password))}
               hasError={Boolean(fieldErrors.password)}
               value={password}
-              placeholder="Leave blank to keep current password"
+              placeholder={t('edit.fields.passwordPlaceholder')}
               onChange={(e) => {
                 setPassword(e.target.value);
                 setFieldErrors((c) => ({ ...c, password: undefined }));
@@ -209,8 +208,8 @@ export function ScannerEditDialog({
           <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-ink-10 bg-ink-5/25 px-3 py-3 text-[14px] text-ink">
             <input type="checkbox" className="h-4 w-4 rounded border-ink-20" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
             <span>
-              <span className="font-semibold">Active account</span>
-              <span className="mt-0.5 block text-[12px] text-ink-50">Inactive staff cannot be assigned to events.</span>
+              <span className="font-semibold">{t('edit.activeAccount.label')}</span>
+              <span className="mt-0.5 block text-[12px] text-ink-50">{t('edit.activeAccount.hint')}</span>
             </span>
           </label>
 
@@ -222,18 +221,14 @@ export function ScannerEditDialog({
               onChange={(e) => setEmailCredentials(e.target.checked)}
             />
             <span>
-              <span className="font-semibold">Email login credentials</span>
-              <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-50">
-                Sends email with login URL and password. If password is empty above, the server generates one.
-              </span>
+              <span className="font-semibold">{t('edit.emailCredentials.label')}</span>
+              <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-50">{t('edit.emailCredentials.hint')}</span>
             </span>
           </label>
 
           <div className="rounded-xl border border-dashed border-ink-20 bg-ink-5/20 px-3 py-3">
-            <p className="text-[12px] font-semibold text-ink-60">Reset login without editing fields</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-ink-50">
-              Generates a new 12-character password and emails it. Assigned gate/event names are included when present.
-            </p>
+            <p className="text-[12px] font-semibold text-ink-60">{t('edit.resetLogin.title')}</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-ink-50">{t('edit.resetLogin.description')}</p>
             <Button
               type="button"
               variant="outline"
@@ -243,16 +238,16 @@ export function ScannerEditDialog({
               onClick={() => void handleResendCredentials()}
             >
               <Mail className="h-4 w-4" strokeWidth={2} aria-hidden />
-              {resending ? 'Sending…' : 'Resend login credentials'}
+              {resending ? t('sending', { ns: 'common' }) : t('edit.resetLogin.resend')}
             </Button>
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-ink-10 pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" size="md" onClick={onClose} disabled={saving || resending}>
-              {temporaryPassword ? 'Close' : 'Cancel'}
+              {temporaryPassword ? t('close', { ns: 'common' }) : t('cancel', { ns: 'common' })}
             </Button>
             <Button type="submit" variant="dark" size="md" disabled={saving || resending}>
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? t('saving', { ns: 'common' }) : t('save', { ns: 'common' })}
             </Button>
           </div>
         </form>

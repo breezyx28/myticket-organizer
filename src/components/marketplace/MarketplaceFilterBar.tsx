@@ -3,6 +3,7 @@ import type { SaudiCityOption, SaudiRegionOption } from '@/store/api/referenceAp
 import { cn } from '@/lib/utils';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type MarketplaceFilterValues = {
   search: string;
@@ -35,6 +36,7 @@ export function MarketplaceFilterBar({
   onChange: (next: MarketplaceFilterValues) => void;
   onReset: () => void;
 }) {
+  const { t } = useTranslation(['marketplace', 'common']);
   const [expanded, setExpanded] = useState(false);
   const [searchDraft, setSearchDraft] = useState(values.search);
   const valuesRef = useRef(values);
@@ -67,15 +69,15 @@ export function MarketplaceFilterBar({
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <label className="relative min-w-0 flex-1">
-          <span className="sr-only">Search</span>
+          <span className="sr-only">{t('filters.search')}</span>
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-40"
+            className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-40"
             strokeWidth={2}
             aria-hidden
           />
           <input
-            className="h-10 w-full rounded-xl border border-ink-10 bg-white pl-10 pr-3 text-[14px] text-ink outline-none transition focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
-            placeholder="Search by name or specialty…"
+            className="h-10 w-full rounded-xl border border-ink-10 bg-white ps-10 pe-3 text-[14px] text-ink outline-none transition focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
+            placeholder={t('filters.searchPlaceholder')}
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.target.value)}
           />
@@ -91,7 +93,7 @@ export function MarketplaceFilterBar({
           )}
         >
           <SlidersHorizontal className="h-4 w-4" strokeWidth={2} aria-hidden />
-          Refine
+          {t('filter', { ns: 'common' })}
           {activeCount > 0 ? (
             <span className="rounded-full bg-coral px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
               {activeCount}
@@ -103,7 +105,7 @@ export function MarketplaceFilterBar({
       {expanded ? (
         <div className="rounded-2xl border border-ink-10 bg-ink-5/30 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50">Advanced filters</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-50">{t('filters.advanced')}</p>
             {activeCount > 0 ? (
               <button
                 type="button"
@@ -111,7 +113,7 @@ export function MarketplaceFilterBar({
                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-coral transition hover:underline active:scale-[0.98]"
               >
                 <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                Clear all
+                {t('clear', { ns: 'common' })}
               </button>
             ) : null}
           </div>
@@ -123,7 +125,7 @@ export function MarketplaceFilterBar({
                 value={values.categoryId}
                 onChange={(e) => onChange({ ...values, categoryId: e.target.value })}
               >
-                <option value="">All categories</option>
+                <option value="">{t('filters.allCategories')}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -132,7 +134,7 @@ export function MarketplaceFilterBar({
               </select>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-[12px] font-semibold text-ink-60">Region</span>
+              <span className="mb-1.5 block text-[12px] font-semibold text-ink-60">{t('filters.region')}</span>
               <select
                 className={selectClass}
                 value={values.regionId}
@@ -140,7 +142,7 @@ export function MarketplaceFilterBar({
                   onChange({ ...values, regionId: e.target.value, cityId: '' })
                 }
               >
-                <option value="">All regions</option>
+                <option value="">{t('filters.allRegions')}</option>
                 {regions.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
@@ -149,14 +151,14 @@ export function MarketplaceFilterBar({
               </select>
             </label>
             <label className="block sm:col-span-2 lg:col-span-1">
-              <span className="mb-1.5 block text-[12px] font-semibold text-ink-60">City</span>
+              <span className="mb-1.5 block text-[12px] font-semibold text-ink-60">{t('filters.city')}</span>
               <select
                 className={selectClass}
                 disabled={!values.regionId}
                 value={values.cityId}
                 onChange={(e) => onChange({ ...values, cityId: e.target.value })}
               >
-                <option value="">{values.regionId ? 'All cities in region' : 'Select a region first'}</option>
+                <option value="">{values.regionId ? t('filters.allCities') : t('filters.chooseRegionFirst')}</option>
                 {cities.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

@@ -1,0 +1,43 @@
+{
+  "page": {
+    "eyebrow": "Finance",
+    "title": "Financial overview",
+    "description": "Summary from your organizer finance API; bank accounts and payouts are read-only here. Export line-level data as CSV when you need a spreadsheet.",
+    "downloadCsv": "Download CSV export",
+    "preparingExport": "Preparing…"
+  },
+  "tiles": {
+    "gross": "Gross",
+    "platformFees": "Platform fees",
+    "net": "Net",
+    "refunds": "Refunds",
+    "adjustments": "Adjustments"
+  },
+  "payoutStatus": {
+    "label": "Payout status"
+  },
+  "bankAccounts": {
+    "title": "Bank accounts",
+    "subtitle": "Connected accounts on file (read-only).",
+    "default": "Default",
+    "empty": "No bank accounts returned.",
+    "unnamed": "Bank account"
+  },
+  "payouts": {
+    "title": "Recent payouts",
+    "pageInfo": "Page {{page}} of {{last}} · {{total}} total",
+    "firstPageHint": "First page from the payouts API.",
+    "empty": "No payouts on this page."
+  },
+  "refundBreakdown": {
+    "title": "Refund breakdown",
+    "empty": "No refund line items."
+  },
+  "adjustments": {
+    "title": "Adjustments",
+    "empty": "No adjustments on file."
+  },
+  "errors": {
+    "exportFailed": "Export failed"
+  }
+}

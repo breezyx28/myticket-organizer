@@ -2,16 +2,17 @@ import { useEffect, useRef } from 'react';
 import type { ScanLiveRow } from '@/types/domain';
 import { ScanLiveFeedItem } from '@/components/scanners/ScanLiveFeedItem';
 import { ScannerEmptyState } from '@/components/scanners/scannerUi';
+import { useTranslation } from 'react-i18next';
 
 export function ScanLiveFeedStack({
   rows,
   eventTitle,
-  activeScanners,
 }: {
   rows: ScanLiveRow[];
   eventTitle: string;
   activeScanners?: number;
 }) {
+  const { t } = useTranslation('scanners');
   const prevCountRef = useRef(rows.length);
   const newCount = Math.max(0, rows.length - prevCountRef.current);
 
@@ -20,20 +21,11 @@ export function ScanLiveFeedStack({
   }, [rows.length]);
 
   if (rows.length === 0) {
-    return (
-      <ScannerEmptyState
-        title="Waiting for scans"
-        description={
-          activeScanners === 0
-            ? 'No scanners are assigned to this event yet. Assign gate staff, then scans will appear here in real time.'
-            : 'Scans from assigned gate devices will stream here as tickets are checked in.'
-        }
-      />
-    );
+    return <ScannerEmptyState title={t('live.empty')} description={t('live.subtitle')} />;
   }
 
   return (
-    <ul className="max-h-[min(52dvh,420px)] space-y-2.5 overflow-y-auto pr-1">
+    <ul className="max-h-[min(52dvh,420px)] space-y-2.5 overflow-y-auto pe-1">
       {rows.map((row, index) => (
         <ScanLiveFeedItem
           key={row.id}

@@ -16,7 +16,7 @@ export function UploadTileInput({
   return (
     <label
       className={cn(
-        'flex cursor-pointer flex-col rounded-2xl border-2 border-dashed border-ink-20 bg-gradient-to-br from-ink-5/80 to-white px-5 py-4 text-[13px] font-semibold text-ink-70 shadow-inner transition hover:border-coral/50 hover:bg-ink-5',
+        'flex cursor-pointer flex-col items-start rounded-2xl border-2 border-dashed border-ink-20 bg-gradient-to-br from-ink-5/80 to-white px-5 py-4 text-start text-[13px] font-semibold text-ink-70 shadow-inner transition hover:border-coral/50 hover:bg-ink-5',
         className
       )}
     >
@@ -25,6 +25,7 @@ export function UploadTileInput({
       <input
         type="file"
         accept={accept}
+        aria-label={title}
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];

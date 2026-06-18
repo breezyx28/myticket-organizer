@@ -1,14 +1,12 @@
 import type { EventStatus } from '@/types/domain';
+import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
-/** Human-readable labels aligned with `docs/frontend-handoff-organizer-event-editor-api.md`. */
-export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
-  draft: 'Draft',
-  pending_approval: 'Pending approval',
-  rejected: 'Rejected',
-  published: 'Published',
-  sold_out: 'Sold out',
-  in_progress: 'In progress',
-  ended: 'Ended',
-  cancelled: 'Cancelled',
-  archived: 'Archived',
-};
+export function useEventStatusLabel(status: EventStatus): string {
+  const { t } = useTranslation('events');
+  return t(`status.${status}`);
+}
+
+export function getEventStatusLabel(status: EventStatus): string {
+  return i18n.t(`status.${status}`, { ns: 'events' });
+}

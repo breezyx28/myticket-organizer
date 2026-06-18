@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { ScannerDialogOverlay } from '@/components/scanners/scannerUi';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function ScannerConfirmDialog({
   open,
@@ -19,15 +20,11 @@ export function ScannerConfirmDialog({
   onConfirm: () => void;
   loading?: boolean;
 }) {
+  const { t } = useTranslation('common');
   if (!open) return null;
   return (
     <ScannerDialogOverlay>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="scanner-confirm-title"
-        className="flex gap-3"
-      >
+      <div role="dialog" aria-modal="true" aria-labelledby="scanner-confirm-title" className="flex gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-coral/15 text-coral">
           <AlertTriangle size={22} strokeWidth={2} aria-hidden />
         </span>
@@ -40,7 +37,7 @@ export function ScannerConfirmDialog({
       </div>
       <div className="mt-6 flex flex-col-reverse gap-2 border-t border-ink-10 pt-4 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" size="md" className="sm:min-w-[100px]" onClick={onCancel} disabled={loading}>
-          Cancel
+          {t('cancel')}
         </Button>
         <Button type="button" variant="danger" size="md" className="sm:min-w-[140px]" onClick={onConfirm} loading={loading}>
           {confirmLabel}

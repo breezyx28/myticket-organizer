@@ -8,6 +8,7 @@ import {
 import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
 import { refreshTokenResponseSchema } from '@/schemas/organizer/responses/auth';
+import { appendAcceptLanguage } from '@/lib/locale/apiHeaders';
 import { setAccessToken } from '@/store/slices/authSlice';
 
 const PUBLIC_ENDPOINTS = new Set(['login', 'oauthCallback', 'health', 'version']);
@@ -31,6 +32,7 @@ const rawBaseQuery = fetchBaseQuery({
       if (token) headers.set('Authorization', `Bearer ${token}`);
     }
     headers.set('Accept', 'application/json');
+    appendAcceptLanguage(headers, getState);
     return headers;
   },
 });

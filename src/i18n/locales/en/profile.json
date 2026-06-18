@@ -1,0 +1,98 @@
+{
+  "page": {
+    "eyebrow": "Account",
+    "title": "Organizer profile",
+    "description": "Complete your profile before creating events. Use the tabs below; document and gallery files upload to the organizer API, and other changes apply when you save."
+  },
+  "status": {
+    "incomplete": {
+      "title": "Incomplete.",
+      "body": "Upload your organization document and at least one gallery image (URLs are saved to your profile), add venue capacity & facilities, and complete your organizer details. Use Save profile at the bottom after edits."
+    },
+    "complete": {
+      "title": "Profile complete.",
+      "body": "You can create and publish events."
+    }
+  },
+  "tabs": {
+    "info": "Info & contact",
+    "venue": "Venue",
+    "organization": "Organization",
+    "documents": "Documents & media"
+  },
+  "sections": {
+    "personalContact": "Personal & contact",
+    "venueDetails": "Venue details",
+    "organization": "Organization",
+    "documentsMedia": "Documents & media"
+  },
+  "fields": {
+    "profilePhoto": "Profile photo",
+    "profilePhotoHint": "Your account photo (JPEG, PNG, GIF, or WebP — max 4 MB). Separate from your public business logo.",
+    "displayName": "Display name",
+    "phone": "Phone",
+    "saudiRegion": "Saudi region",
+    "city": "City",
+    "businessLogo": "Business logo",
+    "businessLogoHint": "Public organizer logo for listings and branding — not your personal profile photo.",
+    "bio": "Bio (min 30 chars)",
+    "venueName": "Venue name",
+    "venueRegion": "Venue region",
+    "venueCity": "Venue city",
+    "address": "Address",
+    "maxCapacity": "Max audience capacity",
+    "facilities": "Facilities",
+    "facilitiesHint": "Add amenities (Enter or Add), required for a complete profile.",
+    "facilitiesPlaceholder": "e.g. VIP boxes",
+    "website": "Website",
+    "instagram": "Instagram",
+    "twitter": "Twitter / X",
+    "tiktok": "TikTok",
+    "typicalDuration": "Typical event duration (hours)",
+    "organizationDocument": "Organization document (required)",
+    "organizationDocumentHint": "PDF or image — uploads immediately to the organizer API, then the public URL is stored when you save the profile.",
+    "galleryImages": "Gallery images",
+    "galleryHint": "Each image uploads to the organizer API when selected; public URLs are appended to your profile. Remove items you do not want, then use Save profile to persist the gallery list."
+  },
+  "upload": {
+    "profilePhoto": "Upload profile photo",
+    "profilePhotoSubtitle": "JPEG, PNG, GIF, or WebP — max 4 MB",
+    "logo": "Upload logo",
+    "logoSubtitle": "PNG, JPG, or WebP — max 4 MB",
+    "organizationDocument": "Upload organization document",
+    "organizationDocumentSubtitle": "PDF, scan, or photo of CR / permit (max 12 MB)",
+    "storedUrl": "Stored URL",
+    "notUploadedYet": "Not uploaded yet"
+  },
+  "select": {
+    "loadingRegions": "Loading regions…",
+    "selectRegion": "Select region",
+    "chooseRegionFirst": "Choose a region first",
+    "loadingCities": "Loading cities…",
+    "selectCity": "Select city"
+  },
+  "map": {
+    "coordinatesHint": "Values are stored when you save the profile."
+  },
+  "organization": {
+    "socialSaveHint": "Social links are saved via the organizer API when you click Save profile at the bottom of the page."
+  },
+  "actions": {
+    "saveProfile": "Save profile",
+    "add": "Add"
+  },
+  "toasts": {
+    "saved": "Profile saved",
+    "photoUpdated": "Profile photo updated",
+    "photoRemoved": "Profile photo removed"
+  },
+  "errors": {
+    "regionsLoadFailed": "Could not load regions. Check API base URL and try again.",
+    "photoUploadFailed": "Profile photo upload failed",
+    "photoRemoveFailed": "Could not remove profile photo",
+    "logoUploadFailed": "Logo upload failed",
+    "documentUploadFailed": "Document upload failed.",
+    "galleryUploadFailed": "Gallery upload failed.",
+    "uploadingImages": "Uploading images…"
+  }
+}

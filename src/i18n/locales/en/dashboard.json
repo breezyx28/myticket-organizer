@@ -1,0 +1,32 @@
+{
+  "home": {
+    "eyebrow": "Dashboard",
+    "title": "At a glance",
+    "description": "Live data from the organizer API where wired (events, finance, scanners); other tiles may still use local aggregates until every module is connected.",
+    "stats": {
+      "totalEvents": "Total events",
+      "ticketsSold": "Tickets sold",
+      "revenueGross": "Revenue (gross)",
+      "upcomingLive": "Upcoming live"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "createEvent": "Create event",
+      "viewEvents": "View my events",
+      "manageScanners": "Manage scanners"
+    },
+    "recentBookings": {
+      "title": "Recent bookings",
+      "empty": "No bookings yet."
+    },
+    "marketplace": {
+      "title": "Marketplace & hiring",
+      "description": "Talent and vendor discovery, chat, and hiring live on the main website. Use this dashboard for events, scanners, analytics, and finance.",
+      "openMainSite": "Open marketplace on main site"
+    },
+    "recentScans": {
+      "title": "Recent scanner activity",
+      "empty": "No scans recorded."
+    }
+  }
+}

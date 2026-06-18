@@ -11,13 +11,27 @@ import {
 import { getProfile, isProfileComplete } from '@/services/profileService';
 import { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
 import { toast } from '@/lib/appToast';
-import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
+import { useEventStatusLabel } from '@/lib/eventStatusLabels';
 import type { OrganizerEvent } from '@/types/domain';
 import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDateTime } from '@/lib/locale/format';
+
+function EventStatusBadge({ status }: { status: OrganizerEvent['status'] }) {
+  const label = useEventStatusLabel(status);
+  return (
+    <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${statusBadgeClass(status)}`}>
+      {label}
+    </span>
+  );
+}
 
 export function EventListPage() {
+  const { t } = useTranslation(['events', 'common']);
+  const { language } = useLocale();
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
   const [profileOk, setProfileOk] = useState(true);
   const [page, setPage] = useState(1);
@@ -40,22 +54,31 @@ export function EventListPage() {
   );
 
   useEffect(() => {
-    const t = window.setTimeout(() => void reload(), 0);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => void reload(), 0);
+    return () => window.clearTimeout(timer);
   }, [reload]);
+
+  const layoutLabel = (layoutType: OrganizerEvent['layoutType']) => {
+    if (layoutType === 'grid') return t('layout.grid');
+    if (layoutType === 'section') return t('layout.section');
+    return t('layout.free');
+  };
+
+  const entryModeLabel = (entryMode: OrganizerEvent['entryMode']) =>
+    entryMode === 'multi_scan' ? t('entryMode.multi_scan') : t('entryMode.one_time');
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Events</p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">My events</h1>
-          <p className="mt-2 max-w-xl text-[15px] text-ink-60">Create, publish, edit, duplicate, cancel, and archive against the organizer API.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('list.eyebrow')}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t('list.title')}</h1>
+          <p className="mt-2 max-w-xl text-[15px] text-ink-60">{t('list.description')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={profileOk ? '/events/new' : '/profile'}>
             <Button variant="primary" size="md">
-              {profileOk ? 'Create event' : 'Complete profile first'}
+              {profileOk ? t('list.createEvent') : t('list.completeProfileFirst')}
             </Button>
           </Link>
         </div>
@@ -63,24 +86,24 @@ export function EventListPage() {
 
       {!profileOk ? (
         <div className="rounded-3xl border border-coral/40 bg-coral/10 px-5 py-4 text-[14px] text-ink">
-          <strong>Profile incomplete.</strong> Finish your organizer profile before creating events.{' '}
+          <strong>{t('list.profileIncomplete.title')}</strong> {t('list.profileIncomplete.body')}{' '}
           <Link to="/profile" className="font-semibold text-coral underline">
-            Open profile
+            {t('list.profileIncomplete.openProfile')}
           </Link>
         </div>
       ) : null}
 
       <div className="rounded-3xl border border-ink-10 bg-white shadow-card-sm">
-        <table className="min-w-full text-left text-[13px]">
+        <table className="min-w-full text-start text-[13px]">
           <thead className="bg-ink-5/80 text-[11px] font-bold uppercase tracking-wide text-ink-60">
             <tr>
-              <th className="px-4 py-3">Event</th>
-              <th className="hidden px-4 py-3 md:table-cell">Date &amp; time</th>
-              <th className="hidden px-4 py-3 lg:table-cell">Category</th>
-              <th className="hidden px-4 py-3 xl:table-cell">Entry</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="hidden px-4 py-3 md:table-cell">Sold</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t('list.table.event')}</th>
+              <th className="hidden px-4 py-3 md:table-cell">{t('list.table.dateTime')}</th>
+              <th className="hidden px-4 py-3 lg:table-cell">{t('list.table.category')}</th>
+              <th className="hidden px-4 py-3 xl:table-cell">{t('list.table.entry')}</th>
+              <th className="px-4 py-3">{t('list.table.status')}</th>
+              <th className="hidden px-4 py-3 md:table-cell">{t('list.table.sold')}</th>
+              <th className="px-4 py-3 text-end">{t('list.table.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-10">
@@ -89,19 +112,19 @@ export function EventListPage() {
                 <td className="px-4 py-4">
                   <p className="font-bold text-ink">{e.title}</p>
                   <p className="mt-1 text-[12px] text-ink-60">
-                    {e.city || 'Unknown city'} · {layoutLabel(e.layoutType)}
+                    {e.city || t('list.table.unknownCity')} · {layoutLabel(e.layoutType)}
                   </p>
-                  <p className="mt-1 font-mono text-[11px] text-ink-40">
-                    #{e.id}
-                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-ink-40">#{e.id}</p>
                 </td>
                 <td className="hidden px-4 py-4 text-ink-60 md:table-cell">
-                  <p className="font-medium text-ink">{new Date(e.startsAt).toLocaleString()}</p>
-                  <p className="mt-1 text-[12px] text-ink-50">to {new Date(e.endsAt).toLocaleString()}</p>
+                  <p className="font-medium text-ink">{formatDateTime(e.startsAt, language)}</p>
+                  <p className="mt-1 text-[12px] text-ink-50">
+                    {t('list.table.to')} {formatDateTime(e.endsAt, language)}
+                  </p>
                 </td>
                 <td className="hidden px-4 py-4 lg:table-cell">
                   <span className="inline-flex rounded-full bg-ink-5 px-2.5 py-1 text-[11px] font-semibold text-ink-70">
-                    {e.category || 'Uncategorized'}
+                    {e.category || t('list.table.uncategorized')}
                   </span>
                 </td>
                 <td className="hidden px-4 py-4 xl:table-cell">
@@ -110,35 +133,33 @@ export function EventListPage() {
                   </span>
                 </td>
                 <td className="px-4 py-4">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${statusBadgeClass(e.status)}`}>
-                    {EVENT_STATUS_LABEL[e.status]}
-                  </span>
+                  <EventStatusBadge status={e.status} />
                 </td>
                 <td className="hidden px-4 py-4 md:table-cell">
                   <span className="font-mono text-[12px] font-semibold text-ink">{e.ticketsSold}</span>
                 </td>
-                <td className="px-4 py-4 text-right">
-                  <div className="relative inline-block text-left">
+                <td className="px-4 py-4 text-end">
+                  <div className="relative inline-block text-start">
                     <button
                       type="button"
                       className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-60 hover:bg-ink-5"
                       onClick={() => setOpenMenuId((cur) => (cur === e.id ? null : e.id))}
-                      aria-label="Open actions"
+                      aria-label={t('list.table.openActions')}
                     >
                       <MoreHorizontal size={16} />
                     </button>
                     {openMenuId === e.id ? (
-                      <div className="absolute right-0 z-[120] mt-2 min-w-[170px] overflow-hidden rounded-xl border border-ink-10 bg-white shadow-card-sm">
+                      <div className="absolute end-0 z-[120] mt-2 min-w-[170px] overflow-hidden rounded-xl border border-ink-10 bg-white shadow-card-sm">
                         <Link
                           to={`/events/${e.id}`}
-                          className="block px-3 py-2 text-left text-[13px] font-semibold text-ink hover:bg-ink-5"
+                          className="block px-3 py-2 text-start text-[13px] font-semibold text-ink hover:bg-ink-5"
                           onClick={() => setOpenMenuId(null)}
                         >
-                          Edit
+                          {t('list.actions.edit')}
                         </Link>
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-ink hover:bg-ink-5"
+                          className="block w-full px-3 py-2 text-start text-[13px] text-ink hover:bg-ink-5"
                           onClick={() => {
                             setOpenMenuId(null);
                             void (async () => {
@@ -147,43 +168,55 @@ export function EventListPage() {
                             })();
                           }}
                         >
-                          Duplicate
+                          {t('list.actions.duplicate')}
                         </button>
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-ink hover:bg-ink-5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
+                          className="block w-full px-3 py-2 text-start text-[13px] text-ink hover:bg-ink-5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
                           disabled={e.status === 'cancelled' || e.status === 'archived'}
                           onClick={() => {
                             setOpenMenuId(null);
                             setPendingAction({ type: 'cancel', eventId: e.id, eventTitle: e.title });
                           }}
-                          title={e.status === 'cancelled' || e.status === 'archived' ? 'Event is already cancelled or archived' : 'Cancel event'}
+                          title={
+                            e.status === 'cancelled' || e.status === 'archived'
+                              ? t('list.actions.cancelDisabledTitle')
+                              : t('list.actions.cancelTitle')
+                          }
                         >
-                          Cancel
+                          {t('list.actions.cancel')}
                         </button>
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-ink hover:bg-ink-5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
+                          className="block w-full px-3 py-2 text-start text-[13px] text-ink hover:bg-ink-5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
                           disabled={!canArchiveEventStatus(e.status)}
                           onClick={() => {
                             setOpenMenuId(null);
                             setPendingAction({ type: 'archive', eventId: e.id, eventTitle: e.title });
                           }}
-                          title={canArchiveEventStatus(e.status) ? 'Archive event' : 'Archive is allowed only when event status is ended'}
+                          title={
+                            canArchiveEventStatus(e.status)
+                              ? t('list.actions.archiveTitle')
+                              : t('list.actions.archiveDisabledTitle')
+                          }
                         >
-                          Archive
+                          {t('list.actions.archive')}
                         </button>
                         <button
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-coral hover:bg-coral/5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
+                          className="block w-full px-3 py-2 text-start text-[13px] text-coral hover:bg-coral/5 disabled:cursor-not-allowed disabled:text-ink-40 disabled:hover:bg-white"
                           disabled={!canRemoveEventStatus(e.status)}
                           onClick={() => {
                             setOpenMenuId(null);
                             setPendingAction({ type: 'delete', eventId: e.id, eventTitle: e.title });
                           }}
-                          title={canRemoveEventStatus(e.status) ? 'Delete event' : 'Delete is allowed only for draft or rejected events'}
+                          title={
+                            canRemoveEventStatus(e.status)
+                              ? t('list.actions.deleteTitle')
+                              : t('list.actions.deleteDisabledTitle')
+                          }
                         >
-                          Delete
+                          {t('list.actions.delete')}
                         </button>
                       </div>
                     ) : null}
@@ -193,18 +226,17 @@ export function EventListPage() {
             ))}
           </tbody>
         </table>
-        {events.length === 0 ? <p className="p-6 text-[14px] text-ink-40">No events on this page.</p> : null}
+        {events.length === 0 ? <p className="p-6 text-[14px] text-ink-40">{t('list.empty')}</p> : null}
       </div>
 
       {pager ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-10 bg-ink-5/40 px-4 py-3 text-[13px] text-ink-60">
           <span>
-            Page <span className="font-mono font-bold text-ink">{pager.current}</span> of{' '}
-            <span className="font-mono font-bold text-ink">{pager.last}</span>
+            {t('list.pagination.pageOf', { current: pager.current, last: pager.last })}
             {pager.total > 0 ? (
               <>
                 {' '}
-                · <span className="font-mono font-bold text-ink">{pager.total}</span> events total
+                · {t('list.pagination.eventsTotal', { total: pager.total })}
               </>
             ) : null}
           </span>
@@ -217,7 +249,7 @@ export function EventListPage() {
                 disabled={pager.current <= 1}
                 onClick={() => setPage((x) => Math.max(1, x - 1))}
               >
-                Previous
+                {t('list.pagination.previous')}
               </Button>
               <Button
                 type="button"
@@ -226,7 +258,7 @@ export function EventListPage() {
                 disabled={pager.current >= pager.last}
                 onClick={() => setPage((x) => x + 1)}
               >
-                Next
+                {t('list.pagination.next')}
               </Button>
             </div>
           ) : null}
@@ -238,21 +270,21 @@ export function EventListPage() {
           <div className="w-full max-w-md rounded-2xl border border-ink-10 bg-white p-5 shadow-card-sm">
             <h3 className="text-lg font-extrabold text-ink">
               {pendingAction.type === 'archive'
-                ? 'Archive event?'
+                ? t('list.confirm.archiveTitle')
                 : pendingAction.type === 'cancel'
-                  ? 'Cancel event?'
-                  : 'Delete event?'}
+                  ? t('list.confirm.cancelTitle')
+                  : t('list.confirm.deleteTitle')}
             </h3>
             <p className="mt-2 text-[13px] text-ink-60">
               {pendingAction.type === 'archive'
-                ? `Archive "${pendingAction.eventTitle}"? This follows lifecycle transition rules on the server.`
+                ? t('list.confirm.archiveBody', { title: pendingAction.eventTitle })
                 : pendingAction.type === 'cancel'
-                  ? `Cancel "${pendingAction.eventTitle}"? This follows lifecycle transition rules on the server.`
-                : `Delete "${pendingAction.eventTitle}" permanently? This is allowed only for draft or rejected events.`}
+                  ? t('list.confirm.cancelBody', { title: pendingAction.eventTitle })
+                  : t('list.confirm.deleteBody', { title: pendingAction.eventTitle })}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPendingAction(null)}>
-                Cancel
+                {t('cancel', { ns: 'common' })}
               </Button>
               <Button
                 type="button"
@@ -277,7 +309,11 @@ export function EventListPage() {
                   })();
                 }}
               >
-                {pendingAction.type === 'archive' ? 'Archive' : pendingAction.type === 'cancel' ? 'Cancel event' : 'Delete'}
+                {pendingAction.type === 'archive'
+                  ? t('list.confirm.confirmArchive')
+                  : pendingAction.type === 'cancel'
+                    ? t('list.confirm.confirmCancel')
+                    : t('list.confirm.confirmDelete')}
               </Button>
             </div>
           </div>
@@ -285,16 +321,6 @@ export function EventListPage() {
       ) : null}
     </div>
   );
-}
-
-function layoutLabel(layoutType: OrganizerEvent['layoutType']) {
-  if (layoutType === 'grid') return 'Grid layout';
-  if (layoutType === 'section') return 'Section layout';
-  return 'Free layout';
-}
-
-function entryModeLabel(entryMode: OrganizerEvent['entryMode']) {
-  return entryMode === 'multi_scan' ? 'Multi-scan' : 'One-time entry';
 }
 
 function statusBadgeClass(status: OrganizerEvent['status']) {

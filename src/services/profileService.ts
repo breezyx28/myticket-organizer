@@ -1,3 +1,4 @@
+import { tError } from '@/lib/i18n/translateError';
 import type { OrganizerUser } from '@/types/domain';
 import {
   extractProfileResourceMeta,
@@ -23,23 +24,23 @@ const PROFILE_GALLERY_IMAGE_MAX_BYTES = 6 * 1024 * 1024;
 /** POST /me/profile/logo (multipart `logo`); returns absolute `logo_url` from updated profile. */
 export async function uploadProfileLogo(file: File): Promise<string> {
   if (file.size > PROFILE_LOGO_MAX_BYTES) {
-    throw new Error('Logo must be 4 MB or smaller.');
+    throw new Error(tError('profile.logoTooLarge'));
   }
   const formData = new FormData();
   formData.append('logo', file);
   const user = await apiUnwrap<OrganizerUser>(apiDispatch(organizerApi.endpoints.postProfileLogo.initiate(formData)));
   const url = (user.logoUrl || '').trim();
-  if (!url) throw new Error('Upload succeeded but no logo URL was returned.');
+  if (!url) throw new Error(tError('api.uploadNoUrl'));
   return url;
 }
 
 /** POST /me/profile-image (multipart `image`); returns absolute profile image URL. */
 export async function uploadProfileImage(file: File): Promise<string> {
   if (file.size > PROFILE_IMAGE_MAX_BYTES) {
-    throw new Error('Profile image must be 4 MB or smaller.');
+    throw new Error(tError('profile.imageTooLarge'));
   }
   if (file.type && !PROFILE_IMAGE_TYPES.has(file.type)) {
-    throw new Error('Use JPEG, PNG, GIF, or WebP for your profile photo.');
+    throw new Error(tError('profile.imageType'));
   }
   const formData = new FormData();
   formData.append('image', file);
@@ -61,7 +62,7 @@ export async function clearProfileImage(): Promise<void> {
 /** POST /me/profile/document (multipart `document`); returns public document URL. */
 export async function uploadProfileDocument(file: File): Promise<string> {
   if (file.size > PROFILE_DOC_MAX_BYTES) {
-    throw new Error('Document must be 12 MB or smaller.');
+    throw new Error(tError('profile.documentTooLarge'));
   }
   const formData = new FormData();
   formData.append('document', file);
@@ -71,7 +72,7 @@ export async function uploadProfileDocument(file: File): Promise<string> {
 /** POST /me/profile/gallery (multipart `image`); returns public image URL for one item. */
 export async function uploadProfileGalleryImage(file: File): Promise<string> {
   if (file.size > PROFILE_GALLERY_IMAGE_MAX_BYTES) {
-    throw new Error('Each gallery image must be 6 MB or smaller.');
+    throw new Error(tError('profile.galleryTooLarge'));
   }
   const formData = new FormData();
   formData.append('image', file);

@@ -1,7 +1,10 @@
 import { formatScanFailureReason } from '@/lib/api/mapScanLive';
 import type { ScanLiveRow } from '@/types/domain';
 import { ScanResultBadge } from '@/components/scanners/ScanResultBadge';
+import { useLocale } from '@/hooks/useLocale';
+import { formatTime } from '@/lib/locale/format';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export function ScanLiveFeedItem({
   row,
@@ -12,6 +15,9 @@ export function ScanLiveFeedItem({
   eventTitle: string;
   enterDelayMs?: number;
 }) {
+  const { language } = useLocale();
+  const { t } = useTranslation('scanners');
+
   return (
     <li
       className="scan-live-enter rounded-2xl border border-ink-10 bg-white px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.08)]"
@@ -26,7 +32,7 @@ export function ScanLiveFeedItem({
             </span>
           </div>
           <p className="mt-1.5 truncate text-[13px] font-semibold text-ink">
-            {row.scannerName || `Scanner ${row.scannerId || '—'}`}
+            {row.scannerName || t('live.scannerFallback', { id: row.scannerId || '—' })}
           </p>
           <p className="mt-0.5 truncate text-[12px] text-ink-50">{eventTitle}</p>
           {row.failureReason ? (
@@ -36,7 +42,7 @@ export function ScanLiveFeedItem({
           ) : null}
         </div>
         <time className={cn('shrink-0 text-[11px] tabular-nums text-ink-40')} dateTime={row.at}>
-          {new Date(row.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          {formatTime(row.at, language)}
         </time>
       </div>
     </li>

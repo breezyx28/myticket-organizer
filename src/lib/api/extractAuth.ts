@@ -1,3 +1,5 @@
+import { tNs } from '@/lib/i18n/translateNs';
+
 export function extractAccessTokenFromLoginResponse(data: unknown): string | null {
   if (data == null || typeof data !== 'object') return null;
   const o = data as Record<string, unknown>;
@@ -27,7 +29,7 @@ export function extractUserFromLoginResponse(data: unknown): { id?: string; emai
         ? u.full_name
         : typeof u.display_name === 'string'
           ? u.display_name
-          : email.split('@')[0] || 'Organizer';
+          : email.split('@')[0] || tNs('auth', 'defaultDisplayName');
   if (!email) return null;
   const id = u.id != null ? String(u.id) : undefined;
   return { id, email, name };

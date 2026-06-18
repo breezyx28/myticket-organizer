@@ -1,5 +1,7 @@
 import type { SessionUser } from '@/contexts/organizerAuthContext';
 import { extractAccessTokenFromLoginResponse, extractUserFromLoginResponse } from '@/lib/api/extractAuth';
+import { tError } from '@/lib/i18n/translateError';
+import { tNs } from '@/lib/i18n/translateNs';
 import { loginSuccessSchema, loginTwoFactorChallengeSchema } from '@/schemas/organizer/responses/auth';
 
 export type LoginMutationResult =
@@ -16,8 +18,8 @@ export function parseLoginMutationResult(raw: unknown): LoginMutationResult {
       typeof u.full_name === 'string' && u.full_name.trim()
         ? u.full_name
         : typeof u.email === 'string'
-          ? u.email.split('@')[0] || 'Organizer'
-          : 'Organizer';
+          ? u.email.split('@')[0] || tNs('auth', 'defaultDisplayName')
+          : tNs('auth', 'defaultDisplayName');
     const userId = u.id != null ? String(u.id) : '';
     const user: SessionUser | null =
       typeof u.email === 'string' && u.email
@@ -33,5 +35,5 @@ export function parseLoginMutationResult(raw: unknown): LoginMutationResult {
       : null;
     return { kind: 'success', accessToken: legacy, user };
   }
-  throw new Error('Invalid login response');
+  throw new Error(tError('api.invalidLoginResponse'));
 }

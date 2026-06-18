@@ -19,6 +19,7 @@ import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
 import { Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function ScannerAccountsSection({
   scanners,
@@ -33,6 +34,7 @@ export function ScannerAccountsSection({
   onGoToAssignments: (eventId?: string) => void;
   onChanged: () => void | Promise<void>;
 }) {
+  const { t } = useTranslation(['scanners', 'common']);
   const [editTarget, setEditTarget] = useState<ScannerAccount | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ScannerAccount | null>(null);
   const [resendTarget, setResendTarget] = useState<ScannerAccount | null>(null);
@@ -49,7 +51,7 @@ export function ScannerAccountsSection({
     setDeleting(true);
     try {
       await deleteScanner(deleteTarget.id);
-      toast.success(`Removed scanner "${deleteTarget.name}".`);
+      toast.success(t('toasts.scannerRemoved', { name: deleteTarget.name }));
       setDeleteTarget(null);
       await onChanged();
     } catch (err) {
@@ -68,9 +70,9 @@ export function ScannerAccountsSection({
         setResendTempPassword({ scanner: resendTarget, password });
       });
       if (outcome === 'emailed') {
-        toast.success(`New login details were emailed to ${result.account.email}.`);
+        toast.success(t('toasts.credentialsResentEmailed', { email: result.account.email }));
       } else if (outcome === 'silent') {
-        toast.success('New password generated.');
+        toast.success(t('toasts.passwordGenerated'));
       }
       setResendTarget(null);
       await onChanged();
@@ -84,29 +86,29 @@ export function ScannerAccountsSection({
   return (
     <>
       <ScannerPanelToolbar
-        title="Gate staff"
-        description="Edit accounts, resend login emails, or remove staff. Resend generates a new password and emails scanner app login details."
+        title={t('metrics.gateStaff')}
+        description={t('accounts.toolbarDescription')}
         action={
           <Button variant="outline" size="sm" onClick={onAddStaff} className="sm:hidden">
-            Add staff
+            {t('page.addGateStaff')}
           </Button>
         }
       />
 
       {scanners.length === 0 ? (
         <ScannerEmptyState
-          title="No gate staff yet"
-          description="Create scanner accounts so your team can check in tickets at event entrances."
+          title={t('metrics.gateStaff')}
+          description={t('accounts.emptyDescription')}
           action={
             <Button variant="dark" size="md" onClick={onAddStaff}>
-              Add gate staff
+              {t('page.addGateStaff')}
             </Button>
           }
         />
       ) : (
         <ul className="divide-y divide-ink-10 rounded-2xl border border-ink-10">
           {scanners.map((s) => {
-            const assignmentLabels = s.assignedEventIds.map((id) => eventTitleById[id] ?? `Event #${id}`);
+            const assignmentLabels = s.assignedEventIds.map((id) => eventTitleById[id] ?? t('accounts.eventFallback', { id }));
             return (
               <li key={s.id} className="flex flex-col gap-4 bg-white p-4 first:rounded-t-2xl last:rounded-b-2xl sm:flex-row sm:items-start sm:p-5">
                 <div className="flex min-w-0 flex-1 gap-3">
@@ -122,11 +124,11 @@ export function ScannerAccountsSection({
                     </p>
                     {assignmentLabels.length > 0 ? (
                       <div className="mt-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">Events</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">{t('accounts.eventsLabel')}</p>
                         <ScannerChipList items={assignmentLabels} />
                       </div>
                     ) : (
-                      <p className="mt-2 text-[12px] text-ink-40">No live event assignments</p>
+                      <p className="mt-2 text-[12px] text-ink-40">{t('accounts.noAssignments')}</p>
                     )}
                   </div>
                 </div>
@@ -134,11 +136,11 @@ export function ScannerAccountsSection({
                 <div className="grid grid-cols-2 gap-2 border-t border-ink-10 pt-3 sm:w-auto sm:min-w-[200px] sm:border-0 sm:pt-0 lg:min-w-[220px]">
                   <Button type="button" variant="dark" size="sm" onClick={() => setEditTarget(s)}>
                     <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Edit
+                    {t('edit', { ns: 'common' })}
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => setResendTarget(s)}>
                     <Mail className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Resend creds
+                    {t('accounts.resendCreds')}
                   </Button>
                   <Button
                     type="button"
@@ -148,7 +150,7 @@ export function ScannerAccountsSection({
                       onGoToAssignments(s.assignedEventIds.length === 1 ? s.assignedEventIds[0] : undefined)
                     }
                   >
-                    Assignments
+                    {t('tabs.assignments')}
                   </Button>
                   <Button
                     type="button"
@@ -158,7 +160,7 @@ export function ScannerAccountsSection({
                     onClick={() => setDeleteTarget(s)}
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Delete
+                    {t('delete', { ns: 'common' })}
                   </Button>
                 </div>
               </li>
@@ -171,13 +173,13 @@ export function ScannerAccountsSection({
 
       <ScannerConfirmDialog
         open={resendTarget != null}
-        title="Resend login credentials?"
+        title={t('confirm.resendCredentials.title')}
         description={
           resendTarget
-            ? `Generate a new password and email login details to ${resendTarget.email}? Assigned gate and event names are included when present.`
+            ? t('confirm.resendCredentials.description', { email: resendTarget.email })
             : ''
         }
-        confirmLabel="Resend credentials"
+        confirmLabel={t('confirm.resendCredentials.confirm')}
         loading={resending}
         onCancel={() => !resending && setResendTarget(null)}
         onConfirm={() => void confirmResend()}
@@ -185,13 +187,13 @@ export function ScannerAccountsSection({
 
       <ScannerConfirmDialog
         open={deleteTarget != null}
-        title="Delete scanner account?"
+        title={t('confirm.deleteAccount.title')}
         description={
           deleteTarget
-            ? `"${deleteTarget.name}" (${deleteTarget.email}) will lose scanner app access. All event assignments and registered devices are revoked. This cannot be undone.`
+            ? t('confirm.deleteAccount.description', { name: deleteTarget.name, email: deleteTarget.email })
             : ''
         }
-        confirmLabel="Delete account"
+        confirmLabel={t('confirm.deleteAccount.confirm')}
         loading={deleting}
         onCancel={() => !deleting && setDeleteTarget(null)}
         onConfirm={() => void confirmDelete()}

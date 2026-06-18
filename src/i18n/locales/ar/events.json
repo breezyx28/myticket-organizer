@@ -1,0 +1,292 @@
+{
+  "list": {
+    "eyebrow": "الفعاليات",
+    "title": "فعالياتي",
+    "description": "إنشاء ونشر وتعديل ونسخ وإلغاء وأرشفة الفعاليات عبر واجهة المنظم.",
+    "createEvent": "إنشاء فعالية",
+    "completeProfileFirst": "أكمل الملف أولاً",
+    "profileIncomplete": {
+      "title": "الملف غير مكتمل.",
+      "body": "أكمل ملف المنظم قبل إنشاء الفعاليات.",
+      "openProfile": "فتح الملف"
+    },
+    "table": {
+      "event": "الفعالية",
+      "dateTime": "التاريخ والوقت",
+      "category": "التصنيف",
+      "entry": "الدخول",
+      "status": "الحالة",
+      "sold": "المباع",
+      "actions": "إجراءات",
+      "to": "إلى",
+      "unknownCity": "مدينة غير معروفة",
+      "uncategorized": "بدون تصنيف",
+      "openActions": "فتح الإجراءات"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "duplicate": "نسخ",
+      "cancel": "إلغاء",
+      "archive": "أرشفة",
+      "delete": "حذف",
+      "cancelDisabledTitle": "الفعالية ملغاة أو مؤرشفة مسبقاً",
+      "cancelTitle": "إلغاء الفعالية",
+      "archiveTitle": "أرشفة الفعالية",
+      "archiveDisabledTitle": "الأرشفة مسموحة فقط عندما تكون حالة الفعالية منتهية",
+      "deleteTitle": "حذف الفعالية",
+      "deleteDisabledTitle": "الحذف مسموح فقط للمسودات أو المرفوضة"
+    },
+    "empty": "لا توجد فعاليات في هذه الصفحة.",
+    "pagination": {
+      "pageOf": "صفحة {{current}} من {{last}}",
+      "eventsTotal": "{{total}} فعالية إجمالاً",
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "confirm": {
+      "archiveTitle": "أرشفة الفعالية؟",
+      "cancelTitle": "إلغاء الفعالية؟",
+      "deleteTitle": "حذف الفعالية؟",
+      "archiveBody": "أرشفة \"{{title}}\"؟ يتبع ذلك قواعد انتقال دورة الحياة على الخادم.",
+      "cancelBody": "إلغاء \"{{title}}\"؟ يتبع ذلك قواعد انتقال دورة الحياة على الخادم.",
+      "deleteBody": "حذف \"{{title}}\" نهائياً؟ مسموح فقط للمسودات أو المرفوضة.",
+      "confirmArchive": "أرشفة",
+      "confirmCancel": "إلغاء الفعالية",
+      "confirmDelete": "حذف"
+    }
+  },
+  "archive": {
+    "eyebrow": "الفعاليات",
+    "title": "الأرشيف",
+    "description": "مخفية عن الاكتشاف العام — انسخ لإطلاق الطبعة التالية."
+  },
+  "editor": {
+    "new": {
+      "eyebrow": "فعالية جديدة",
+      "title": "إنشاء فعالية",
+      "description": "حدد العنوان والجدول، ثم انتقل إلى المحرر الكامل. تُنشأ المسودة عند المتابعة.",
+      "titleField": "العنوان",
+      "titlePlaceholder": "مثال: حفلة ليلة صيفية",
+      "starts": "يبدأ",
+      "ends": "ينتهي",
+      "createDraft": "إنشاء مسودة ومتابعة"
+    },
+    "tabs": {
+      "basics": "الأساسيات",
+      "media": "الوسائط",
+      "layout": "التخطيط",
+      "seats": "المقاعد",
+      "tickets": "التذاكر",
+      "partners": "الشركاء",
+      "more": "المزيد"
+    },
+    "statusLine": "{{status}} · المباع: {{sold}} · الدخول: {{entryMode}}",
+    "upload": {
+      "cover": "رفع صورة الغلاف",
+      "coverUploading": "جاري رفع الغلاف…",
+      "galleryAdd": "إضافة صور المعرض",
+      "galleryUploading": "جاري الرفع…"
+    },
+    "eyebrow": "محرر الفعالية",
+    "submitForReview": "إرسال للمراجعة",
+    "nextLifecycle": "المرحلة التالية",
+    "nextLifecycleTitle": "مسودة/مرفوضة → إرسال للموافقة؛ منتهية → أرشفة",
+    "lifecycle": {
+      "title": "دورة الحياة",
+      "bodyIntro": "— الإرسال ينقل الفعالية إلى",
+      "pendingApproval": "بانتظار الموافقة",
+      "bodyOutro": " (ولا تُنشر حتى يوافق المسؤول). الإلغاء والأرشفة يستخدمان مسارات API مخصصة؛ لا يمكن تعديل الحالة عشوائياً من تطبيق المنظم.",
+      "assignScanners": "تعيين الماسحات"
+    },
+    "concurrentTab": {
+      "title": "هذه الفعالية مفتوحة في تبويب أو نافذة أخرى",
+      "body": "قد يكون محرر آخر قد حفظ تغييرات. أعد التحميل لرؤية أحدث نسخة من الخادم، أو تابع التحرير هنا — الحقول غير المحفوظة تبقى على هذه الشاشة حتى تحفظ.",
+      "reload": "إعادة التحميل من الخادم",
+      "dismiss": "تجاهل"
+    },
+    "fields": {
+      "title": "العنوان",
+      "category": "التصنيف",
+      "venue": "المكان",
+      "region": "المنطقة",
+      "city": "المدينة",
+      "starts": "يبدأ",
+      "ends": "ينتهي",
+      "description": "الوصف",
+      "layoutType": "نوع التخطيط",
+      "rows": "الصفوف",
+      "rowsRegenSeats": "الصفوف (إعادة توليد المقاعد)",
+      "columns": "الأعمدة",
+      "coverImage": "صورة الغلاف",
+      "entryMode": "وضع الدخول",
+      "purchaseLimit": "حد الشراء / مستخدم (اختياري)",
+      "multiDayTicketing": "تذاكر متعددة الأيام",
+      "maxCapacity": "السعة القصوى"
+    },
+    "placeholders": {
+      "selectCategory": "اختر التصنيف",
+      "selectRegion": "اختر المنطقة",
+      "selectCity": "اختر المدينة",
+      "chooseRegionFirst": "اختر منطقة أولاً",
+      "unlimited": "غير محدود",
+      "newTicketType": "تسمية النوع الجديد (مثال: اقتصادي)",
+      "filenameOrLabel": "اسم الملف أو التسمية",
+      "locationAutoSave": "تحديثات الموقع تُحفظ تلقائياً بعد اختيار مكان أو إنهاء تحريك الدبوس."
+    },
+    "media": {
+      "uploadHint": "ارفع صور JPG أو PNG أو WEBP فقط. الحد الأقصى 6 ميجابايت لكل صورة.",
+      "coverProgress": "تم رفع {{percent}}٪",
+      "replaceCoverTitle": "استبدال صورة الغلاف",
+      "replace": "استبدال",
+      "currentCover": "صورة الغلاف الحالية"
+    },
+    "tickets": {
+      "ticketTypes": "أنواع التذاكر",
+      "apiNote": "يُحفظ عبر POST/PATCH/DELETE …/ticket-types باستخدام الحقول name و price و quantity_limit (≥1). ticket_types المتداخلة في PATCH الفعالية غير مدعومة من API.",
+      "perSeat": "لكل مقعد",
+      "addType": "إضافة نوع",
+      "multiDayHint": "تذكرة واحدة تغطي المدة كاملة (عند الانطباق)",
+      "freeLayoutQuantities": "كميات التخطيط الحر: {{total}} / {{capacity}}",
+      "exceedsCapacity": "(تتجاوز السعة)",
+      "withinCapacity": "(ضمن السعة)",
+      "waitlist": "قائمة الانتظار (تجريبي): {{count}} مستخدمين بانتظار توفر التذاكر."
+    },
+    "more": {
+      "addMediaDemo": "إضافة وسائط (تجريبي)",
+      "empty": "لا يوجد محتوى بعد الفعالية بعد. تظهر وسائط ما بعد الفعالية عند انتهاء الفعالية أو أرشفتها."
+    },
+    "notifications": {
+      "title": "إشعارات المشترين (قائمة تجريبية)",
+      "cancelledNotice": "إشعار إلغاء الفعالية",
+      "publishUpdateNotice": "إشعار تحديث بعد النشر",
+      "changedFields": "تضمين {{count}} حقل/حقول معدّلة في الإشعار."
+    },
+    "validation": {
+      "titleRequired": "العنوان مطلوب.",
+      "startsRequired": "تاريخ ووقت البداية مطلوبان.",
+      "endsRequired": "تاريخ ووقت النهاية مطلوبان.",
+      "endsAfterStarts": "يجب أن يكون وقت النهاية بعد وقت البداية."
+    },
+    "toasts": {
+      "saveFailed": "تعذّر حفظ التغييرات.",
+      "submitFailed": "فشل الإرسال.",
+      "archiveFailed": "فشلت الأرشفة.",
+      "lifecycleFailed": "فشلت خطوة دورة الحياة.",
+      "coverUploadFailed": "فشل رفع صورة الغلاف.",
+      "galleryUploadFailed": "فشل رفع المعرض.",
+      "ticketTypeSaveFailed": "تعذّر حفظ نوع التذكرة.",
+      "ticketTypeRemoveFailed": "تعذّرت إزالة نوع التذكرة.",
+      "ticketTypeAddFailed": "تعذّرت إضافة نوع التذكرة.",
+      "imageRemoveFailed": "تعذّرت إزالة الصورة."
+    }
+  },
+  "defaults": {
+    "untitled": "فعالية بلا عنوان",
+    "untitledShort": "بلا عنوان",
+    "general": "عام",
+    "ticketStandard": "قياسي",
+    "ticketVip": "VIP",
+    "ticketAccessibility": "إمكانية الوصول",
+    "ticketTypeNumber": "نوع {{n}}",
+    "mediaFallback": "وسائط",
+    "mediaPhoto": "صورة",
+    "mediaVideo": "فيديو"
+  },
+  "status": {
+    "draft": "مسودة",
+    "pending_approval": "بانتظار الموافقة",
+    "rejected": "مرفوضة",
+    "published": "منشورة",
+    "sold_out": "نفدت التذاكر",
+    "in_progress": "جارية",
+    "ended": "منتهية",
+    "cancelled": "ملغاة",
+    "archived": "مؤرشفة"
+  },
+  "layout": {
+    "grid": "تخطيط شبكي",
+    "section": "تخطيط أقسام",
+    "free": "تخطيط حر"
+  },
+  "entryMode": {
+    "one_time": "دخول لمرة واحدة",
+    "multi_scan": "مسح متعدد"
+  },
+  "recurrence": {
+    "title": "جدول متكرر",
+    "clear": "مسح التكرار",
+    "windowStart": "بداية النافذة",
+    "windowEnd": "نهاية النافذة",
+    "occurrencesTitle": "المواعيد المتكررة",
+    "cancelOccurrence": "إلغاء الموعد",
+    "occurrenceStatus": {
+      "scheduled": "مجدول",
+      "cancelled": "ملغى"
+    },
+    "days": {
+      "sun": "أحد",
+      "mon": "إثن",
+      "tue": "ثلث",
+      "wed": "أرب",
+      "thu": "خمي",
+      "fri": "جمع",
+      "sat": "سبت"
+    }
+  },
+  "seats": {
+    "freeLayoutNote": "التخطيط الحر يستخدم السعة + حدود كمية نوع التذكرة (بدون خريطة مقاعد).",
+    "templates": {
+      "small": "قالب: صغير (6×10)",
+      "medium": "قالب: متوسط (8×12)",
+      "large": "قالب: كبير (10×14)"
+    },
+    "rows": "الصفوف",
+    "columns": "الأعمدة",
+    "rowGap": "فجوة الصف (بكسل)",
+    "colGap": "فجوة العمود (بكسل)",
+    "rowOverrideIndex": "فهرس تجاوز الصف",
+    "colOverrideIndex": "فهرس تجاوز العمود",
+    "gap": "الفجوة",
+    "applyRow": "تطبيق الصف",
+    "applyCol": "تطبيق العمود",
+    "selectionClick": "انقر",
+    "selectionToSelect": "للتحديد",
+    "selectionCtrlClick": "Ctrl/Cmd+انقر",
+    "selectionToAddRemove": "للإضافة/الإزالة",
+    "selectionShiftClick": "Shift+انقر",
+    "selectionForRange": "لنطاق",
+    "selectionDoubleClick": "نقر مزدوج",
+    "selectionTogglesAccessibility": "يبدّل إمكانية الوصول",
+    "selectAll": "تحديد الكل",
+    "inspectorEmpty": "حدد مقعداً لتعديل نوع التذكرة والسعر.",
+    "inspectorTitle": "مفتش المقعد",
+    "bulkEdit": "تعديل جماعي",
+    "bulkSelected_one": "مقعد {{count}} محدد — تُطبَّق التغييرات عند النقر على تطبيق",
+    "bulkSelected_other": "{{count}} مقاعد محددة — تُطبَّق التغييرات عند النقر على تطبيق",
+    "clearSelection": "مسح التحديد",
+    "ticketType": "نوع التذكرة",
+    "price": "السعر",
+    "pricePlaceholder": "ر.س",
+    "applyToSeats": "تطبيق على {{count}} مقاعد"
+  },
+  "cancellation": {
+    "step1Title": "إلغاء الفعالية؟",
+    "step1Intro": "أنت على وشك إلغاء",
+    "step1Body": "ستُعلَّم جميع التذاكر",
+    "cancelledStatus": "ملغاة",
+    "step1Outro": "ويتلقى المشترون معلومات الإلغاء والاسترداد (محاكاة). تُلغى أيضاً التذاكر المعروضة في المزاد (تجريبي).",
+    "refundNotice": "طريقة الاسترداد تتبع اتفاقية إلغاء المنصة — التفاصيل لاحقاً حسب المواصفات.",
+    "step2Title": "تأكيد الإلغاء",
+    "agreeLabel": "أفهم أن التذاكر ستُلغى وسيُبلَّغ الحضور (تجريبي).",
+    "confirmCancel": "تأكيد الإلغاء"
+  },
+  "publishImpact": {
+    "title": "تنبيه قوي — حاملي التذاكر متأثرون",
+    "bodyIntro": "تم بيع تذاكر بالفعل. الحفظ سيضع في قائمة الانتظار",
+    "emailInApp": "بريد إلكتروني + داخل التطبيق",
+    "bodyMid": "إشعارات تسرد كل حقل معدّل (قديم مقابل جديد). قد تتطلب تغييرات التاريخ/الوقت/الموقع الجوهرية",
+    "organizerRefunds": "استردادات بقيادة المنظم",
+    "bodyOutro": "(تجريبي).",
+    "saveAndNotify": "حفظ وإشعار (تجريبي)"
+  }
+}

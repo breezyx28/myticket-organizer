@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /** Shared layout tokens for scanner route — style only. */
 export const scannerInputClass =
@@ -77,11 +78,12 @@ export function ScannerTabNav<T extends string>({
   active: T;
   onChange: (id: T) => void;
 }) {
+  const { t } = useTranslation('scanners');
   return (
     <div
       className="flex gap-1 overflow-x-auto border-b border-ink-10 px-4 sm:px-6"
       role="tablist"
-      aria-label="Scanner sections"
+      aria-label={t('ui.tabNavAriaLabel')}
     >
       {tabs.map(({ id, label }) => {
         const isActive = active === id;
@@ -159,12 +161,13 @@ export function ScannerDialogOverlay({
   onBackdropClick?: () => void;
   panelClassName?: string;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 p-4 sm:items-center">
       <button
         type="button"
         className="absolute inset-0 cursor-default"
-        aria-label="Close dialog"
+        aria-label={t('closeOverlay')}
         onClick={onBackdropClick}
       />
       <div
@@ -189,6 +192,7 @@ export function ScannerFormLabel({ children, error }: { children: ReactNode; err
 }
 
 export function ScannerStatusBadge({ active }: { active: boolean }) {
+  const { t } = useTranslation('scanners');
   return (
     <span
       className={cn(
@@ -196,7 +200,7 @@ export function ScannerStatusBadge({ active }: { active: boolean }) {
         active ? 'bg-mint/25 text-ink' : 'bg-ink-10 text-ink-50'
       )}
     >
-      {active ? 'Active' : 'Inactive'}
+      {active ? t('metrics.active') : t('metrics.inactive')}
     </span>
   );
 }
@@ -230,10 +234,11 @@ export function ScannerChipList({ items }: { items: string[] }) {
 }
 
 export function ScannerTemporaryPasswordAlert({ password }: { password: string }) {
+  const { t } = useTranslation('scanners');
   return (
     <div className="rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-[13px] text-ink">
-      <p className="font-bold">Email could not be sent</p>
-      <p className="mt-1 text-ink-60">Share this temporary password with the staff member securely:</p>
+      <p className="font-bold">{t('tempPassword.emailFailedTitle')}</p>
+      <p className="mt-1 text-ink-60">{t('tempPassword.shareHint')}</p>
       <p className="mt-2 font-mono text-[15px] font-bold tracking-tight text-ink">{password}</p>
     </div>
   );

@@ -1,15 +1,16 @@
 import type { Middleware } from '@reduxjs/toolkit';
+import i18n from '@/i18n';
 import { toast } from '@/lib/appToast';
 
-const SUCCESS_MESSAGES: Record<string, string> = {
-  createEvent: 'Event created successfully.',
-  submitEvent: 'Event submitted for review.',
-  cancelEvent: 'Event cancelled successfully.',
-  archiveEvent: 'Event archived successfully.',
-  deleteEvent: 'Event deleted successfully.',
-};
+const SUCCESS_MESSAGE_KEYS = {
+  createEvent: 'rtk.createEvent',
+  submitEvent: 'rtk.submitEvent',
+  cancelEvent: 'rtk.cancelEvent',
+  archiveEvent: 'rtk.archiveEvent',
+  deleteEvent: 'rtk.deleteEvent',
+} as const;
 
-const ERROR_ENDPOINTS = new Set(Object.keys(SUCCESS_MESSAGES));
+const ERROR_ENDPOINTS = new Set(Object.keys(SUCCESS_MESSAGE_KEYS));
 
 function isMutationLifecycle(action: unknown): action is {
   type: string;
@@ -43,15 +44,15 @@ export const rtkToastMiddleware: Middleware = () => (next) => (action) => {
   if (!endpointName) return result;
 
   if (action.type.endsWith('/fulfilled')) {
-    const msg = SUCCESS_MESSAGES[endpointName];
-    if (!msg) return result;
+    const key = SUCCESS_MESSAGE_KEYS[endpointName as keyof typeof SUCCESS_MESSAGE_KEYS];
+    if (!key) return result;
     const id = `rtk:ok:${endpointName}`;
-    toast.success(msg, { id });
+    toast.success(i18n.t(key, { ns: 'errors' }), { id });
     return result;
   }
 
   if (!ERROR_ENDPOINTS.has(endpointName)) return result;
-  const fallback = action.error?.message || 'Request failed.';
+  const fallback = action.error?.message || i18n.t('api.requestFailed', { ns: 'errors' });
   const msg = extractErrorMessage(action.payload, fallback);
   const id = `rtk:err:${endpointName}`;
   toast.error(msg, { id });

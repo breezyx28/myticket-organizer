@@ -18,6 +18,7 @@ import {
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
 import { Radio, UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function ScannerAssignmentPanel({
   events,
@@ -28,6 +29,7 @@ export function ScannerAssignmentPanel({
   initialEventId?: string;
   onAssignmentsChange?: () => void | Promise<void>;
 }) {
+  const { t } = useTranslation(['scanners', 'common']);
   const [scanners, setScanners] = useState<ScannerAccount[]>([]);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [gateLabel, setGateLabel] = useState('');
@@ -76,7 +78,7 @@ export function ScannerAssignmentPanel({
     setBusy(true);
     try {
       await assignScanner(scannerId, selectedEvent.id, true);
-      toast.success('Scanner assigned to event.');
+      toast.success(t('toasts.scannerAssigned'));
       await reload();
     } catch (err) {
       toast.error(formatOrganizerApiError(err));
@@ -90,7 +92,7 @@ export function ScannerAssignmentPanel({
     setBusy(true);
     try {
       await assignScanner(scannerId, selectedEvent.id, false);
-      toast.success('Scanner unassigned from event.');
+      toast.success(t('toasts.scannerUnassigned'));
       setUnassignTarget(null);
       await reload();
     } catch (err) {
@@ -109,7 +111,7 @@ export function ScannerAssignmentPanel({
         availableForEvent.map((s) => s.id),
         gateLabel.trim() || undefined
       );
-      toast.success(`Assigned ${availableForEvent.length} scanner(s) to ${selectedEvent.title}.`);
+      toast.success(t('toasts.bulkAssigned', { count: availableForEvent.length, event: selectedEvent.title }));
       await reload();
     } catch (err) {
       toast.error(formatOrganizerApiError(err));
@@ -125,7 +127,7 @@ export function ScannerAssignmentPanel({
       for (const s of assignedToEvent) {
         await assignScanner(s.id, selectedEvent.id, false);
       }
-      toast.success(`Unassigned ${assignedToEvent.length} scanner(s) from ${selectedEvent.title}.`);
+      toast.success(t('toasts.bulkUnassigned', { count: assignedToEvent.length, event: selectedEvent.title }));
       setUnassignAllOpen(false);
       await reload();
     } catch (err) {
@@ -138,8 +140,8 @@ export function ScannerAssignmentPanel({
   if (events.length === 0) {
     return (
       <ScannerEmptyState
-        title="No live events"
-        description="Publish an event before you can assign gate staff to scan tickets."
+        title={t('metrics.liveEvents')}
+        description={t('assignments.emptyDescription')}
       />
     );
   }
@@ -147,8 +149,8 @@ export function ScannerAssignmentPanel({
   return (
     <>
       <ScannerPanelToolbar
-        title="Per-event assignments"
-        description="Pick an event, then assign or remove gate staff. Multiple scanners can share one entrance."
+        title={t('assignments.toolbarTitle')}
+        description={t('assignments.toolbarDescription')}
         action={
           selectedEvent ? (
             <Button
@@ -157,11 +159,11 @@ export function ScannerAssignmentPanel({
               size="sm"
               className="active:scale-[0.96]"
               disabled={assignedToEvent.length === 0}
-              title={assignedToEvent.length === 0 ? 'Assign at least one scanner to watch live scans' : undefined}
+              title={assignedToEvent.length === 0 ? t('assignments.watchLiveDisabled') : undefined}
               onClick={() => setLiveOpen(true)}
             >
-              <Radio className="mr-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
-              Watch live
+              <Radio className="me-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
+              {t('assignments.watchLive')}
             </Button>
           ) : null
         }
@@ -169,7 +171,7 @@ export function ScannerAssignmentPanel({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-8">
         <aside>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-40">Events</p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-40">{t('assignments.eventsLabel')}</p>
           <ul className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto rounded-2xl border border-ink-10 bg-ink-5/25 p-1.5">
             {events.map((ev) => {
               const count = scanners.filter((s) => s.assignedEventIds.includes(ev.id)).length;
@@ -180,13 +182,13 @@ export function ScannerAssignmentPanel({
                     type="button"
                     onClick={() => setSelectedEventId(ev.id)}
                     className={cn(
-                      'w-full rounded-xl px-3 py-2.5 text-left transition',
+                      'w-full rounded-xl px-3 py-2.5 text-start transition',
                       selected ? 'bg-ink text-white shadow-card-sm' : 'text-ink hover:bg-white'
                     )}
                   >
                     <p className="truncate text-[13px] font-bold leading-snug">{ev.title}</p>
                     <p className={cn('mt-0.5 text-[11px]', selected ? 'text-white/70' : 'text-ink-50')}>
-                      {count} assigned
+                      {t('assignments.assignedCount', { count })}
                     </p>
                   </button>
                 </li>
@@ -199,22 +201,21 @@ export function ScannerAssignmentPanel({
           <div className="min-w-0 rounded-2xl border border-ink-10 bg-surface-tint/80 p-4 sm:p-5">
             <div className="flex flex-col gap-2 border-b border-ink-10/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">Selected</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-40">{t('assignments.selectedLabel')}</p>
                 <p className="text-[17px] font-extrabold leading-tight text-ink">{selectedEvent.title}</p>
               </div>
               <p className="text-[12px] font-semibold text-ink-60">
-                <span className="text-ink">{assignedToEvent.length}</span> assigned ·{' '}
-                <span className="text-ink">{availableActiveCount}</span> ready
+                {t('assignments.assignedReady', { assigned: assignedToEvent.length, ready: availableActiveCount })}
               </p>
             </div>
 
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-ink-10 bg-white p-3 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 text-[12px] font-semibold text-ink-60">
-                Gate label (optional)
+                {t('create.fields.gateLabel')}
                 <input
                   className="mt-1.5 h-10 w-full rounded-xl border border-ink-10 px-3 text-[14px] text-ink outline-none focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
                   value={gateLabel}
-                  placeholder="e.g. North Entrance"
+                  placeholder={t('create.fields.gateLabelPlaceholder')}
                   onChange={(e) => setGateLabel(e.target.value)}
                   disabled={busy}
                 />
@@ -223,7 +224,7 @@ export function ScannerAssignmentPanel({
                 {availableActiveCount > 0 ? (
                   <Button type="button" variant="dark" size="sm" disabled={busy} onClick={() => void handleAssignAllActive()}>
                     <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Assign all ({availableActiveCount})
+                    {t('assignments.assignAll', { count: availableActiveCount })}
                   </Button>
                 ) : null}
                 {assignedToEvent.length > 0 ? (
@@ -236,7 +237,7 @@ export function ScannerAssignmentPanel({
                     onClick={() => setUnassignAllOpen(true)}
                   >
                     <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Unassign all
+                    {t('assignments.unassignAll')}
                   </Button>
                 ) : null}
               </div>
@@ -244,9 +245,9 @@ export function ScannerAssignmentPanel({
 
             <div className="mt-6 grid gap-6 xl:grid-cols-2">
               <StaffColumn
-                title="Assigned"
+                title={t('assignments.assignedColumn')}
                 count={assignedToEvent.length}
-                emptyHint="No staff on this event yet."
+                emptyHint={t('assignments.emptyAssigned')}
                 scanners={assignedToEvent}
                 variant="assigned"
                 renderActions={(s) => (
@@ -259,17 +260,17 @@ export function ScannerAssignmentPanel({
                     onClick={() => setUnassignTarget(s)}
                   >
                     <UserMinus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Unassign
+                    {t('assignments.unassign')}
                   </Button>
                 )}
               />
               <StaffColumn
-                title="Available"
+                title={t('assignments.availableColumn')}
                 count={availableForEvent.length}
                 emptyHint={
                   scanners.length === 0
-                    ? 'Add gate staff in the Accounts tab first.'
-                    : 'Everyone active is already assigned here.'
+                    ? t('assignments.emptyAvailableNoStaff')
+                    : t('assignments.emptyAvailableAllAssigned')
                 }
                 scanners={availableForEvent}
                 variant="available"
@@ -283,14 +284,14 @@ export function ScannerAssignmentPanel({
                     onClick={() => void handleAssign(s.id)}
                   >
                     <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Assign
+                    {t('assignments.assign')}
                   </Button>
                 )}
               />
             </div>
 
             {scanners.some((s) => !s.active) ? (
-              <p className="mt-4 text-[12px] text-ink-40">Inactive accounts must be reactivated before assigning.</p>
+              <p className="mt-4 text-[12px] text-ink-40">{t('assignments.inactiveHint')}</p>
             ) : null}
           </div>
         ) : null}
@@ -298,13 +299,13 @@ export function ScannerAssignmentPanel({
 
       <ScannerConfirmDialog
         open={unassignTarget != null}
-        title="Unassign from event?"
+        title={t('confirm.unassign.title')}
         description={
           unassignTarget && selectedEvent
-            ? `Remove "${unassignTarget.name}" from "${selectedEvent.title}"? They can still scan other events they are assigned to.`
+            ? t('confirm.unassign.description', { name: unassignTarget.name, event: selectedEvent.title })
             : ''
         }
-        confirmLabel="Unassign"
+        confirmLabel={t('confirm.unassign.confirm')}
         loading={busy}
         onCancel={() => !busy && setUnassignTarget(null)}
         onConfirm={() => unassignTarget && void handleUnassign(unassignTarget.id)}
@@ -312,13 +313,13 @@ export function ScannerAssignmentPanel({
 
       <ScannerConfirmDialog
         open={unassignAllOpen}
-        title="Unassign all from event?"
+        title={t('confirm.unassignAll.title')}
         description={
           selectedEvent
-            ? `Remove all ${assignedToEvent.length} scanner(s) from "${selectedEvent.title}"? Accounts are not deleted.`
+            ? t('confirm.unassignAll.description', { count: assignedToEvent.length, event: selectedEvent.title })
             : ''
         }
-        confirmLabel="Unassign all"
+        confirmLabel={t('confirm.unassignAll.confirm')}
         loading={busy}
         onCancel={() => !busy && setUnassignAllOpen(false)}
         onConfirm={() => void handleUnassignAll()}

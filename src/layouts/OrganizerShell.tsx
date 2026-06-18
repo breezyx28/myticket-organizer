@@ -1,4 +1,5 @@
-import { NAV_MAIN } from '@/config/nav';
+import { NAV_MAIN, navLabel } from '@/config/nav';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { getProfile } from '@/services/profileService';
@@ -6,6 +7,7 @@ import { EngagementsNavBadge } from '@/components/engagements/EngagementsNavBadg
 import { NotificationBellMenu } from '@/components/notifications/NotificationBellMenu';
 import { LayoutDashboard, LogOut, Menu, Ticket, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 function isDisplayableImageUrl(url: string) {
@@ -24,6 +26,7 @@ function initialsFrom(displayName: string, email: string) {
 }
 
 export function OrganizerShell({ children }: { children?: ReactNode }) {
+  const { t } = useTranslation(['nav', 'common']);
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -64,7 +67,7 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
             <button
               type="button"
               className="inline-flex rounded-full border border-ink-10 p-2 md:hidden"
-              aria-label="Open menu"
+              aria-label={t('nav:aria.openMenu')}
               onClick={() => setOpen(true)}
             >
               <Menu size={20} strokeWidth={2} />
@@ -74,35 +77,36 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
                 <Ticket size={18} strokeWidth={2} className="text-ink" />
               </span>
               <span className="leading-tight">
-                MyTicket <span className="text-coral">Organizer</span>
+                {t('common:appName')} <span className="text-coral">{t('common:appNameAccent')}</span>
               </span>
             </NavLink>
             <span className="hidden rounded-full border border-ink-10 bg-ink-5 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-ink-60 lg:inline-flex">
-              Dashboard
+              {t('common:dashboard')}
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             <NotificationBellMenu />
             <div className="hidden items-center gap-2 md:flex">
-            <NavLink
-              to="/"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-ink-10 bg-white px-4 text-[13px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
-            >
-              <LayoutDashboard size={16} strokeWidth={2} />
-              Overview
-            </NavLink>
-            <div className="ml-1 rounded-2xl border border-ink-10 bg-white px-3 py-1.5">
-              <p className="max-w-[220px] truncate text-[12px] font-semibold text-ink">{user?.email}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-ink-40">Organizer account</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink bg-white px-4 text-[13px] font-semibold shadow-sm transition-colors hover:bg-ink-5"
-            >
-              <LogOut size={16} strokeWidth={2} />
-              Sign out
-            </button>
+              <NavLink
+                to="/"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-ink-10 bg-white px-4 text-[13px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink"
+              >
+                <LayoutDashboard size={16} strokeWidth={2} />
+                {t('common:overview')}
+              </NavLink>
+              <div className="ms-1 rounded-2xl border border-ink-10 bg-white px-3 py-1.5">
+                <p className="max-w-[220px] truncate text-[12px] font-semibold text-ink">{user?.email}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-ink-40">{t('common:organizerAccount')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="inline-flex h-10 items-center gap-2 rounded-full border-2 border-ink bg-white px-4 text-[13px] font-semibold shadow-sm transition-colors hover:bg-ink-5"
+              >
+                <LogOut size={16} strokeWidth={2} />
+                {t('common:signOut')}
+              </button>
             </div>
           </div>
         </div>
@@ -111,24 +115,29 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
       <div className="flex">
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-40 w-[86%] max-w-[320px] bg-white/95 p-6 transition-transform',
-            'md:top-[72px] md:z-30 md:w-72 md:max-w-none md:translate-x-0 md:overflow-y-auto md:border-r md:border-ink-10 md:bg-white md:p-5 md:pt-6',
-            open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            'fixed inset-y-0 start-0 z-40 w-[86%] max-w-[320px] bg-white/95 p-6 transition-transform',
+            'md:top-[72px] md:z-30 md:w-72 md:max-w-none md:translate-x-0 md:overflow-y-auto md:border-e md:border-ink-10 md:bg-white md:p-5 md:pt-6',
+            open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full md:translate-x-0'
           )}
         >
           <div className="mb-6 flex items-center justify-between md:hidden">
-            <p className="text-sm font-bold">Menu</p>
-            <button type="button" className="rounded-full p-2 hover:bg-ink-5" aria-label="Close menu" onClick={() => setOpen(false)}>
+            <p className="text-sm font-bold">{t('common:menu')}</p>
+            <button
+              type="button"
+              className="rounded-full p-2 hover:bg-ink-5"
+              aria-label={t('nav:aria.closeMenu')}
+              onClick={() => setOpen(false)}
+            >
               <X size={20} />
             </button>
+          </div>
+          <div className="mb-4 sm:hidden">
+            <LanguageSwitcher className="w-full justify-center" />
           </div>
           <nav className="space-y-1">
             {NAV_MAIN.map((item) => {
               const isProfile = item.to === '/profile';
-              const initials = initialsFrom(
-                sidebarProfile.displayName || user?.name || '',
-                user?.email ?? ''
-              );
+              const initials = initialsFrom(sidebarProfile.displayName || user?.name || '', user?.email ?? '');
               return (
                 <NavLink
                   key={item.to}
@@ -158,7 +167,7 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
                     <item.icon size={18} strokeWidth={2} />
                   )}
                   <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{navLabel(item)}</span>
                     {item.badge === 'engagements' ? <EngagementsNavBadge /> : null}
                   </span>
                 </NavLink>
@@ -174,17 +183,24 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
               }}
               className="w-full rounded-full bg-ink py-3 text-sm font-semibold text-white"
             >
-              Sign out
+              {t('common:signOut')}
             </button>
           </div>
         </aside>
 
-        <main className="min-h-[calc(100dvh-72px)] flex-1 px-4 py-10 md:ml-72 md:px-8 lg:px-10">
+        <main className="min-h-[calc(100dvh-72px)] flex-1 px-4 py-10 md:ms-72 md:px-8 lg:px-10">
           <div className="mx-auto w-full max-w-[1280px]">{children ?? <Outlet />}</div>
         </main>
       </div>
 
-      {open ? <button type="button" className="fixed inset-0 z-30 bg-ink/40 md:hidden" aria-label="Close overlay" onClick={() => setOpen(false)} /> : null}
+      {open ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-ink/40 md:hidden"
+          aria-label={t('nav:aria.closeOverlay')}
+          onClick={() => setOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

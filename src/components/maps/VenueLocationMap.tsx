@@ -6,6 +6,8 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
 
 const DEFAULT_CENTER: [number, number] = [24.7136, 46.6753];
 const DEFAULT_ZOOM_NO_PIN = 6;
@@ -25,10 +27,10 @@ const DefaultIcon = L.icon({
 
 type GeocodeHit = { label: string; lat: number; lng: number };
 
-async function searchPhoton(query: string): Promise<GeocodeHit[]> {
+async function searchPhoton(query: string, lang: string): Promise<GeocodeHit[]> {
   const q = query.trim();
   if (q.length < 2) return [];
-  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=en`;
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=${encodeURIComponent(lang)}`;
   const res = await fetch(url);
   if (!res.ok) return [];
   const data = (await res.json()) as {
@@ -99,6 +101,8 @@ type Props = {
 };
 
 export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, visible, hint }: Props) {
+  const { t } = useTranslation('common');
+  const { language } = useLocale();
   const searchId = useId();
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<GeocodeHit[]>([]);
@@ -133,20 +137,23 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
     [onCoordinatesChange]
   );
 
-  const runSearch = useCallback(async (q: string) => {
-    setSearchError(null);
-    setSearching(true);
-    try {
-      const list = await searchPhoton(q);
-      setHits(list);
-      if (list.length === 0 && q.trim().length >= 2) setSearchError('No results. Try a different search.');
-    } catch {
-      setSearchError('Search failed. Try again.');
-      setHits([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
+  const runSearch = useCallback(
+    async (q: string) => {
+      setSearchError(null);
+      setSearching(true);
+      try {
+        const list = await searchPhoton(q, language);
+        setHits(list);
+        if (list.length === 0 && q.trim().length >= 2) setSearchError(t('mapNoResults'));
+      } catch {
+        setSearchError(t('mapSearchFailed'));
+        setHits([]);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [language, t]
+  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -164,31 +171,30 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
     };
   }, [query, runSearch]);
 
-  const defaultHint =
-    'Search for an address or place, pick a result, or click the map / drag the pin to set coordinates.';
+  const defaultHint = t('mapDefaultHint');
 
   return (
     <div className="space-y-3 md:col-span-2">
       <div>
         <label htmlFor={searchId} className="block text-[12px] font-semibold text-ink-60">
-          Find location on map
+          {t('mapFindLocation')}
         </label>
         <p className="mt-0.5 text-[11px] text-ink-40">{hint ?? defaultHint}</p>
         <div className="relative mt-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-40" strokeWidth={2} aria-hidden />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-40" strokeWidth={2} aria-hidden />
           <input
             id={searchId}
             type="search"
             autoComplete="off"
-            placeholder="e.g. King Fahd Road, Riyadh"
-            className="w-full rounded-xl border border-ink-10 py-2.5 pl-10 pr-3 text-[14px] outline-none ring-ink/10 focus:ring-2"
+            placeholder={t('mapSearchPlaceholder')}
+            className="w-full rounded-xl border border-ink-10 py-2.5 ps-10 pe-3 text-[14px] outline-none ring-ink/10 focus:ring-2"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {query.trim().length >= 2 && (hits.length > 0 || searching || searchError) ? (
-            <ul className="absolute left-0 right-0 top-full z-[500] mt-1 max-h-52 overflow-auto rounded-xl border border-ink-10 bg-white py-1 shadow-card-sm">
+            <ul className="absolute start-0 end-0 top-full z-[500] mt-1 max-h-52 overflow-auto rounded-xl border border-ink-10 bg-white py-1 shadow-card-sm">
               {searching ? (
-                <li className="px-3 py-2 text-[13px] text-ink-60">Searching…</li>
+                <li className="px-3 py-2 text-[13px] text-ink-60">{t('mapSearching')}</li>
               ) : searchError ? (
                 <li className="px-3 py-2 text-[13px] text-coral">{searchError}</li>
               ) : (
@@ -196,7 +202,7 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
                   <li key={`${h.lat},${h.lng},${i}`}>
                     <button
                       type="button"
-                      className="flex w-full items-start gap-2 px-3 py-2 text-left text-[13px] text-ink hover:bg-ink-5"
+                      className="flex w-full items-start gap-2 px-3 py-2 text-start text-[13px] text-ink hover:bg-ink-5"
                       onClick={() => {
                         applyCoords(h.lat, h.lng);
                         setHits([]);
@@ -247,11 +253,11 @@ export function VenueLocationMap({ latitude, longitude, onCoordinatesChange, vis
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-60">
         <span>
-          Latitude:{' '}
+          {t('mapLatitude')}:{' '}
           <span className="font-mono text-ink">{markerPos ? markerPos[0].toFixed(6) : '—'}</span>
         </span>
         <span>
-          Longitude:{' '}
+          {t('mapLongitude')}:{' '}
           <span className="font-mono text-ink">{markerPos ? markerPos[1].toFixed(6) : '—'}</span>
         </span>
       </div>

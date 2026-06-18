@@ -1,5 +1,19 @@
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+
+import { publishImpactFieldLabel } from '@/lib/events/publishImpactFieldLabel';
+import { formatDateTime } from '@/lib/locale/format';
+import type { AppLocale } from '@/config/locale';
+
+function formatImpactValue(field: string, value: string, locale: AppLocale): string {
+  if ((field === 'startsAt' || field === 'endsAt') && value) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return formatDateTime(value, locale);
+  }
+  return value;
+}
 
 export function PublishImpactDialog({
   open,
@@ -12,6 +26,9 @@ export function PublishImpactDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation(['events', 'common']);
+  const { language } = useLocale();
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 p-4 sm:items-center">
@@ -21,31 +38,31 @@ export function PublishImpactDialog({
             <AlertTriangle size={22} strokeWidth={2} />
           </span>
           <div>
-            <h2 className="text-xl font-extrabold text-ink">Strong alert — ticket holders affected</h2>
+            <h2 className="text-xl font-extrabold text-ink">{t('publishImpact.title')}</h2>
             <p className="mt-2 text-[14px] leading-relaxed text-ink-60">
-              Tickets have already been sold. Saving will queue <strong>email + in-app</strong> notifications listing each changed field (old vs new).
-              Significant date/time/location changes may require <strong>organizer-led refunds</strong> (demo).
+              {t('publishImpact.bodyIntro')} <strong>{t('publishImpact.emailInApp')}</strong> {t('publishImpact.bodyMid')}{' '}
+              <strong>{t('publishImpact.organizerRefunds')}</strong> {t('publishImpact.bodyOutro')}
             </p>
           </div>
         </div>
         <ul className="mt-5 max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-ink-10 bg-ink-5/50 p-3 text-[13px]">
           {changes.map((c, i) => (
             <li key={`${c.field}-${i}`} className="rounded-xl bg-white px-3 py-2 shadow-card-sm">
-              <p className="font-bold text-ink">{c.field}</p>
+              <p className="font-bold text-ink">{publishImpactFieldLabel(c.field, (k, o) => String(t(k as never, o as never)))}</p>
               <p className="text-ink-60">
-                <span className="line-through">{c.old}</span>
+                <span className="line-through">{formatImpactValue(c.field, c.old, language)}</span>
                 <span className="mx-1 text-ink-40">→</span>
-                <span className="font-semibold text-ink">{c.new}</span>
+                <span className="font-semibold text-ink">{formatImpactValue(c.field, c.new, language)}</span>
               </p>
             </li>
           ))}
         </ul>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" className="sm:min-w-[120px]" onClick={onCancel}>
-            Back
+            {t('back', { ns: 'common' })}
           </Button>
           <Button type="button" variant="dark" className="sm:min-w-[160px]" onClick={onConfirm}>
-            Save &amp; notify (demo)
+            {t('publishImpact.saveAndNotify')}
           </Button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import {
   mapApiVendorDetail,
   mapApiVendorsList,
 } from '@/lib/api/mapMarketplace';
+import { appendAcceptLanguage } from '@/lib/locale/apiHeaders';
 import type { TalentListing, VendorListing } from '@/types/domain';
 
 export type TalentListParams = {
@@ -61,8 +62,9 @@ export const mainMarketplaceApi = createApi({
   reducerPath: 'mainMarketplaceApi',
   baseQuery: fetchBaseQuery({
     baseUrl: ApiBaseUrl,
-    prepareHeaders: (headers) => {
+    prepareHeaders: (headers, { getState }) => {
       headers.set('Accept', 'application/json');
+      appendAcceptLanguage(headers, getState);
       return headers;
     },
   }),

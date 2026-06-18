@@ -1,20 +1,23 @@
 import type { ScanLiveBootstrap, ScanLiveRow, ScanLiveStats, ScanResult } from '@/types/domain';
 import { readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
+import i18n from '@/i18n';
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
   return null;
 }
 
-const SCAN_FAILURE_REASON_LABELS: Record<string, string> = {
-  scanner_not_owned_by_event_organizer: 'Scanner is not owned by this event organizer',
+const SCAN_FAILURE_I18N_KEYS: Record<string, string> = {
+  scanner_not_owned_by_event_organizer: 'errors:scanFailure.scannerNotOwned',
 };
 
 /** Presenter-friendly label for API `failure_reason` codes (handoff § organizer isolation). */
 export function formatScanFailureReason(reason: string | null | undefined): string | null {
   const code = reason?.trim();
   if (!code) return null;
-  return SCAN_FAILURE_REASON_LABELS[code] ?? code.replace(/_/g, ' ');
+  const i18nKey = SCAN_FAILURE_I18N_KEYS[code];
+  if (i18nKey) return String(i18n.t(i18nKey as 'errors:scanFailure.scannerNotOwned'));
+  return code.replace(/_/g, ' ');
 }
 
 export function parseScanResult(raw: unknown): ScanResult {

@@ -1,0 +1,184 @@
+{
+  "page": {
+    "eyebrow": "Operations",
+    "title": "Scanner management",
+    "description": "Gate staff accounts, per-event assignments, and check-in history for your live events.",
+    "addGateStaff": "Add gate staff"
+  },
+  "tabs": {
+    "accounts": "Accounts",
+    "assignments": "Assignments",
+    "scanLogs": "Scan logs"
+  },
+  "metrics": {
+    "gateStaff": "Gate staff",
+    "active": "Active",
+    "inactive": "Inactive",
+    "liveEvents": "Live events",
+    "recentScans": "Recent scans",
+    "scanners": "Scanners"
+  },
+  "ui": {
+    "tabNavAriaLabel": "Scanner sections"
+  },
+  "focus": {
+    "body": "Focused on {{event}} — assign staff in the Assignments tab.",
+    "thisEvent": "this event",
+    "viewAssignments": "View assignments"
+  },
+  "logs": {
+    "title": "Scan activity",
+    "subtitle": "Last 30 check-ins across live events.",
+    "emptyTitle": "No scans yet",
+    "emptyBody": "Activity appears here once tickets are scanned at the gate.",
+    "table": {
+      "ticket": "Ticket",
+      "result": "Result",
+      "time": "Time"
+    }
+  },
+  "create": {
+    "title": "Add gate staff",
+    "description": "A login password is generated and emailed unless you set one below. Staff sign in at the scanner app with this email.",
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "password": "Password (optional)",
+      "passwordPlaceholder": "Leave blank to email a generated password",
+      "gateLabel": "Gate label",
+      "gateLabelPlaceholder": "e.g. North Entrance",
+      "assignEvents": "Assign to events"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordMinLength": "Password must be at least 8 characters."
+    },
+    "submit": "Create account",
+    "creating": "Creating…"
+  },
+  "edit": {
+    "title": "Edit gate staff",
+    "description": "Update display name, login email, password, or account status. Send at least one change, or resend credentials below.",
+    "fields": {
+      "newPassword": "New password (optional)",
+      "passwordPlaceholder": "Leave blank to keep current password"
+    },
+    "activeAccount": {
+      "label": "Active account",
+      "hint": "Inactive staff cannot be assigned to events."
+    },
+    "emailCredentials": {
+      "label": "Email login credentials",
+      "hint": "Sends email with login URL and password. If password is empty above, the server generates one."
+    },
+    "resetLogin": {
+      "title": "Reset login without editing fields",
+      "description": "Generates a new 12-character password and emails it. Assigned gate/event names are included when present.",
+      "resend": "Resend login credentials"
+    },
+    "validation": {
+      "changeAtLeastOne": "Change at least one field before saving."
+    }
+  },
+  "accounts": {
+    "toolbarDescription": "Edit accounts, resend login emails, or remove staff. Resend generates a new password and emails scanner app login details.",
+    "emptyDescription": "Create scanner accounts so your team can check in tickets at event entrances.",
+    "noAssignments": "No live event assignments",
+    "resendCreds": "Resend creds",
+    "eventsLabel": "Events",
+    "eventFallback": "Event #{{id}}"
+  },
+  "assignments": {
+    "emptyDescription": "Publish an event before you can assign gate staff to scan tickets.",
+    "toolbarTitle": "Per-event assignments",
+    "toolbarDescription": "Pick an event, then assign or remove gate staff. Multiple scanners can share one entrance.",
+    "watchLive": "Watch live",
+    "watchLiveDisabled": "Assign at least one scanner to watch live scans",
+    "eventsLabel": "Events",
+    "assignedCount": "{{count}} assigned",
+    "selectedLabel": "Selected",
+    "assignedReady": "{{assigned}} assigned · {{ready}} ready",
+    "assignAll": "Assign all ({{count}})",
+    "unassignAll": "Unassign all",
+    "assignedColumn": "Assigned",
+    "availableColumn": "Available",
+    "emptyAssigned": "No staff on this event yet.",
+    "emptyAvailableNoStaff": "Add gate staff in the Accounts tab first.",
+    "emptyAvailableAllAssigned": "Everyone active is already assigned here.",
+    "assign": "Assign",
+    "unassign": "Unassign",
+    "inactiveHint": "Inactive accounts must be reactivated before assigning."
+  },
+  "confirm": {
+    "unassign": {
+      "title": "Unassign from event?",
+      "description": "Remove \"{{name}}\" from \"{{event}}\"? They can still scan other events they are assigned to.",
+      "confirm": "Unassign"
+    },
+    "unassignAll": {
+      "title": "Unassign all from event?",
+      "description": "Remove all {{count}} scanner(s) from \"{{event}}\"? Accounts are not deleted.",
+      "confirm": "Unassign all"
+    },
+    "resendCredentials": {
+      "title": "Resend login credentials?",
+      "description": "Generate a new password and email login details to {{email}}? Assigned gate and event names are included when present.",
+      "confirm": "Resend credentials"
+    },
+    "deleteAccount": {
+      "title": "Delete scanner account?",
+      "description": "\"{{name}}\" ({{email}}) will lose scanner app access. All event assignments and registered devices are revoked. This cannot be undone.",
+      "confirm": "Delete account"
+    }
+  },
+  "resend": {
+    "resultTitle": "New login password",
+    "resultDescription": "A new password was generated for {{name}} ({{email}}) but the email could not be delivered."
+  },
+  "tempPassword": {
+    "emailFailedTitle": "Email could not be sent",
+    "shareHint": "Share this temporary password with the staff member securely:"
+  },
+  "toasts": {
+    "credentialsEmailed": "Login details were sent to {{email}}.",
+    "accountCreated": "Gate staff account created.",
+    "createFailed": "Could not create scanner account.",
+    "credentialsResentEmailed": "New login details were emailed to {{email}}.",
+    "passwordGenerated": "New password generated.",
+    "updatedCredentialsEmailed": "Updated login details were emailed to {{email}}.",
+    "accountUpdated": "Scanner account updated.",
+    "scannerRemoved": "Removed scanner \"{{name}}\".",
+    "scannerAssigned": "Scanner assigned to event.",
+    "scannerUnassigned": "Scanner unassigned from event.",
+    "bulkAssigned": "Assigned {{count}} scanner(s) to {{event}}.",
+    "bulkUnassigned": "Unassigned {{count}} scanner(s) from {{event}}."
+  },
+  "results": {
+    "ok": "OK",
+    "duplicate": "Duplicate",
+    "invalid": "Invalid",
+    "expired": "Expired",
+    "wrong_event": "Wrong event"
+  },
+  "live": {
+    "title": "Live scan feed",
+    "subtitle": "Newest scan results appear at the top.",
+    "stats": {
+      "ok": "OK",
+      "duplicate": "Dup",
+      "invalid": "Invalid",
+      "expired": "Expired",
+      "wrong_event": "Wrong",
+      "total": "Total"
+    },
+    "transport": {
+      "live": "Live",
+      "polling": "Polling",
+      "reconnecting": "Reconnecting"
+    },
+    "empty": "Waiting for scan activity…",
+    "scannerFallback": "Scanner {{id}}"
+  }
+}

@@ -4,6 +4,7 @@ import type { AuctionListingMock, BookingActivity, ScanLog } from '@/types/domai
 import { organizerApi } from '@/store/api/organizerApi';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 import { mapOrderRowToBookingActivity, mapTicketsPaginatorToDistribution } from '@/lib/api/mapBooking';
+import { tNs } from '@/lib/i18n/translateNs';
 import type { LaravelPaginatorUnknown } from '@/schemas/organizer/responses/shared';
 
 const delay = (ms = 100) => new Promise((r) => setTimeout(r, ms));
@@ -153,13 +154,13 @@ export async function getSalesAnalytics(params?: {
       }),
       ticket_type_mix: mixRaw.map((x) => {
         const o = asRecord(x) ?? {};
-        return { label: asStr(o.label, 'Unspecified'), qty: asNum(o.qty) };
+        return { label: asStr(o.label, tNs('analytics', 'defaults.unspecified')), qty: asNum(o.qty) };
       }),
       event_inventory: inventoryRaw.map((x) => {
         const o = asRecord(x) ?? {};
         return {
           event_id: asStr(o.event_id),
-          event_title: asStr(o.event_title, 'Untitled event'),
+          event_title: asStr(o.event_title, tNs('events', 'defaults.untitled')),
           sold: asNum(o.sold),
           remaining: asNum(o.remaining),
           gross: asNum(o.gross),
@@ -171,7 +172,7 @@ export async function getSalesAnalytics(params?: {
         return {
           id: asStr(o.id),
           event_id: asStr(o.event_id),
-          event_title: asStr(o.event_title, 'Untitled event'),
+          event_title: asStr(o.event_title, tNs('events', 'defaults.untitled')),
           buyer_email: asStr(o.buyer_email),
           qty: asNum(o.qty),
           amount: asNum(o.amount),
@@ -242,7 +243,7 @@ export async function getAttendanceAnalytics(params?: {
         return {
           id: asStr(o.id),
           event_id: asStr(o.event_id),
-          event_title: asStr(o.event_title, 'Untitled event'),
+          event_title: asStr(o.event_title, tNs('events', 'defaults.untitled')),
           scanner_id: asStr(o.scanner_id, '') || null,
           scanner_name: asStr(o.scanner_name, '') || null,
           ticket_ref: asStr(o.ticket_ref),
@@ -253,7 +254,7 @@ export async function getAttendanceAnalytics(params?: {
       filters: {
         events: eventsRaw.map((x) => {
           const o = asRecord(x) ?? {};
-          return { id: asStr(o.id), title: asStr(o.title, 'Untitled event') };
+          return { id: asStr(o.id), title: asStr(o.title, tNs('events', 'defaults.untitled')) };
         }),
       },
     },

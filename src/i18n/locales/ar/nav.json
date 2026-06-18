@@ -1,0 +1,27 @@
+{
+  "items": {
+    "profile": "الملف الشخصي",
+    "home": "الرئيسية",
+    "events": "الفعاليات",
+    "archive": "الأرشيف",
+    "engagements": "التواصل",
+    "scanners": "الماسحات",
+    "sales": "المبيعات",
+    "attendance": "الحضور",
+    "finance": "المالية",
+    "ratings": "التقييمات"
+  },
+  "sections": {
+    "dashboard": "لوحة التحكم",
+    "account": "الحساب",
+    "operations": "العمليات",
+    "hiring": "التوظيف",
+    "analytics": "التحليلات",
+    "reputation": "السمعة"
+  },
+  "aria": {
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "closeOverlay": "إغلاق الطبقة"
+  }
+}

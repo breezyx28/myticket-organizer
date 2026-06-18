@@ -1,0 +1,90 @@
+{
+  "defaults": {
+    "unspecified": "Unspecified"
+  },
+  "sales": {
+    "eyebrow": "Analytics",
+    "title": "Sales & bookings",
+    "description": "Powered by shadcn chart components + Recharts for clearer trend, distribution, and inventory insight.",
+    "kpi": {
+      "ticketsSold": "Tickets sold",
+      "grossRevenue": "Gross revenue",
+      "liveUpcoming": "Live / upcoming events",
+      "avgOrderValue": "Avg order value"
+    },
+    "charts": {
+      "revenueTrend": {
+        "title": "Revenue trend",
+        "subtitle": "Recent booking value over time.",
+        "revenueLabel": "Revenue"
+      },
+      "ticketMix": {
+        "title": "Ticket type mix",
+        "subtitle": "Share of sold quantities by ticket type."
+      },
+      "eventInventory": {
+        "title": "Event inventory chart",
+        "subtitle": "Compare sold and remaining capacity per event.",
+        "sold": "Sold",
+        "remaining": "Remaining"
+      }
+    },
+    "recentBookings": {
+      "title": "Recent bookings",
+      "subtitle": "Latest transactional data in table format.",
+      "table": {
+        "time": "Time",
+        "event": "Event",
+        "buyer": "Buyer",
+        "ticketType": "Ticket type",
+        "seat": "Seat",
+        "qty": "Qty",
+        "amount": "Amount"
+      },
+      "empty": "No bookings in this period."
+    },
+    "eventPerformance": {
+      "title": "Per-event performance table",
+      "table": {
+        "event": "Event",
+        "sold": "Sold",
+        "remaining": "Remaining",
+        "revenue": "Revenue"
+      }
+    },
+    "auction": {
+      "title": "Auction activity",
+      "stats": {
+        "active": "Active",
+        "sold": "Sold",
+        "expired": "Expired"
+      },
+      "table": {
+        "listing": "Listing",
+        "status": "Status",
+        "final": "Final"
+      }
+    }
+  },
+  "attendance": {
+    "eyebrow": "Analytics",
+    "title": "Attendance & scans",
+    "description": "Scanned vs sold, attendance rate, and recent scan attempts.",
+    "filter": {
+      "label": "Event filter",
+      "allEvents": "All events"
+    },
+    "kpi": {
+      "sold": "Sold",
+      "successfulScans": "Successful scans",
+      "attendanceRate": "Attendance rate"
+    },
+    "noShows": {
+      "title": "No-shows (estimate)",
+      "subtitle": "Estimated by backend attendance aggregation."
+    },
+    "recentLogs": {
+      "title": "Recent scan logs"
+    }
+  }
+}

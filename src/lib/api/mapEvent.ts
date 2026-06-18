@@ -11,6 +11,14 @@ import type {
   TicketTypeDef,
 } from '@/types/domain';
 import { readApiNumericId, readBool, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
+import { defaultTicketTypeLabel, postEventMediaFallbackLabel } from '@/lib/events/mediaLabels';
+import { tNs } from '@/lib/i18n/translateNs';
+
+function partnerFallbackDisplayName(role: 'talent' | 'vendor', profileId: string): string {
+  const kind =
+    role === 'talent' ? tNs('marketplace', 'browse.kind.talent') : tNs('marketplace', 'browse.kind.vendor');
+  return tNs('marketplace', 'browse.partnerFallback', { kind, id: profileId || '?' });
+}
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
@@ -50,13 +58,13 @@ function parseEntry(s: string): EntryMode {
 }
 
 function mapTicketTypes(raw: unknown): TicketTypeDef[] {
-  if (!Array.isArray(raw)) return [{ id: 'tt_std', label: 'Standard', defaultPrice: 100 }];
+  if (!Array.isArray(raw)) return [{ id: 'tt_std', label: defaultTicketTypeLabel('tt_std'), defaultPrice: 100 }];
   if (raw.length === 0) return [];
   return raw.map((item, i) => {
     const o = asRecord(item) ?? {};
     return {
       id: toIdString(o.id ?? `tt_${i}`),
-      label: readString(o, 'label', 'name', 'title') || `Type ${i + 1}`,
+      label: readString(o, 'label', 'name', 'title') || tNs('events', 'defaults.ticketTypeNumber', { n: i + 1 }),
       defaultPrice: readNum(o, 'default_price', 'defaultPrice', 'price') ?? 0,
       quantityLimit: readNum(o, 'quantity_limit', 'quantityLimit') ?? undefined,
     };
@@ -145,7 +153,7 @@ function mapEventPartners(raw: unknown, role: 'talent' | 'vendor'): EventPartner
     const displayName =
       readString(o, 'display_name', 'name') ||
       (nested ? readString(nested, 'display_name', 'name', 'business_name') : '') ||
-      `${role === 'talent' ? 'Talent' : 'Vendor'} #${profileId || '?'}`;
+      partnerFallbackDisplayName(role, profileId);
     const linkId = toIdString(o.id ?? o.link_id);
     if (!linkId) continue;
     out.push({
@@ -198,20 +206,20 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
       if (!p) continue;
       const kindRaw = readString(p, 'kind', 'type').toLowerCase();
       const kind = kindRaw === 'video' ? 'video' : 'photo';
-      postEventMedia.push({ kind, label: readString(p, 'label', 'name', 'filename') || 'media' });
+      postEventMedia.push({ kind, label: readString(p, 'label', 'name', 'filename') || postEventMediaFallbackLabel() });
     }
   }
 
   const catObj = asRecord(root.category);
   const categoryIdStr = readApiNumericId(root, 'category_id', 'categoryId').trim() || undefined;
   const categoryLabel =
-    (catObj ? readString(catObj, 'name', 'name_en', 'title') : '') || readString(root, 'category') || 'General';
+    (catObj ? readString(catObj, 'name', 'name_en', 'title') : '') || readString(root, 'category') || tNs('events', 'defaults.general');
   const latitude = readNum(root, 'latitude', 'lat');
   const longitude = readNum(root, 'longitude', 'lng', 'lon');
 
   return {
     id: id || '0',
-    title: readString(root, 'title', 'name') || 'Untitled',
+    title: readString(root, 'title', 'name') || tNs('events', 'defaults.untitledShort'),
     description: readString(root, 'description', 'body') || '',
     category: categoryLabel,
     categoryId: categoryIdStr || undefined,

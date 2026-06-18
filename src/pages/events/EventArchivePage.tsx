@@ -3,8 +3,14 @@ import { duplicateEvent, listEventsPaged } from '@/services/eventsService';
 import type { OrganizerEvent } from '@/types/domain';
 import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
+import { postEventMediaKindLabel } from '@/lib/events/mediaLabels';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDate } from '@/lib/locale/format';
 
 export function EventArchivePage() {
+  const { t } = useTranslation('events');
+  const { language } = useLocale();
   const [page, setPage] = useState(1);
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
   const [pager, setPager] = useState<{ current: number; last: number; total: number } | null>(null);
@@ -19,29 +25,26 @@ export function EventArchivePage() {
   );
 
   useEffect(() => {
-    const t = window.setTimeout(() => void load(), 0);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Archive</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Archived events</h1>
-        <p className="mt-2 max-w-xl text-[15px] text-ink-60">
-          Hidden from public discovery — duplicate to spin up the next edition. Pagination follows the main events list; only archived rows on the current page are shown here.
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('archive.eyebrow')}</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t('archive.title')}</h1>
+        <p className="mt-2 max-w-xl text-[15px] text-ink-60">{t('archive.description')}</p>
       </div>
 
       {pager ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-10 bg-ink-5/40 px-4 py-3 text-[13px] text-ink-60">
           <span>
-            Page <span className="font-mono font-bold text-ink">{pager.current}</span> of{' '}
-            <span className="font-mono font-bold text-ink">{pager.last}</span>
+            {t('list.pagination.pageOf', { current: pager.current, last: pager.last })}
             {pager.total > 0 ? (
               <>
                 {' '}
-                · <span className="font-mono font-bold text-ink">{pager.total}</span> events in account
+                · {t('list.pagination.eventsTotal', { total: pager.total })}
               </>
             ) : null}
           </span>
@@ -54,7 +57,7 @@ export function EventArchivePage() {
                 disabled={pager.current <= 1}
                 onClick={() => setPage((x) => Math.max(1, x - 1))}
               >
-                Previous
+                {t('list.pagination.previous')}
               </Button>
               <Button
                 type="button"
@@ -63,7 +66,7 @@ export function EventArchivePage() {
                 disabled={pager.current >= pager.last}
                 onClick={() => setPage((x) => x + 1)}
               >
-                Next
+                {t('list.pagination.next')}
               </Button>
             </div>
           ) : null}
@@ -77,11 +80,11 @@ export function EventArchivePage() {
             <p className="mt-1 text-[13px] text-ink-60">
               {e.venue}, {e.city}
             </p>
-            <p className="mt-3 text-[12px] text-ink-40">{new Date(e.startsAt).toLocaleDateString()}</p>
+            <p className="mt-3 text-[12px] text-ink-40">{formatDate(e.startsAt, language)}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link to={`/events/${e.id}`}>
                 <Button variant="outline" size="sm">
-                  Open
+                  {t('list.actions.edit')}
                 </Button>
               </Link>
               <Button
@@ -94,23 +97,21 @@ export function EventArchivePage() {
                   })();
                 }}
               >
-                Duplicate
+                {t('list.actions.duplicate')}
               </Button>
             </div>
             {e.postEventMedia.length > 0 ? (
               <ul className="mt-4 space-y-1 text-[12px] text-ink-60">
                 {e.postEventMedia.map((m, i) => (
                   <li key={`${m.label}-${i}`}>
-                    {m.kind}: {m.label}
+                    {postEventMediaKindLabel(m.kind)}: {m.label}
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="mt-4 text-[12px] text-ink-40">No post-event media yet.</p>
-            )}
+            ) : null}
           </article>
         ))}
-        {events.length === 0 ? <p className="text-[14px] text-ink-40">No archived events on this page.</p> : null}
+        {events.length === 0 ? <p className="text-[14px] text-ink-40">{t('list.empty')}</p> : null}
       </div>
     </div>
   );

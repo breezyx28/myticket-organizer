@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const SAUDI_CODE = '+966';
 
@@ -15,7 +16,7 @@ export function SaudiPhoneInput({
   id,
   value,
   onChange,
-  placeholder = '5XXXXXXXX',
+  placeholder,
   className,
 }: {
   id?: string;
@@ -24,6 +25,7 @@ export function SaudiPhoneInput({
   placeholder?: string;
   className?: string;
 }) {
+  const { t } = useTranslation('common');
   const local = normalizeToLocalDigits(value);
 
   return (
@@ -32,7 +34,7 @@ export function SaudiPhoneInput({
         value={SAUDI_CODE}
         readOnly
         disabled
-        className="w-20 shrink-0 border-r border-ink-10 bg-ink-5 px-3 py-3 text-center text-[14px] font-semibold text-ink-40"
+        className="w-20 shrink-0 border-e border-ink-10 bg-ink-5 px-3 py-3 text-center text-[14px] font-semibold text-ink-40"
       />
       <input
         id={id}
@@ -43,7 +45,7 @@ export function SaudiPhoneInput({
           const digits = e.target.value.replace(/[^\d]/g, '');
           onChange(digits ? `${SAUDI_CODE}${digits}` : '');
         }}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('saudiPhonePlaceholder')}
         className="min-w-0 flex-1 px-4 py-3 text-[14px] outline-none"
       />
     </div>

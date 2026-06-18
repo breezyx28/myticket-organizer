@@ -1,0 +1,61 @@
+{
+  "api": {
+    "requestFailed": "فشل الطلب.",
+    "uploadNoUrl": "نجح الرفع لكن لم يُرجع رابط.",
+    "notAuthenticated": "أنت غير مسجل الدخول. يرجى تسجيل الدخول مجدداً.",
+    "invalidLoginResponse": "استجابة تسجيل دخول غير صالحة.",
+    "profileImageUploadNoUrl": "نجح رفع صورة الملف لكن لم يُرجع رابط.",
+    "documentUploadNoUrl": "نجح رفع المستند لكن لم يُرجع رابطاً عاماً.",
+    "galleryUploadNoUrl": "نجح رفع المعرض لكن لم يُرجع رابط."
+  },
+  "profile": {
+    "logoTooLarge": "يجب ألا يتجاوز الشعار 4 ميجابايت.",
+    "imageTooLarge": "يجب ألا تتجاوز صورة الملف 4 ميجابايت.",
+    "imageType": "استخدم JPEG أو PNG أو GIF أو WebP لصورة الملف.",
+    "documentTooLarge": "يجب ألا يتجاوز المستند 12 ميجابايت.",
+    "galleryTooLarge": "يجب ألا تتجاوز كل صورة معرض 6 ميجابايت."
+  },
+  "events": {
+    "deleteNotAllowed": "الحذف مسموح للمسودات والمرفوضة فقط.",
+    "archiveNotAllowed": "الأرشفة مسموحة بعد انتهاء الفعالية فقط.",
+    "createNoId": "تم إنشاء الفعالية لكن الخادم لم يُرجع معرفاً صالحاً.",
+    "statusTransitionNotAllowed": "لا يمكن تغيير الحالة «{{status}}» من تطبيق المنظم. استخدم أدوات الإدارة للنشر أو نفاد التذاكر أو أثناء الفعالية، أو أضف نقاط نهاية للمنظم.",
+    "coverType": "صورة الغلاف يجب أن تكون JPG أو PNG أو GIF أو WEBP.",
+    "coverTooLarge": "يجب ألا تتجاوز صورة الغلاف 6 ميجابايت.",
+    "coverUploadFailed": "فشل رفع صورة الغلاف. حاول مرة أخرى.",
+    "coverUploadFailedWithStatus": "فشل رفع صورة الغلاف ({{status}}).",
+    "coverUploadCancelled": "تم إلغاء رفع صورة الغلاف.",
+    "galleryImageTooLarge": "يجب ألا تتجاوز كل صورة معرض 6 ميجابايت."
+  },
+  "rtk": {
+    "createEvent": "تم إنشاء الفعالية بنجاح.",
+    "submitEvent": "تم إرسال الفعالية للمراجعة.",
+    "cancelEvent": "تم إلغاء الفعالية بنجاح.",
+    "archiveEvent": "تم أرشفة الفعالية بنجاح.",
+    "deleteEvent": "تم حذف الفعالية بنجاح."
+  },
+  "scanFailure": {
+    "scannerNotOwned": "الماسح غير تابع لمنظم هذه الفعالية"
+  },
+  "scanners": {
+    "accountRemoved": "تم حذف حساب الماسح."
+  },
+  "validationFields": {
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "passwordConfirmation": "تأكيد كلمة المرور",
+    "name": "الاسم",
+    "phone": "الهاتف",
+    "username": "اسم المستخدم",
+    "displayName": "الاسم المعروض",
+    "businessName": "اسم النشاط",
+    "stageName": "الاسم الفني",
+    "slug": "المعرّف",
+    "otp": "رمز التحقق",
+    "token": "الرمز",
+    "image": "الصورة",
+    "file": "الملف",
+    "logo": "الشعار",
+    "coverImage": "صورة الغلاف"
+  }
+}

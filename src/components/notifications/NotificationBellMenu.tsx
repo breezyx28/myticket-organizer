@@ -15,19 +15,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
 
-function formatNotificationTime(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+import { formatRelative } from '@/lib/locale/format';
+
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 function actionIcon(action: AdminEventNotificationAction | undefined): ReactNode {
   const className = 'h-4 w-4 shrink-0';
@@ -58,6 +51,8 @@ function notificationAction(n: OrganizerNotification): AdminEventNotificationAct
 }
 
 export function NotificationBellMenu() {
+  const { t } = useTranslation(['notifications', 'common']);
+  const { language } = useLocale();
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -113,7 +108,7 @@ export function NotificationBellMenu() {
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        aria-label="Notifications"
+        aria-label={t('bell.ariaLabel')}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => {
@@ -127,7 +122,7 @@ export function NotificationBellMenu() {
       >
         <Bell size={16} strokeWidth={2} />
         {unreadCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white ring-2 ring-white">
+          <span className="absolute -end-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white ring-2 ring-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}
@@ -136,12 +131,12 @@ export function NotificationBellMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-[100] mt-2 w-[min(100vw-2rem,380px)] overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
+          className="absolute end-0 z-[100] mt-2 w-[min(100vw-2rem,380px)] overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
         >
           <div className="flex items-center justify-between gap-2 border-b border-ink-10 px-4 py-3">
             <div>
-              <p className="text-[14px] font-bold text-ink">Notifications</p>
-              <p className="text-[11px] text-ink-40">Admin updates on your events</p>
+              <p className="text-[14px] font-bold text-ink">{t('menu.title')}</p>
+              <p className="text-[11px] text-ink-40">{t('menu.subtitle')}</p>
             </div>
             {unreadCount > 0 ? (
               <button
@@ -151,7 +146,7 @@ export function NotificationBellMenu() {
                 className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 hover:text-ink disabled:opacity-50"
               >
                 {markingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                Mark all read
+                {t('menu.markAllRead')}
               </button>
             ) : null}
           </div>
@@ -160,24 +155,24 @@ export function NotificationBellMenu() {
             {isLoading ? (
               <div className="flex items-center justify-center gap-2 px-4 py-10 text-[13px] text-ink-40">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading…
+                {t('menu.loading')}
               </div>
             ) : isError ? (
               <div className="px-4 py-8 text-center">
-                <p className="text-[13px] font-semibold text-ink">Could not load notifications</p>
-                <p className="mt-1 text-[12px] text-ink-40">Check your connection and try again.</p>
+                <p className="text-[13px] font-semibold text-ink">{t('error.title')}</p>
+                <p className="mt-1 text-[12px] text-ink-40">{t('error.subtitle')}</p>
                 <button
                   type="button"
                   onClick={() => void refetch()}
                   className="mt-3 rounded-full border border-ink-10 px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-ink-5"
                 >
-                  Retry
+                  {t('error.retry')}
                 </button>
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-10 text-center">
-                <p className="text-[13px] font-semibold text-ink">You&apos;re all caught up</p>
-                <p className="mt-1 text-[12px] text-ink-40">Event approvals and moderation updates appear here.</p>
+                <p className="text-[13px] font-semibold text-ink">{t('empty.title')}</p>
+                <p className="mt-1 text-[12px] text-ink-40">{t('empty.subtitle')}</p>
               </div>
             ) : (
               <ul className="divide-y divide-ink-10">
@@ -191,7 +186,7 @@ export function NotificationBellMenu() {
                         role="menuitem"
                         onClick={() => void handleSelect(n)}
                         className={cn(
-                          'flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-5',
+                          'flex w-full gap-3 px-4 py-3 text-start transition-colors hover:bg-ink-5',
                           !n.isRead && 'bg-lemon/15'
                         )}
                       >
@@ -209,7 +204,7 @@ export function NotificationBellMenu() {
                               {n.title}
                             </span>
                             <span className="shrink-0 text-[10px] font-medium text-ink-40">
-                              {formatNotificationTime(n.createdAt)}
+                              {formatRelative(n.createdAt, language, t as TranslateFn)}
                             </span>
                           </span>
                           {n.body ? (
@@ -229,7 +224,7 @@ export function NotificationBellMenu() {
 
           {isFetching && !isLoading ? (
             <div className="border-t border-ink-10 px-4 py-2 text-center text-[10px] font-medium text-ink-40">
-              Refreshing…
+              {t('menu.refreshing')}
             </div>
           ) : null}
         </div>

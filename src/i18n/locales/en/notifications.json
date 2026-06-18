@@ -1,0 +1,35 @@
+{
+  "bell": {
+    "ariaLabel": "Notifications"
+  },
+  "menu": {
+    "title": "Notifications",
+    "subtitle": "Admin updates on your events",
+    "markAllRead": "Mark all read",
+    "loading": "Loading…",
+    "refreshing": "Refreshing…"
+  },
+  "empty": {
+    "title": "You're all caught up",
+    "subtitle": "Event approvals and moderation updates appear here."
+  },
+  "error": {
+    "title": "Could not load notifications",
+    "subtitle": "Check your connection and try again.",
+    "retry": "Retry"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago"
+  },
+  "actions": {
+    "approved": "Event approved",
+    "rejected": "Event rejected",
+    "featured": "Event featured",
+    "unfeatured": "Event unfeatured",
+    "pinned": "Event pinned",
+    "unpinned": "Event unpinned",
+    "generic": "Notification"
+  }
+}

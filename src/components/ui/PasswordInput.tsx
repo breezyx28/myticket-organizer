@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState, type InputHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function PasswordInput({
   className,
@@ -8,6 +9,7 @@ export function PasswordInput({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) {
   const [visible, setVisible] = useState(false);
+  const { t } = useTranslation('common');
 
   return (
     <div className="relative">
@@ -15,7 +17,7 @@ export function PasswordInput({
         {...props}
         type={visible ? 'text' : 'password'}
         className={cn(
-          'w-full pr-11',
+          'w-full pe-11',
           hasError ? 'border-coral focus:border-coral focus:ring-coral/15' : '',
           className
         )}
@@ -23,9 +25,9 @@ export function PasswordInput({
       <button
         type="button"
         tabIndex={-1}
-        className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-40 transition hover:bg-ink-5 hover:text-ink"
+        className="absolute end-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-40 transition hover:bg-ink-5 hover:text-ink"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-label={visible ? t('hidePassword') : t('showPassword')}
       >
         {visible ? <EyeOff size={18} strokeWidth={2} aria-hidden /> : <Eye size={18} strokeWidth={2} aria-hidden />}
       </button>

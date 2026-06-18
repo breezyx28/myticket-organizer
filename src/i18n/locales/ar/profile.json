@@ -1,0 +1,98 @@
+{
+  "page": {
+    "eyebrow": "الحساب",
+    "title": "ملف المنظم",
+    "description": "أكمل ملفك قبل إنشاء الفعاليات. استخدم التبويبات أدناه؛ تُرفع مستندات المعرض والوثائق إلى واجهة المنظم، وتُطبَّق بقية التغييرات عند الحفظ."
+  },
+  "status": {
+    "incomplete": {
+      "title": "غير مكتمل.",
+      "body": "ارفع مستند المنظمة وصورة معرض واحدة على الأقل (تُحفظ الروابط في ملفك)، وأضف سعة الموقع والمرافق، وأكمل بيانات المنظم. استخدم حفظ الملف في الأسفل بعد التعديل."
+    },
+    "complete": {
+      "title": "الملف مكتمل.",
+      "body": "يمكنك إنشاء الفعاليات ونشرها."
+    }
+  },
+  "tabs": {
+    "info": "المعلومات والتواصل",
+    "venue": "الموقع",
+    "organization": "المنظمة",
+    "documents": "المستندات والوسائط"
+  },
+  "sections": {
+    "personalContact": "البيانات الشخصية والتواصل",
+    "venueDetails": "تفاصيل الموقع",
+    "organization": "المنظمة",
+    "documentsMedia": "المستندات والوسائط"
+  },
+  "fields": {
+    "profilePhoto": "صورة الملف الشخصي",
+    "profilePhotoHint": "صورة حسابك (JPEG أو PNG أو GIF أو WebP — بحد أقصى 4 ميجابايت). منفصلة عن شعار نشاطك التجاري العام.",
+    "displayName": "الاسم المعروض",
+    "phone": "الهاتف",
+    "saudiRegion": "منطقة السعودية",
+    "city": "المدينة",
+    "businessLogo": "شعار النشاط",
+    "businessLogoHint": "شعار المنظم العام للقوائم والهوية — ليس صورتك الشخصية.",
+    "bio": "نبذة (30 حرفاً على الأقل)",
+    "venueName": "اسم الموقع",
+    "venueRegion": "منطقة الموقع",
+    "venueCity": "مدينة الموقع",
+    "address": "العنوان",
+    "maxCapacity": "السعة القصوى للجمهور",
+    "facilities": "المرافق",
+    "facilitiesHint": "أضف المرافق (Enter أو إضافة)، مطلوبة لإكمال الملف.",
+    "facilitiesPlaceholder": "مثال: صناديق كبار الشخصيات",
+    "website": "الموقع الإلكتروني",
+    "instagram": "إنستغرام",
+    "twitter": "تويتر / X",
+    "tiktok": "تيك توك",
+    "typicalDuration": "مدة الفعالية المعتادة (ساعات)",
+    "organizationDocument": "مستند المنظمة (مطلوب)",
+    "organizationDocumentHint": "PDF أو صورة — يُرفع فوراً إلى واجهة المنظم، ثم يُحفظ الرابط العام عند حفظ الملف.",
+    "galleryImages": "صور المعرض",
+    "galleryHint": "تُرفع كل صورة إلى واجهة المنظم عند اختيارها؛ تُضاف الروابط العامة إلى ملفك. أزل ما لا تريده، ثم استخدم حفظ الملف لحفظ قائمة المعرض."
+  },
+  "upload": {
+    "profilePhoto": "رفع صورة الملف",
+    "profilePhotoSubtitle": "JPEG أو PNG أو GIF أو WebP — بحد أقصى 4 ميجابايت",
+    "logo": "رفع الشعار",
+    "logoSubtitle": "PNG أو JPG أو WebP — بحد أقصى 4 ميجابايت",
+    "organizationDocument": "رفع مستند المنظمة",
+    "organizationDocumentSubtitle": "PDF أو مسح أو صورة للسجل التجاري / التصريح (بحد أقصى 12 ميجابايت)",
+    "storedUrl": "رابط محفوظ",
+    "notUploadedYet": "لم يُرفع بعد"
+  },
+  "select": {
+    "loadingRegions": "جاري تحميل المناطق…",
+    "selectRegion": "اختر المنطقة",
+    "chooseRegionFirst": "اختر منطقة أولاً",
+    "loadingCities": "جاري تحميل المدن…",
+    "selectCity": "اختر المدينة"
+  },
+  "map": {
+    "coordinatesHint": "تُحفظ الإحداثيات عند حفظ الملف."
+  },
+  "organization": {
+    "socialSaveHint": "تُحفظ روابط التواصل عبر واجهة المنظم عند النقر على حفظ الملف في أسفل الصفحة."
+  },
+  "actions": {
+    "saveProfile": "حفظ الملف",
+    "add": "إضافة"
+  },
+  "toasts": {
+    "saved": "تم حفظ الملف",
+    "photoUpdated": "تم تحديث صورة الملف",
+    "photoRemoved": "تمت إزالة صورة الملف"
+  },
+  "errors": {
+    "regionsLoadFailed": "تعذّر تحميل المناطق. تحقق من عنوان واجهة API وحاول مجدداً.",
+    "photoUploadFailed": "فشل رفع صورة الملف",
+    "photoRemoveFailed": "تعذّرت إزالة صورة الملف",
+    "logoUploadFailed": "فشل رفع الشعار",
+    "documentUploadFailed": "فشل رفع المستند.",
+    "galleryUploadFailed": "فشل رفع المعرض.",
+    "uploadingImages": "جاري رفع الصور…"
+  }
+}

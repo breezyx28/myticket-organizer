@@ -6,17 +6,24 @@ import { cn } from '@/lib/utils';
 import { MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDateTime } from '@/lib/locale/format';
 
-function counterpartName(c: Conversation): string {
+function counterpartName(c: Conversation, fallback: string): string {
   const other = c.participants.find((p) => p.role !== 'organizer');
-  return other?.displayName || other?.email || 'Partner';
+  return other?.displayName || other?.email || fallback;
 }
 
-function statusLabel(c: Conversation): string {
-  return c.status === 'closed' ? 'Closed' : 'Open';
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+function statusLabel(c: Conversation, t: TranslateFn): string {
+  return c.status === 'closed' ? t('status.closed') : t('status.open');
 }
 
 export function EngagementsPage() {
+  const { t } = useTranslation(['engagements', 'common']);
+  const { language } = useLocale();
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Conversation[]>([]);
@@ -42,15 +49,13 @@ export function EngagementsPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Hiring</p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">Engagements</h1>
-          <p className="mt-2 max-w-xl text-[15px] text-ink-60">
-            Talent and vendor requests you started. Chat here to coordinate bookings.
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('page.eyebrow')}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t('page.title')}</h1>
+          <p className="mt-2 max-w-xl text-[15px] text-ink-60">{t('page.description')}</p>
         </div>
         {(unread?.unread_count ?? 0) > 0 ? (
           <span className="inline-flex w-fit rounded-full bg-coral/15 px-3 py-1.5 text-[12px] font-bold text-coral">
-            {unread!.unread_count} unread
+            {t('page.unread', { count: unread!.unread_count })}
           </span>
         ) : null}
       </header>
@@ -58,18 +63,18 @@ export function EngagementsPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,340px)_1fr]">
         <section className="overflow-hidden rounded-3xl border border-ink-10 bg-white shadow-card-sm">
           <div className="border-b border-ink-10 px-4 py-3">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-ink-50">Requests</p>
+            <p className="text-[12px] font-bold uppercase tracking-wide text-ink-50">{t('inbox.requests')}</p>
           </div>
           {loading ? (
-            <p className="px-4 py-8 text-[13px] text-ink-50">Loading…</p>
+            <p className="px-4 py-8 text-[13px] text-ink-50">{t('loading', { ns: 'common' })}</p>
           ) : rows.length === 0 ? (
             <div className="px-4 py-10 text-center">
               <MessageCircle className="mx-auto h-8 w-8 text-ink-30" strokeWidth={1.5} aria-hidden />
-              <p className="mt-3 text-[14px] font-semibold text-ink">No requests yet</p>
-              <p className="mt-1 text-[13px] text-ink-50">Browse talents and vendors from an event&apos;s Partners tab.</p>
+              <p className="mt-3 text-[14px] font-semibold text-ink">{t('inbox.emptyTitle')}</p>
+              <p className="mt-1 text-[13px] text-ink-50">{t('inbox.emptyBody')}</p>
               <Link to="/events" className="mt-4 inline-block">
                 <Button variant="dark" size="sm">
-                  Go to events
+                  {t('inbox.goToEvents')}
                 </Button>
               </Link>
             </div>
@@ -83,7 +88,7 @@ export function EngagementsPage() {
                       type="button"
                       onClick={() => navigate(`/engagements/${c.id}`)}
                       className={cn(
-                        'w-full px-4 py-3.5 text-left transition hover:bg-ink-5/40',
+                        'w-full px-4 py-3.5 text-start transition hover:bg-ink-5/40',
                         active && 'bg-ink-5/60'
                       )}
                     >
@@ -91,7 +96,7 @@ export function EngagementsPage() {
                         <p className="truncate text-[14px] font-bold text-ink">{c.subject}</p>
                         {c.unread ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-coral" aria-hidden /> : null}
                       </div>
-                      <p className="mt-0.5 truncate text-[12px] text-ink-60">{counterpartName(c)}</p>
+                      <p className="mt-0.5 truncate text-[12px] text-ink-60">{counterpartName(c, t('counterpart.partner'))}</p>
                       <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-40">
                         <span
                           className={cn(
@@ -99,9 +104,9 @@ export function EngagementsPage() {
                             c.status === 'open' ? 'bg-mint/25 text-ink' : 'bg-ink-10 text-ink-50'
                           )}
                         >
-                          {statusLabel(c)}
+                          {statusLabel(c, t as TranslateFn)}
                         </span>
-                        {c.lastMessageAt ? <span>{new Date(c.lastMessageAt).toLocaleString()}</span> : null}
+                        {c.lastMessageAt ? <span>{formatDateTime(c.lastMessageAt, language)}</span> : null}
                       </div>
                     </button>
                   </li>
@@ -116,7 +121,7 @@ export function EngagementsPage() {
             <Outlet />
           ) : (
             <div className="flex h-full min-h-[420px] items-center justify-center p-8 text-center text-[14px] text-ink-50">
-              Select a request from the list to open the conversation.
+              {t('inbox.selectPrompt')}
             </div>
           )}
         </div>

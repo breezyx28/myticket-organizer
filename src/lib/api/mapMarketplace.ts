@@ -1,5 +1,7 @@
 import type { MarketplaceCategoryOption, TalentListing, VendorListing } from '@/types/domain';
 import { readBool, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
+import { getApiLanguage } from '@/lib/locale/apiHeaders';
+import { tNs } from '@/lib/i18n/translateNs';
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
@@ -83,7 +85,7 @@ export function mapApiTalentListing(raw: unknown): TalentListing | null {
   return {
     profileId: profileId || slug,
     slug: slug || profileId,
-    displayName: displayName || 'Talent',
+    displayName: displayName || tNs('marketplace', 'browse.kind.talent'),
     headline: readString(root, 'headline', 'tagline', 'title', 'specialty', 'bio') || categoryLabel || '',
     city: readString(root, 'city', 'city_name') || '',
     coverImageUrl: resolveImageUrl(root),
@@ -109,7 +111,7 @@ export function mapApiVendorListing(raw: unknown): VendorListing | null {
   return {
     profileId: profileId || slug,
     slug: slug || profileId,
-    displayName: displayName || 'Vendor',
+    displayName: displayName || tNs('marketplace', 'browse.kind.vendor'),
     headline:
       readString(root, 'coverage_area', 'headline', 'tagline', 'service_type', 'bio') || serviceLabel || '',
     city: readString(root, 'city', 'city_name') || '',
@@ -157,5 +159,5 @@ export function mergeCategoryOptions(rows: MarketplaceCategoryOption[][]): Marke
       if (!byId.has(c.id)) byId.set(c.id, c);
     }
   }
-  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, getApiLanguage()));
 }

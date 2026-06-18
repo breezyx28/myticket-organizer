@@ -1,0 +1,62 @@
+{
+  "partners": {
+    "visibility": {
+      "title": "Event visibility",
+      "description": "Control whether linked partners appear on the public event page.",
+      "showTalents": "Show talents on event page",
+      "showVendors": "Show vendors on event page"
+    },
+    "linked": {
+      "title": "Linked partners",
+      "manageInEngagements": "Manage hiring requests in Engagements."
+    }
+  },
+  "browse": {
+    "talent": {
+      "title": "Request a talent for your event",
+      "description": "Browse all approved marketplace talents. Use search and filters to narrow by specialty, region, or city.",
+      "categoryLabel": "Talent category"
+    },
+    "vendor": {
+      "title": "Services for your event",
+      "description": "Browse all approved vendors — catering, AV, décor, and more. Refine by service type or location when needed.",
+      "categoryLabel": "Service category"
+    },
+    "actions": {
+      "request": "Request",
+      "viewDetails": "View details",
+      "clearFilters": "Clear filters"
+    },
+    "empty": "No listings match your filters.",
+    "emptyNoTalents": "No approved talents yet",
+    "emptyNoVendors": "No approved vendors yet",
+    "emptyNoPublished": "Approved profiles will appear here once they are published on the marketplace.",
+    "loading": "Loading marketplace…",
+    "error": "Could not load marketplace listings.",
+    "kind": {
+      "talent": "Talent",
+      "vendor": "Vendor"
+    },
+    "partnerFallback": "{{kind}} #{{id}}"
+  },
+  "filters": {
+    "search": "Search",
+    "searchPlaceholder": "Search by name or keyword",
+    "category": "Category",
+    "allCategories": "All categories",
+    "region": "Region",
+    "allRegions": "All regions",
+    "city": "City",
+    "allCities": "All cities",
+    "chooseRegionFirst": "Choose a region first",
+    "advanced": "Advanced filters"
+  },
+  "drawer": {
+    "talentProfile": "Talent profile",
+    "vendorProfile": "Vendor profile",
+    "notFound": "Profile not found.",
+    "requestTalent": "Request this talent",
+    "requestVendor": "Request this vendor",
+    "close": "Close profile"
+  }
+}

@@ -1,6 +1,7 @@
 import type { RecurrencePattern } from '@/types/domain';
+import { useTranslation } from 'react-i18next';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 export function RecurrenceManager({
   value,
@@ -9,6 +10,7 @@ export function RecurrenceManager({
   value: RecurrencePattern | null | undefined;
   onChange: (next: RecurrencePattern | null) => void;
 }) {
+  const { t } = useTranslation('events');
   const v = value ?? { weekdays: [], windowStart: '', windowEnd: '' };
 
   function toggleDay(d: number) {
@@ -21,31 +23,31 @@ export function RecurrenceManager({
   return (
     <div className="rounded-2xl border border-ink-10 bg-ink-5/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[14px] font-extrabold text-ink">Recurring schedule</h3>
+        <h3 className="text-[14px] font-extrabold text-ink">{t('recurrence.title')}</h3>
         <button type="button" className="text-[12px] font-semibold text-coral hover:underline" onClick={() => onChange(null)}>
-          Clear recurrence
+          {t('recurrence.clear')}
         </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {DAYS.map((label, idx) => {
+        {DAY_KEYS.map((key, idx) => {
           const on = v.weekdays.includes(idx);
           return (
             <button
-              key={label}
+              key={key}
               type="button"
               onClick={() => toggleDay(idx)}
               className={`rounded-full px-3 py-1.5 text-[12px] font-bold ${
                 on ? 'bg-ink text-white' : 'bg-white text-ink-60 ring-1 ring-ink-10'
               }`}
             >
-              {label}
+              {t(`recurrence.days.${key}`)}
             </button>
           );
         })}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-[12px] font-semibold text-ink-60">
-          Window start
+          {t('recurrence.windowStart')}
           <input
             type="date"
             className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
@@ -54,7 +56,7 @@ export function RecurrenceManager({
           />
         </label>
         <label className="block text-[12px] font-semibold text-ink-60">
-          Window end
+          {t('recurrence.windowEnd')}
           <input
             type="date"
             className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"

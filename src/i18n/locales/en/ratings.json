@@ -1,0 +1,51 @@
+{
+  "page": {
+    "eyebrow": "Reputation",
+    "title": "Ratings",
+    "description": "Star ratings are not exposed on the organizer API. This view lists your engagements (same source as reputation workflows); scores stay at zero until a dedicated ratings contract exists."
+  },
+  "tabs": {
+    "received": "Received",
+    "given": "Given",
+    "byEvent": "By event"
+  },
+  "stats": {
+    "overallAverage": "Overall average",
+    "receivedCount": "Received count"
+  },
+  "charts": {
+    "scoreTrend": {
+      "title": "Score trend",
+      "description": "Per-review scores and running average",
+      "noTrend": "No score trend — engagements do not include star ratings.",
+      "scoresHidden": "Engagements loaded; chart hidden because scores are not in the API response.",
+      "runningAvg": "Running avg",
+      "score": "Score"
+    },
+    "byEvent": {
+      "title": "Average by event",
+      "description": "Mean score and review count per event",
+      "averageLabel": "Average",
+      "reviews": "{{count}} reviews",
+      "empty": "No event aggregates yet."
+    }
+  },
+  "lists": {
+    "received": {
+      "title": "Received ratings",
+      "empty": "No received ratings yet."
+    },
+    "given": {
+      "title": "Ratings you gave",
+      "empty": "You have not given any ratings yet."
+    }
+  },
+  "card": {
+    "anonymous": "Anonymous attendee",
+    "eventLabel": "Event",
+    "engagement": "Engagement",
+    "from": "From {{name}}",
+    "givenTo": "To {{name}} ({{role}})",
+    "score": "Score"
+  }
+}

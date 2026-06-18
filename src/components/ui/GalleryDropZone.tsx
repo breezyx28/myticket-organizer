@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { ImagePlus, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type GalleryItemPreview = {
   key: string;
@@ -19,6 +20,7 @@ export function GalleryDropZone({
   onRemove: (key: string) => void;
   className?: string;
 }) {
+  const { t } = useTranslation('common');
   const [dragOver, setDragOver] = useState(false);
 
   const addFromList = useCallback(
@@ -54,8 +56,8 @@ export function GalleryDropZone({
         )}
       >
         <ImagePlus className="h-10 w-10 text-coral" strokeWidth={1.75} />
-        <span className="text-[13px] font-semibold text-ink">Drop images here or browse</span>
-        <span className="max-w-sm text-[12px] text-ink-40">PNG, JPG, WebP — multiple files supported.</span>
+        <span className="text-[13px] font-semibold text-ink">{t('galleryDropTitle')}</span>
+        <span className="max-w-sm text-[12px] text-ink-40">{t('galleryDropFormats')}</span>
         <input
           type="file"
           accept="image/*"
@@ -88,8 +90,8 @@ export function GalleryDropZone({
               <button
                 type="button"
                 onClick={() => onRemove(it.key)}
-                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/80 text-white opacity-90 shadow-md backdrop-blur transition hover:bg-coral"
-                aria-label="Remove"
+                className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/80 text-white opacity-90 shadow-md backdrop-blur transition hover:bg-coral"
+                aria-label={t('remove')}
               >
                 <X size={16} strokeWidth={2.5} />
               </button>

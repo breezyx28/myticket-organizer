@@ -1,0 +1,90 @@
+{
+  "defaults": {
+    "unspecified": "غير محدد"
+  },
+  "sales": {
+    "eyebrow": "التحليلات",
+    "title": "المبيعات والحجوزات",
+    "description": "مدعومة بمخططات shadcn وRecharts لرؤية أوضح للاتجاهات والتوزيع والمخزون.",
+    "kpi": {
+      "ticketsSold": "التذاكر المباعة",
+      "grossRevenue": "الإيرادات الإجمالية",
+      "liveUpcoming": "الفعاليات المباشرة / القادمة",
+      "avgOrderValue": "متوسط قيمة الطلب"
+    },
+    "charts": {
+      "revenueTrend": {
+        "title": "اتجاه الإيرادات",
+        "subtitle": "قيمة الحجوزات الأخيرة عبر الزمن.",
+        "revenueLabel": "الإيرادات"
+      },
+      "ticketMix": {
+        "title": "توزيع أنواع التذاكر",
+        "subtitle": "حصة الكميات المباعة حسب نوع التذكرة."
+      },
+      "eventInventory": {
+        "title": "مخطط مخزون الفعاليات",
+        "subtitle": "قارن المباع والسعة المتبقية لكل فعالية.",
+        "sold": "المباع",
+        "remaining": "المتبقي"
+      }
+    },
+    "recentBookings": {
+      "title": "أحدث الحجوزات",
+      "subtitle": "أحدث البيانات المعاملاتية في جدول.",
+      "table": {
+        "time": "الوقت",
+        "event": "الفعالية",
+        "buyer": "المشتري",
+        "ticketType": "نوع التذكرة",
+        "seat": "المقعد",
+        "qty": "الكمية",
+        "amount": "المبلغ"
+      },
+      "empty": "لا توجد حجوزات في هذه الفترة."
+    },
+    "eventPerformance": {
+      "title": "جدول أداء كل فعالية",
+      "table": {
+        "event": "الفعالية",
+        "sold": "المباع",
+        "remaining": "المتبقي",
+        "revenue": "الإيرادات"
+      }
+    },
+    "auction": {
+      "title": "نشاط المزاد",
+      "stats": {
+        "active": "نشط",
+        "sold": "مباع",
+        "expired": "منتهٍ"
+      },
+      "table": {
+        "listing": "القائمة",
+        "status": "الحالة",
+        "final": "السعر النهائي"
+      }
+    }
+  },
+  "attendance": {
+    "eyebrow": "التحليلات",
+    "title": "الحضور والمسوح",
+    "description": "المسوح مقابل المباع، ومعدل الحضور، وأحدث محاولات المسح.",
+    "filter": {
+      "label": "تصفية الفعالية",
+      "allEvents": "كل الفعاليات"
+    },
+    "kpi": {
+      "sold": "المباع",
+      "successfulScans": "المسوح الناجحة",
+      "attendanceRate": "معدل الحضور"
+    },
+    "noShows": {
+      "title": "الغياب (تقدير)",
+      "subtitle": "يُقدَّر عبر تجميع الحضور في الخادم."
+    },
+    "recentLogs": {
+      "title": "أحدث سجلات المسح"
+    }
+  }
+}

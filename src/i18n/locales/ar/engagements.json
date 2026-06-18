@@ -1,0 +1,55 @@
+{
+  "page": {
+    "eyebrow": "التوظيف",
+    "title": "التعاقدات",
+    "description": "طلبات المواهب والموردين التي بدأتها. تواصل هنا لتنسيق الحجوزات.",
+    "unread": "{{count}} غير مقروء"
+  },
+  "inbox": {
+    "requests": "الطلبات",
+    "emptyTitle": "لا توجد طلبات بعد",
+    "emptyBody": "تصفّح المواهب والموردين من تبويب الشركاء في الفعالية.",
+    "goToEvents": "الذهاب إلى الفعاليات",
+    "selectPrompt": "اختر طلباً من القائمة لفتح المحادثة."
+  },
+  "status": {
+    "open": "مفتوح",
+    "closed": "مغلق"
+  },
+  "counterpart": {
+    "partner": "شريك"
+  },
+  "thread": {
+    "backToInbox": "← العودة إلى الوارد",
+    "withCounterpart": "مع {{name}}",
+    "viewLinkedEvent": "عرض الفعالية المرتبطة",
+    "cancelRequest": "إلغاء الطلب",
+    "cancelConfirm": "إلغاء طلب التوظيف؟ ستُغلق المحادثة.",
+    "cancelSuccess": "تم إلغاء الطلب.",
+    "notDelivered": "لم تُسلَّم",
+    "emptyMessages": "لا رسائل بعد. قل مرحباً لبدء المحادثة.",
+    "messagePlaceholder": "اكتب رسالة…",
+    "send": "إرسال",
+    "closedHint": "هذه المحادثة مغلقة.",
+    "loadFailed": "تعذّر تحميل المحادثة.",
+    "sendFailed": "تعذّر إرسال الرسالة."
+  },
+  "startDialog": {
+    "title": "بدء طلب توظيف",
+    "description": "ابدأ محادثة توظيف مع {{name}}. سيصلهم إشعار ويمكنهم الرد في المحادثة.",
+    "subject": "الموضوع",
+    "brief": "الملخص",
+    "message": "رسالة تمهيدية",
+    "defaultTopic": {
+      "talent": "موهبة لـ {{eventTitle}}",
+      "vendor": "مورد لـ {{eventTitle}}"
+    },
+    "fallbackTopic": "طلب {{name}}",
+    "subjectPlaceholder": "مثال: مطرب أعراس",
+    "briefPlaceholder": "صف ما تحتاجه، التواريخ، الميزانية، إلخ.",
+    "messagePlaceholder": "مرحباً، هل أنت متاح لفعاليتنا؟",
+    "submit": "إرسال الطلب",
+    "sending": "جاري الإرسال…",
+    "success": "أُرسل الطلب — افتح التعاقدات لمتابعة المحادثة."
+  }
+}

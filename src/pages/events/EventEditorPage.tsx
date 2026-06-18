@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { ApiBaseUrl } from '@/config/api';
 import { fromLocalInput, toLocalInput } from '@/lib/datetimeLocal';
 import { toast } from '@/lib/appToast';
-import { EVENT_STATUS_LABEL } from '@/lib/eventStatusLabels';
+import { useEventStatusLabel } from '@/lib/eventStatusLabels';
 import { type EventEditorTabId, usePersistedEventEditorTab } from '@/hooks/usePersistedEventEditorTab';
 import { useEventEditorSync } from '@/hooks/useEventEditorSync';
 import {
@@ -38,13 +38,21 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EventPartnersTab } from '@/components/events/EventPartnersTab';
 import { Armchair, FileText, Handshake, Image, LayoutGrid, MoreHorizontal, RefreshCcw, Ticket } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDateTime } from '@/lib/locale/format';
+import { postEventMediaKindLabel } from '@/lib/events/mediaLabels';
+import { tError } from '@/lib/i18n/translateError';
 
 function toastApiErr(err: unknown, fallback: string) {
   const msg = formatOrganizerApiError(err).trim();
-  toast.error(msg && msg !== 'Request failed.' ? msg : fallback);
+  const requestFailed = tError('api.requestFailed');
+  toast.error(msg && msg !== requestFailed ? msg : fallback);
 }
 
 export function EventEditorPage() {
+  const { t } = useTranslation(['events', 'common']);
+  const { language } = useLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -117,10 +125,13 @@ export function EventEditorPage() {
     };
   }, []);
 
+  const statusLabel = useEventStatusLabel(event?.status ?? 'draft');
+
   const statusLine = useMemo(() => {
     if (!event) return '';
-    return `${EVENT_STATUS_LABEL[event.status]} · Sold: ${event.ticketsSold} · Entry: ${event.entryMode}`;
-  }, [event]);
+    const entryModeLabel = t(`entryMode.${event.entryMode as EntryMode}`);
+    return t('editor.statusLine', { status: statusLabel, sold: event.ticketsSold, entryMode: entryModeLabel });
+  }, [event, statusLabel, t]);
 
   function mapCreateServerErrors(message: string) {
     const m = message.toLowerCase();
@@ -142,15 +153,13 @@ export function EventEditorPage() {
     return (
       <div className="mx-auto max-w-xl space-y-6 py-10 px-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">New event</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">Create event</h1>
-          <p className="mt-2 text-[13px] text-ink-60">
-            Set a title and schedule, then continue to the full editor. The draft is created when you continue.
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('editor.new.eyebrow')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{t('editor.new.title')}</h1>
+          <p className="mt-2 text-[13px] text-ink-60">{t('editor.new.description')}</p>
         </div>
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
           <div className="grid gap-4">
-            <Field label="Title">
+            <Field label={t('editor.new.titleField')}>
               <input
                 className={`mt-1 w-full rounded-xl border px-3 py-2 text-[14px] ${newFormErrors.title ? 'border-coral' : 'border-ink-10'}`}
                 value={newTitle}
@@ -158,12 +167,12 @@ export function EventEditorPage() {
                   setNewTitle(e.target.value);
                   setNewFormErrors((cur) => ({ ...cur, title: undefined, form: undefined }));
                 }}
-                placeholder="e.g. Summer night concert"
+                placeholder={t('editor.new.titlePlaceholder')}
                 autoFocus
               />
               {newFormErrors.title ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.title}</p> : null}
             </Field>
-            <Field label="Starts">
+            <Field label={t('editor.new.starts')}>
               <input
                 type="datetime-local"
                 className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
@@ -177,7 +186,7 @@ export function EventEditorPage() {
               />
               {newFormErrors.startsLocal ? <p className="mt-1 text-[12px] text-coral">{newFormErrors.startsLocal}</p> : null}
             </Field>
-            <Field label="Ends">
+            <Field label={t('editor.new.ends')}>
               <input
                 type="datetime-local"
                 className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
@@ -196,7 +205,7 @@ export function EventEditorPage() {
           <div className="mt-6 flex flex-wrap gap-2">
             <Link to="/events">
               <Button variant="outline" size="md" type="button">
-                Back
+                {t('back', { ns: 'common' })}
               </Button>
             </Link>
             <Button
@@ -208,9 +217,9 @@ export function EventEditorPage() {
                 void (async () => {
                   const nextErrors: { title?: string; startsLocal?: string; endsLocal?: string; form?: string } = {};
                   const title = newTitle.trim();
-                  if (!title) nextErrors.title = 'Title is required.';
-                  if (!newScheduleLocal.startsLocal) nextErrors.startsLocal = 'Start date/time is required.';
-                  if (!newScheduleLocal.endsLocal) nextErrors.endsLocal = 'End date/time is required.';
+                  if (!title) nextErrors.title = t('editor.validation.titleRequired');
+                  if (!newScheduleLocal.startsLocal) nextErrors.startsLocal = t('editor.validation.startsRequired');
+                  if (!newScheduleLocal.endsLocal) nextErrors.endsLocal = t('editor.validation.endsRequired');
                   if (Object.keys(nextErrors).length > 0) {
                     setNewFormErrors(nextErrors);
                     return;
@@ -218,7 +227,7 @@ export function EventEditorPage() {
                   const startsAt = fromLocalInput(newScheduleLocal.startsLocal);
                   const endsAt = fromLocalInput(newScheduleLocal.endsLocal);
                   if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
-                    setNewFormErrors({ endsLocal: 'End time must be after start time.' });
+                    setNewFormErrors({ endsLocal: t('editor.validation.endsAfterStarts') });
                     return;
                   }
                   setNewFormErrors({});
@@ -235,7 +244,7 @@ export function EventEditorPage() {
                 })();
               }}
             >
-              {creatingEvent ? 'Creating…' : 'Create draft & continue'}
+              {creatingEvent ? t('creating', { ns: 'common' }) : t('editor.new.createDraft')}
             </Button>
           </div>
         </section>
@@ -244,7 +253,7 @@ export function EventEditorPage() {
   }
 
   if (loading || !event) {
-    return <div className="py-20 text-center text-[14px] text-ink-60">Loading…</div>;
+    return <div className="py-20 text-center text-[14px] text-ink-60">{t('loading', { ns: 'common' })}</div>;
   }
 
   const freeValidation = validateFreeLayoutTotals(event);
@@ -254,13 +263,13 @@ export function EventEditorPage() {
   const moreHasContent = showPostEventMedia || notifications.length > 0;
 
   const editorTabs: { id: EventEditorTabId; label: string; Icon: typeof FileText }[] = [
-    { id: 'basics', label: 'Basics', Icon: FileText },
-    { id: 'media', label: 'Media', Icon: Image },
-    { id: 'layout', label: 'Layout', Icon: LayoutGrid },
-    { id: 'seats', label: 'Seats', Icon: Armchair },
-    { id: 'tickets', label: 'Tickets', Icon: Ticket },
-    { id: 'partners', label: 'Partners', Icon: Handshake },
-    { id: 'more', label: 'More', Icon: MoreHorizontal },
+    { id: 'basics', label: t('editor.tabs.basics'), Icon: FileText },
+    { id: 'media', label: t('editor.tabs.media'), Icon: Image },
+    { id: 'layout', label: t('editor.tabs.layout'), Icon: LayoutGrid },
+    { id: 'seats', label: t('editor.tabs.seats'), Icon: Armchair },
+    { id: 'tickets', label: t('editor.tabs.tickets'), Icon: Ticket },
+    { id: 'partners', label: t('editor.tabs.partners'), Icon: Handshake },
+    { id: 'more', label: t('editor.tabs.more'), Icon: MoreHorizontal },
   ];
 
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
@@ -291,7 +300,7 @@ export function EventEditorPage() {
         setUploadedCoverPreview(URL.createObjectURL(file));
         await reloadFromServer();
       } catch (err) {
-        setCoverUploadError(err instanceof Error ? err.message : 'Cover image upload failed.');
+        setCoverUploadError(err instanceof Error ? err.message : t('editor.toasts.coverUploadFailed'));
       } finally {
         setCoverBusy(false);
       }
@@ -317,7 +326,7 @@ export function EventEditorPage() {
       }
     }
     saveWithToast(patch, options, (err) => {
-      toastApiErr(err, 'Could not save changes.');
+      toastApiErr(err, t('editor.toasts.saveFailed'));
     });
   }
 
@@ -330,7 +339,7 @@ export function EventEditorPage() {
       pendingPatch,
       { localSnapshot: localBeforeSave },
       (err) => {
-        toastApiErr(err, 'Could not save changes.');
+        toastApiErr(err, t('editor.toasts.saveFailed'));
         setImpactOpen(false);
         setPendingPatch(null);
       },
@@ -369,18 +378,18 @@ export function EventEditorPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Event editor</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('editor.eyebrow')}</p>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">{event.title}</h1>
           <p className="mt-2 text-[13px] text-ink-60">{statusLine}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/events">
             <Button variant="outline" size="md">
-              Back
+              {t('back', { ns: 'common' })}
             </Button>
           </Link>
           <Button variant="dark" size="md" type="button" onClick={() => void handleSaveChanges()}>
-            Save changes
+            {t('save', { ns: 'common' })}
           </Button>
           {event.status === 'draft' || event.status === 'rejected' ? (
             <Button
@@ -392,12 +401,12 @@ export function EventEditorPage() {
                     await publishEvent(event.id);
                     await reloadFromServer();
                   } catch (err) {
-                    toastApiErr(err, 'Submit failed.');
+                    toastApiErr(err, t('editor.toasts.submitFailed'));
                   }
                 })();
               }}
             >
-              Submit for review
+              {t('editor.submitForReview')}
             </Button>
           ) : null}
           {event.status === 'ended' ? (
@@ -410,64 +419,61 @@ export function EventEditorPage() {
                     await archiveEvent(event.id);
                     await reloadFromServer();
                   } catch (err) {
-                    toastApiErr(err, 'Archive failed.');
+                    toastApiErr(err, t('editor.toasts.archiveFailed'));
                   }
                 })();
               }}
             >
-              Archive
+              {t('list.actions.archive')}
             </Button>
           ) : null}
           {event.status !== 'cancelled' && event.status !== 'archived' ? (
             <Button variant="danger" size="md" onClick={() => setCancelOpen(true)}>
-              Cancel event
+              {t('list.actions.cancelTitle')}
             </Button>
           ) : null}
           <Button
             variant="ghost"
             size="md"
-            title="Draft/rejected → submit for approval; ended → archive"
+            title={t('editor.nextLifecycleTitle')}
             onClick={() => {
               void (async () => {
                 try {
                   await simulateLifecycleTick(event.id);
                   await reloadFromServer();
                 } catch (err) {
-                  toastApiErr(err, 'Lifecycle step failed.');
+                  toastApiErr(err, t('editor.toasts.lifecycleFailed'));
                 }
               })();
             }}
           >
-            Next lifecycle
+            {t('editor.nextLifecycle')}
           </Button>
         </div>
       </div>
       <section className="rounded-2xl border border-ink-10 bg-ink-5/40 p-4">
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-ink-60">Lifecycle</p>
+            <p className="text-[12px] font-semibold text-ink-60">{t('editor.lifecycle.title')}</p>
             <p className="mt-1 text-[13px] text-ink-80">
-              <strong>{EVENT_STATUS_LABEL[event.status]}</strong>
+              <strong>{statusLabel}</strong>
               <span className="text-ink-60">
                 {' '}
-                — Submitting sends the event to <strong>pending approval</strong> (not published until an admin approves). Cancel and archive use
-                dedicated API routes; arbitrary status is not PATCHable from the organizer app.
+                {t('editor.lifecycle.bodyIntro')} <strong>{t('editor.lifecycle.pendingApproval')}</strong>
+                {t('editor.lifecycle.bodyOutro')}
               </span>
             </p>
           </div>
           <Link to={`/scanners?eventId=${encodeURIComponent(event.id)}`} className="shrink-0 text-[12px] font-semibold text-coral hover:underline">
-            Assign scanners
+            {t('editor.lifecycle.assignScanners')}
           </Link>
         </div>
       </section>
 
       {concurrentTabWarning ? (
         <section className="rounded-2xl border border-coral/30 bg-coral/10 p-4">
-          <p className="text-[13px] font-semibold text-ink">This event is open in another tab or window</p>
-          <p className="mt-1 text-[12px] text-ink-60">
-            Another editor may have saved changes. Reload to see the latest server copy, or keep editing here — your
-            unsaved fields stay on this screen until you save.
-          </p>
+          <p className="text-[13px] font-semibold text-ink">{t('editor.concurrentTab.title')}</p>
+          <p className="mt-1 text-[12px] text-ink-60">{t('editor.concurrentTab.body')}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -477,14 +483,14 @@ export function EventEditorPage() {
                 void reloadFromServer();
               }}
             >
-              Reload from server
+              {t('editor.concurrentTab.reload')}
             </button>
             <button
               type="button"
               className="rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink-60 hover:bg-ink-5"
               onClick={dismissConcurrentTabWarning}
             >
-              Dismiss
+              {t('editor.concurrentTab.dismiss')}
             </button>
           </div>
         </section>
@@ -508,9 +514,9 @@ export function EventEditorPage() {
 
       {activeTab === 'basics' ? (
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold text-ink">Basics</h2>
+        <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.basics')}</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Field label="Title">
+          <Field label={t('editor.fields.title')}>
             <input
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
               value={event.title}
@@ -518,7 +524,7 @@ export function EventEditorPage() {
               onBlur={(e) => saveEventPatch({ title: e.target.value })}
             />
           </Field>
-          <Field label="Category">
+          <Field label={t('editor.fields.category')}>
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
               value={event.categoryId ?? ''}
@@ -530,7 +536,7 @@ export function EventEditorPage() {
                 saveEventPatch({ categoryId: cid || undefined, category: label });
               }}
             >
-              <option value="">Select category</option>
+              <option value="">{t('editor.placeholders.selectCategory')}</option>
               {eventCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -538,7 +544,7 @@ export function EventEditorPage() {
               ))}
             </select>
           </Field>
-          <Field label="Venue" className="md:col-span-2">
+          <Field label={t('editor.fields.venue')} className="md:col-span-2">
             <input
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
               value={event.venue}
@@ -551,7 +557,7 @@ export function EventEditorPage() {
               visible={activeTab === 'basics'}
               latitude={event.latitude ?? null}
               longitude={event.longitude ?? null}
-              hint="Location updates save automatically shortly after you pick a place or finish moving the pin."
+              hint={t('editor.placeholders.locationAutoSave')}
               onCoordinatesChange={(lat, lng) => {
                 updateLocal((cur) => ({ ...cur, latitude: lat, longitude: lng }));
                 if (mapCoordsSaveTimerRef.current) window.clearTimeout(mapCoordsSaveTimerRef.current);
@@ -562,7 +568,7 @@ export function EventEditorPage() {
               }}
             />
           </div>
-          <Field label="Region">
+          <Field label={t('editor.fields.region')}>
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
               value={event.regionId ?? ''}
@@ -572,7 +578,7 @@ export function EventEditorPage() {
                 saveEventPatch({ regionId: rid || undefined, cityId: undefined, city: '' });
               }}
             >
-              <option value="">Select region</option>
+              <option value="">{t('editor.placeholders.selectRegion')}</option>
               {saudiRegions.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -580,7 +586,7 @@ export function EventEditorPage() {
               ))}
             </select>
           </Field>
-          <Field label="City">
+          <Field label={t('editor.fields.city')}>
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px] disabled:opacity-50"
               disabled={!regionIdForCities}
@@ -592,7 +598,7 @@ export function EventEditorPage() {
                 saveEventPatch({ cityId: cid || undefined, city: opt?.name ?? '' });
               }}
             >
-              <option value="">{regionIdForCities ? 'Select city' : 'Choose a region first'}</option>
+              <option value="">{regionIdForCities ? t('editor.placeholders.selectCity') : t('editor.placeholders.chooseRegionFirst')}</option>
               {saudiCities.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -600,7 +606,7 @@ export function EventEditorPage() {
               ))}
             </select>
           </Field>
-          <Field label="Starts">
+          <Field label={t('editor.fields.starts')}>
             <input
               type="datetime-local"
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
@@ -615,7 +621,7 @@ export function EventEditorPage() {
               }}
             />
           </Field>
-          <Field label="Ends">
+          <Field label={t('editor.fields.ends')}>
             <input
               type="datetime-local"
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
@@ -630,7 +636,7 @@ export function EventEditorPage() {
               }}
             />
           </Field>
-          <Field label="Description" className="md:col-span-2">
+          <Field label={t('editor.fields.description')} className="md:col-span-2">
             <textarea
               rows={4}
               className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
@@ -645,11 +651,9 @@ export function EventEditorPage() {
 
       {activeTab === 'media' ? (
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold text-ink">Event gallery</h2>
-        <p className="mt-2 max-w-2xl text-[13px] text-ink-60">
-          Upload JPG, PNG, or WEBP images only. Maximum file size is 6 MB per image.
-        </p>
-        <Field label="Cover image">
+        <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.media')}</h2>
+        <p className="mt-2 max-w-2xl text-[13px] text-ink-60">{t('editor.media.uploadHint')}</p>
+        <Field label={t('editor.fields.coverImage')}>
           <label className="mt-1 inline-flex cursor-pointer flex-wrap items-center gap-2">
             <input
               ref={coverInputRef}
@@ -665,7 +669,7 @@ export function EventEditorPage() {
               }}
             />
             <span className="rounded-xl border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink shadow-card-sm">
-              {coverBusy ? 'Uploading cover…' : 'Upload cover image'}
+              {coverBusy ? t('editor.upload.coverUploading') : t('editor.upload.cover')}
             </span>
           </label>
           {coverUploadError ? <p className="mt-1 text-[12px] text-coral">{coverUploadError}</p> : null}
@@ -674,7 +678,7 @@ export function EventEditorPage() {
               <div className="h-2 overflow-hidden rounded-full bg-ink-10">
                 <div className="h-full bg-coral transition-all" style={{ width: `${coverProgress}%` }} />
               </div>
-              <p className="mt-1 text-[12px] text-ink-60">{coverProgress}% uploaded</p>
+              <p className="mt-1 text-[12px] text-ink-60">{t('editor.media.coverProgress', { percent: coverProgress })}</p>
             </div>
           ) : null}
         </Field>
@@ -684,16 +688,16 @@ export function EventEditorPage() {
               <img src={coverImageUrl} alt="" className="h-36 w-full object-cover" />
               <button
                 type="button"
-                className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 transition hover:bg-ink"
+                className="absolute end-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 transition hover:bg-ink"
                 onClick={() => coverInputRef.current?.click()}
-                title="Replace cover image"
+                title={t('editor.media.replaceCoverTitle')}
                 disabled={coverBusy}
               >
                 <RefreshCcw size={12} />
-                Replace
+                {t('editor.media.replace')}
               </button>
             </div>
-            <p className="px-3 py-2 text-[11px] text-ink-60">Current cover image</p>
+            <p className="px-3 py-2 text-[11px] text-ink-60">{t('editor.media.currentCover')}</p>
           </div>
         ) : null}
         <label className="mt-4 inline-flex cursor-pointer flex-wrap items-center gap-2">
@@ -716,7 +720,7 @@ export function EventEditorPage() {
                   }
                   await reloadFromServer();
                 } catch (err) {
-                  setGalleryUploadError(err instanceof Error ? err.message : 'Gallery upload failed.');
+                  setGalleryUploadError(err instanceof Error ? err.message : t('editor.toasts.galleryUploadFailed'));
                   await reloadFromServer();
                 } finally {
                   setGalleryBusy(false);
@@ -725,7 +729,7 @@ export function EventEditorPage() {
             }}
           />
           <span className="rounded-xl border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink shadow-card-sm">
-            {galleryBusy ? 'Uploading…' : 'Add gallery images'}
+            {galleryBusy ? t('editor.upload.galleryUploading') : t('editor.upload.galleryAdd')}
           </span>
         </label>
         {galleryUploadError ? <p className="mt-1 text-[12px] text-coral">{galleryUploadError}</p> : null}
@@ -735,19 +739,19 @@ export function EventEditorPage() {
               <img src={resolvePublicUrl(g.url)} alt="" className="h-28 w-full object-cover" />
               <button
                 type="button"
-                className="absolute right-2 top-2 rounded-full bg-ink/75 px-2 py-0.5 text-[10px] font-bold uppercase text-white opacity-0 transition group-hover:opacity-100"
+                className="absolute end-2 top-2 rounded-full bg-ink/75 px-2 py-0.5 text-[10px] font-bold uppercase text-white opacity-0 transition group-hover:opacity-100"
                 onClick={() => {
                   void (async () => {
                     try {
                       await deleteEventGalleryItemApi(event.id, g.id);
                       await reloadFromServer();
                     } catch (err) {
-                      toastApiErr(err, 'Could not remove image.');
+                      toastApiErr(err, t('editor.toasts.imageRemoveFailed'));
                     }
                   })();
                 }}
               >
-                Remove
+                {t('remove', { ns: 'common' })}
               </button>
             </div>
           ))}
@@ -757,9 +761,9 @@ export function EventEditorPage() {
 
       {activeTab === 'layout' ? (
       <section className="rounded-3xl border border-ink-10 bg-surface-tint p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold text-ink">Layout &amp; schedule</h2>
+        <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.layout')}</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Field label="Layout type">
+          <Field label={t('editor.fields.layoutType')}>
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
               value={event.layoutType}
@@ -790,12 +794,12 @@ export function EventEditorPage() {
                 );
               }}
             >
-              <option value="grid">Grid</option>
-              <option value="section">Section</option>
-              <option value="free">Free</option>
+              <option value="grid">{t('layout.grid')}</option>
+              <option value="section">{t('layout.section')}</option>
+              <option value="free">{t('layout.free')}</option>
             </select>
           </Field>
-          <Field label="Rows (regen seats)">
+          <Field label={t('editor.fields.rowsRegenSeats')}>
             <input
               type="number"
               min={1}
@@ -826,7 +830,7 @@ export function EventEditorPage() {
               }}
             />
           </Field>
-          <Field label="Columns">
+          <Field label={t('editor.fields.columns')}>
             <input
               type="number"
               min={1}
@@ -869,12 +873,12 @@ export function EventEditorPage() {
         </div>
         {event.occurrences.length > 0 ? (
           <div className="mt-4 rounded-2xl border border-ink-10 bg-white p-4">
-            <h3 className="text-[14px] font-extrabold text-ink">Recurring occurrences</h3>
+            <h3 className="text-[14px] font-extrabold text-ink">{t('recurrence.occurrencesTitle')}</h3>
             <ul className="mt-2 space-y-2">
               {event.occurrences.map((occ) => (
                 <li key={occ.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink-10 px-3 py-2 text-[12px]">
-                  <span className="font-mono text-ink">{new Date(occ.startsAt).toLocaleString()}</span>
-                  <span className="rounded-full bg-ink-5 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-60">{occ.status}</span>
+                  <span className="font-mono text-ink">{formatDateTime(occ.startsAt, language)}</span>
+                  <span className="rounded-full bg-ink-5 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-60">{t(`recurrence.occurrenceStatus.${occ.status}`)}</span>
                   {occ.status !== 'cancelled' ? (
                     <button
                       type="button"
@@ -886,7 +890,7 @@ export function EventEditorPage() {
                         })();
                       }}
                     >
-                      Cancel occurrence
+                      {t('recurrence.cancelOccurrence')}
                     </button>
                   ) : null}
                 </li>
@@ -899,7 +903,7 @@ export function EventEditorPage() {
 
       {activeTab === 'seats' ? (
       <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold text-ink">Seat map</h2>
+        <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.seats')}</h2>
         <div className="mt-4">
           <SeatLayoutBuilder
             event={event}
@@ -933,9 +937,9 @@ export function EventEditorPage() {
 
       {activeTab === 'tickets' ? (
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
-        <h2 className="text-lg font-extrabold text-ink">Ticketing rules</h2>
+        <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.tickets')}</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Field label="Entry mode">
+          <Field label={t('editor.fields.entryMode')}>
             <select
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 text-[14px]"
               value={event.entryMode}
@@ -945,17 +949,17 @@ export function EventEditorPage() {
                 saveEventPatch({ entryMode });
               }}
             >
-              <option value="one_time">One-time entry</option>
-              <option value="multi_scan">Multi-scan</option>
+              <option value="one_time">{t('entryMode.one_time')}</option>
+              <option value="multi_scan">{t('entryMode.multi_scan')}</option>
             </select>
           </Field>
-          <Field label="Purchase limit / user (optional)">
+          <Field label={t('editor.fields.purchaseLimit')}>
             <input
               type="number"
               min={0}
               className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-[14px]"
               value={event.purchaseLimitPerUser ?? ''}
-              placeholder="Unlimited"
+              placeholder={t('editor.placeholders.unlimited')}
               onChange={(e) => {
                 const v = e.target.value;
                 updateLocal((cur) => ({ ...cur, purchaseLimitPerUser: v ? Number(v) : undefined }));
@@ -966,7 +970,7 @@ export function EventEditorPage() {
               }}
             />
           </Field>
-          <Field label="Multi-day ticketing">
+          <Field label={t('editor.fields.multiDayTicketing')}>
             <label className="mt-2 flex items-center gap-2 text-[14px] text-ink-60">
               <input
                 type="checkbox"
@@ -977,11 +981,11 @@ export function EventEditorPage() {
                   saveEventPatch({ multiDaySingleTicket });
                 }}
               />
-              One ticket covers full span (when applicable)
+              {t('editor.tickets.multiDayHint')}
             </label>
           </Field>
           {event.layoutType === 'free' ? (
-            <Field label="Max capacity">
+            <Field label={t('editor.fields.maxCapacity')}>
               <input
                 type="number"
                 className="mt-1 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-[14px]"
@@ -994,10 +998,8 @@ export function EventEditorPage() {
         </div>
         <div className="mt-5 rounded-2xl border border-ink-10 bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-[14px] font-extrabold text-ink">Ticket types</h3>
-            <span className="max-w-md text-[11px] text-ink-40">
-              Saved via <span className="font-mono">POST/PATCH/DELETE …/ticket-types</span> using canonical fields <span className="font-mono">name</span>, <span className="font-mono">price</span>, <span className="font-mono">quantity_limit</span> (≥1). Nested <span className="font-mono">ticket_types</span> on event PATCH is not supported by the API.
-            </span>
+            <h3 className="text-[14px] font-extrabold text-ink">{t('editor.tickets.ticketTypes')}</h3>
+            <span className="max-w-md text-[11px] text-ink-40">{t('editor.tickets.apiNote')}</span>
           </div>
           <div className="mt-3 space-y-2">
             {event.ticketTypes.map((tt) => (
@@ -1024,7 +1026,7 @@ export function EventEditorPage() {
                         });
                         await refreshTicketTypes();
                       } catch (err) {
-                        toastApiErr(err, 'Could not save ticket type.');
+                        toastApiErr(err, t('editor.toasts.ticketTypeSaveFailed'));
                       }
                     })();
                   }}
@@ -1051,7 +1053,7 @@ export function EventEditorPage() {
                         });
                         await refreshTicketTypes();
                       } catch (err) {
-                        toastApiErr(err, 'Could not save ticket type.');
+                        toastApiErr(err, t('editor.toasts.ticketTypeSaveFailed'));
                       }
                     })();
                   }}
@@ -1082,13 +1084,13 @@ export function EventEditorPage() {
                           });
                           await refreshTicketTypes();
                         } catch (err) {
-                          toastApiErr(err, 'Could not save ticket type.');
+                          toastApiErr(err, t('editor.toasts.ticketTypeSaveFailed'));
                         }
                       })();
                     }}
                   />
                 ) : (
-                  <div className="rounded-lg border border-ink-10 bg-ink-5 px-2 py-1.5 text-[11px] text-ink-40">Per-seat</div>
+                  <div className="rounded-lg border border-ink-10 bg-ink-5 px-2 py-1.5 text-[11px] text-ink-40">{t('editor.tickets.perSeat')}</div>
                 )}
                 <button
                   type="button"
@@ -1105,12 +1107,12 @@ export function EventEditorPage() {
                           updateLocal((cur) => (cur ? { ...cur, ticketTypes: next } : cur));
                         }
                       } catch (err) {
-                        toastApiErr(err, 'Could not remove ticket type.');
+                        toastApiErr(err, t('editor.toasts.ticketTypeRemoveFailed'));
                       }
                     })();
                   }}
                 >
-                  Remove
+                  {t('remove', { ns: 'common' })}
                 </button>
               </div>
             ))}
@@ -1118,7 +1120,7 @@ export function EventEditorPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <input
               className="min-w-[220px] flex-1 rounded-xl border border-ink-10 px-3 py-2 text-[13px]"
-              placeholder="New type label (e.g. Economy)"
+              placeholder={t('editor.placeholders.newTicketType')}
               value={newTicketTypeLabel}
               onChange={(e) => setNewTicketTypeLabel(e.target.value)}
             />
@@ -1139,24 +1141,24 @@ export function EventEditorPage() {
                     setNewTicketTypeLabel('');
                     await refreshTicketTypes();
                   } catch (err) {
-                    toastApiErr(err, 'Could not add ticket type.');
+                    toastApiErr(err, t('editor.toasts.ticketTypeAddFailed'));
                   }
                 })();
               }}
             >
-              Add type
+              {t('editor.tickets.addType')}
             </Button>
           </div>
           {event.layoutType === 'free' ? (
             <p className={`mt-3 text-[12px] ${freeValidation.ok ? 'text-mint-dark' : 'text-coral'}`}>
-              Free-layout quantities: {freeValidation.total} / {freeValidation.capacity}{' '}
-              {!freeValidation.ok ? '(exceeds capacity)' : '(within capacity)'}
+              {t('editor.tickets.freeLayoutQuantities', { total: freeValidation.total, capacity: freeValidation.capacity })}{' '}
+              {!freeValidation.ok ? t('editor.tickets.exceedsCapacity') : t('editor.tickets.withinCapacity')}
             </p>
           ) : null}
         </div>
         {event.status === 'sold_out' ? (
           <div className="mt-4 rounded-2xl border border-indigo/30 bg-indigo/10 p-4 text-[13px] text-ink">
-            <strong>Waitlist (demo)</strong>: {event.waitlistCount ?? 0} users are waiting for ticket availability.
+            {t('editor.tickets.waitlist', { count: event.waitlistCount ?? 0 })}
           </div>
         ) : null}
       </section>
@@ -1170,11 +1172,11 @@ export function EventEditorPage() {
         <>
       {showPostEventMedia ? (
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-          <h2 className="text-lg font-extrabold text-ink">Post-event media</h2>
+          <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.more')}</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             <input
               className="min-w-[200px] flex-1 rounded-xl border border-ink-10 px-3 py-2 text-[14px]"
-              placeholder="filename or label"
+              placeholder={t('editor.placeholders.filenameOrLabel')}
               value={mediaLabel}
               onChange={(e) => setMediaLabel(e.target.value)}
             />
@@ -1188,13 +1190,13 @@ export function EventEditorPage() {
                 saveEventPatch({ postEventMedia: nextMedia });
               }}
             >
-              Add media (demo)
+              {t('editor.more.addMediaDemo')}
             </Button>
           </div>
           <ul className="mt-3 text-[13px] text-ink-60">
             {event.postEventMedia.map((m, i) => (
               <li key={`${m.label}-${i}`}>
-                {m.kind}: {m.label}
+                {postEventMediaKindLabel(m.kind)}: {m.label}
               </li>
             ))}
           </ul>
@@ -1203,15 +1205,17 @@ export function EventEditorPage() {
 
       {notifications.length > 0 ? (
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-          <h2 className="text-lg font-extrabold text-ink">Buyer notifications (demo queue)</h2>
+          <h2 className="text-lg font-extrabold text-ink">{t('editor.notifications.title')}</h2>
           <ul className="mt-3 space-y-2">
             {notifications.slice(-5).reverse().map((n) => (
               <li key={n.id} className="rounded-xl border border-ink-10 bg-ink-5/40 px-3 py-2 text-[12px]">
                 <p className="font-semibold text-ink">
-                  {n.kind === 'cancelled' ? 'Event cancelled notice' : 'Post-publish update notice'} ·{' '}
-                  {new Date(n.createdAt).toLocaleString()}
+                  {n.kind === 'cancelled' ? t('editor.notifications.cancelledNotice') : t('editor.notifications.publishUpdateNotice')} ·{' '}
+                  {formatDateTime(n.createdAt, language)}
                 </p>
-                {n.changes?.length ? <p className="mt-1 text-ink-60">{n.changes.length} changed field(s) included in notification.</p> : null}
+                {n.changes?.length ? (
+                  <p className="mt-1 text-ink-60">{t('editor.notifications.changedFields', { count: n.changes.length })}</p>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -1220,7 +1224,7 @@ export function EventEditorPage() {
 
       {!moreHasContent ? (
         <section className="rounded-3xl border border-ink-10 bg-white p-6 shadow-card-sm">
-          <p className="text-[14px] text-ink-60">No post-event content yet. Post-event media appears when the event is ended or archived.</p>
+          <p className="text-[14px] text-ink-60">{t('editor.more.empty')}</p>
         </section>
       ) : null}
         </>

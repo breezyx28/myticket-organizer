@@ -12,6 +12,7 @@ import type { OrganizerUser } from '@/types/domain';
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import { Briefcase, Building2, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type ProfileTab = 'info' | 'venue' | 'organization' | 'documents';
 
@@ -55,6 +56,7 @@ function profileSaveFieldErrorsFromApi(e: unknown): Record<string, string> {
 }
 
 export function ProfilePage() {
+  const { t } = useTranslation(['profile', 'common']);
   const [p, setP] = useState<OrganizerUser | null>(null);
   const [resourceCtx, setResourceCtx] = useState<ProfileResourceContext | null>(null);
   const [saved, setSaved] = useState(false);
@@ -149,7 +151,7 @@ export function ProfilePage() {
     }));
   }, [p, galleryPreviewByKey]);
 
-  if (!p || !resourceCtx) return <div className="py-20 text-center text-ink-60">Loading…</div>;
+  if (!p || !resourceCtx) return <div className="py-20 text-center text-ink-60">{t('loading', { ns: 'common' })}</div>;
 
   const ok = isProfileComplete(p);
 
@@ -165,30 +167,28 @@ export function ProfilePage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">Account</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Organizer profile</h1>
-        <p className="mt-2 max-w-2xl text-[15px] text-ink-60">
-          Complete your profile before creating events. Use the tabs below; document and gallery files upload to the organizer API, and other changes apply when you save.
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('page.eyebrow')}</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t('page.title')}</h1>
+        <p className="mt-2 max-w-2xl text-[15px] text-ink-60">{t('page.description')}</p>
       </div>
 
       {!ok ? (
         <div className="rounded-3xl border border-coral/40 bg-coral/10 px-5 py-4 text-[14px] text-ink">
-          <strong>Incomplete.</strong> Upload your organization document and at least one gallery image (URLs are saved to your profile), add venue capacity &amp; facilities, and complete your organizer details. Use <strong>Save profile</strong> at the bottom after edits.
+          <strong>{t('status.incomplete.title')}</strong> {t('status.incomplete.body')}
         </div>
       ) : (
         <div className="rounded-3xl border border-mint/40 bg-mint/15 px-5 py-4 text-[14px] text-ink">
-          <strong>Profile complete.</strong> You can create and publish events.
+          <strong>{t('status.complete.title')}</strong> {t('status.complete.body')}
         </div>
       )}
 
       <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
         {(
           [
-            ['info', 'Info & contact', UserRound] as const,
-            ['venue', 'Venue', Building2] as const,
-            ['organization', 'Organization', Briefcase] as const,
-            ['documents', 'Documents & media', FolderOpen] as const,
+            ['info', t('tabs.info'), UserRound] as const,
+            ['venue', t('tabs.venue'), Building2] as const,
+            ['organization', t('tabs.organization'), Briefcase] as const,
+            ['documents', t('tabs.documents'), FolderOpen] as const,
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -215,7 +215,7 @@ export function ProfilePage() {
             setP(bundle.user);
             setResourceCtx(bundle.resourceCtx);
             setSaved(true);
-            toast.success('Profile saved');
+            toast.success(t('toasts.saved'));
             window.setTimeout(() => setSaved(false), 2000);
           } catch (err) {
             setSaveFieldErrors(profileSaveFieldErrorsFromApi(err));
@@ -225,12 +225,10 @@ export function ProfilePage() {
       >
         {tab === 'info' ? (
           <section className="space-y-6 p-6 md:p-8">
-            <h2 className="text-lg font-extrabold text-ink">Personal &amp; contact</h2>
+            <h2 className="text-lg font-extrabold text-ink">{t('sections.personalContact')}</h2>
             <div className="md:col-span-2">
-              <p className="text-[12px] font-semibold text-ink-60">Profile photo</p>
-              <p className="mt-0.5 text-[11px] text-ink-40">
-                Your account photo (JPEG, PNG, GIF, or WebP — max 4 MB). Separate from your public business logo.
-              </p>
+              <p className="text-[12px] font-semibold text-ink-60">{t('fields.profilePhoto')}</p>
+              <p className="mt-0.5 text-[11px] text-ink-40">{t('fields.profilePhotoHint')}</p>
               <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink-10 bg-ink-5 ring-1 ring-ink/5">
                   {profileImageDisplaySrc ? (
@@ -241,8 +239,8 @@ export function ProfilePage() {
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
                   <UploadTileInput
-                    title="Upload profile photo"
-                    subtitle="JPEG, PNG, GIF, or WebP — max 4 MB"
+                    title={t('upload.profilePhoto')}
+                    subtitle={t('upload.profilePhotoSubtitle')}
                     accept="image/jpeg,image/png,image/gif,image/webp"
                     onPick={(file) => {
                       void (async () => {
@@ -252,9 +250,9 @@ export function ProfilePage() {
                           const url = await uploadProfileImage(file);
                           setProfileImagePreviewUrl(null);
                           patch({ profileImageUrl: url });
-                          toast.success('Profile photo updated');
+                          toast.success(t('toasts.photoUpdated'));
                         } catch (err) {
-                          setProfileImageUploadError(err instanceof Error ? err.message : 'Profile photo upload failed');
+                          setProfileImageUploadError(err instanceof Error ? err.message : t('errors.photoUploadFailed'));
                           const url = trackPreview(URL.createObjectURL(file));
                           setProfileImagePreviewUrl(url);
                         }
@@ -282,10 +280,10 @@ export function ProfilePage() {
                             try {
                               await clearProfileImage();
                               patch({ profileImageUrl: '' });
-                              toast.success('Profile photo removed');
+                              toast.success(t('toasts.photoRemoved'));
                             } catch (err) {
                               setProfileImageUploadError(
-                                err instanceof Error ? err.message : 'Could not remove profile photo'
+                                err instanceof Error ? err.message : t('errors.photoRemoveFailed')
                               );
                             } finally {
                               setProfileImageRemoving(false);
@@ -293,7 +291,7 @@ export function ProfilePage() {
                           })();
                         }}
                       >
-                        {profileImageRemoving ? 'Removing…' : 'Remove'}
+                        {profileImageRemoving ? t('removing', { ns: 'common' }) : t('remove', { ns: 'common' })}
                       </button>
                     </div>
                   )}
@@ -302,7 +300,7 @@ export function ProfilePage() {
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               <label className="block text-[12px] font-semibold text-ink-60">
-                Display name
+                {t('fields.displayName')}
                 <input
                   className={cn(
                     'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
@@ -317,7 +315,7 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <div className="block text-[12px] font-semibold text-ink-60">
-                Phone
+                {t('fields.phone')}
                 <SaudiPhoneInput
                   className={cn(
                     'mt-1.5',
@@ -329,7 +327,7 @@ export function ProfilePage() {
                 {saveFieldErrors.phone ? <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.phone}</p> : null}
               </div>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Saudi region
+                {t('fields.saudiRegion')}
                 <select
                   className={cn(
                     'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
@@ -343,7 +341,7 @@ export function ProfilePage() {
                   }}
                   disabled={refRegionsLoading}
                 >
-                  <option value="">{refRegionsLoading ? 'Loading regions…' : 'Select region'}</option>
+                  <option value="">{refRegionsLoading ? t('select.loadingRegions') : t('select.selectRegion')}</option>
                   {refRegions.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -351,14 +349,14 @@ export function ProfilePage() {
                   ))}
                 </select>
                 {refRegionsError ? (
-                  <p className="mt-1 text-[11px] text-coral">Could not load regions. Check API base URL and try again.</p>
+                  <p className="mt-1 text-[11px] text-coral">{t('errors.regionsLoadFailed')}</p>
                 ) : null}
                 {saveFieldErrors.regionId ? (
                   <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.regionId}</p>
                 ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                City
+                {t('fields.city')}
                 <select
                   className={cn(
                     'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
@@ -374,10 +372,10 @@ export function ProfilePage() {
                 >
                   <option value="">
                     {!profileRegionId
-                      ? 'Choose a region first'
+                      ? t('select.chooseRegionFirst')
                       : profileCitiesFetching
-                        ? 'Loading cities…'
-                        : 'Select city'}
+                        ? t('select.loadingCities')
+                        : t('select.selectCity')}
                   </option>
                   {profileCities.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -390,10 +388,8 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <div className="md:col-span-2">
-                <p className="text-[12px] font-semibold text-ink-60">Business logo</p>
-                <p className="mt-0.5 text-[11px] text-ink-40">
-                  Public organizer logo for listings and branding — not your personal profile photo.
-                </p>
+                <p className="text-[12px] font-semibold text-ink-60">{t('fields.businessLogo')}</p>
+                <p className="mt-0.5 text-[11px] text-ink-40">{t('fields.businessLogoHint')}</p>
                 <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
                   <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-ink-10 bg-ink-5 ring-1 ring-ink/5">
                     {logoDisplaySrc ? (
@@ -406,8 +402,8 @@ export function ProfilePage() {
                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
                     <UploadTileInput
-                      title="Upload logo"
-                      subtitle="PNG, JPG, or WebP — max 4 MB"
+                      title={t('upload.logo')}
+                      subtitle={t('upload.logoSubtitle')}
                       accept="image/png,image/jpeg,image/webp"
                       onPick={(file) => {
                         void (async () => {
@@ -418,7 +414,7 @@ export function ProfilePage() {
                             setLogoPreviewUrl(null);
                             patch({ logoUrl: url });
                           } catch (err) {
-                            setLogoUploadError(err instanceof Error ? err.message : 'Logo upload failed');
+                            setLogoUploadError(err instanceof Error ? err.message : t('errors.logoUploadFailed'));
                             const url = trackPreview(URL.createObjectURL(file));
                             setLogoPreviewUrl(url);
                           }
@@ -439,7 +435,7 @@ export function ProfilePage() {
                             patch({ logoUrl: '' });
                           }}
                         >
-                          Remove
+                          {t('remove', { ns: 'common' })}
                         </button>
                       </div>
                     )}
@@ -447,7 +443,7 @@ export function ProfilePage() {
                 </div>
               </div>
               <label className="block text-[12px] font-semibold text-ink-60 md:col-span-2">
-                Bio (min 30 chars)
+                {t('fields.bio')}
                 <textarea
                   rows={5}
                   className={cn(
@@ -465,10 +461,10 @@ export function ProfilePage() {
 
         {tab === 'venue' ? (
           <section className="space-y-6 p-6 md:p-8">
-            <h2 className="text-lg font-extrabold text-ink">Venue details</h2>
+            <h2 className="text-lg font-extrabold text-ink">{t('sections.venueDetails')}</h2>
             <div className="grid gap-6 md:grid-cols-2">
               <label className="block text-[12px] font-semibold text-ink-60">
-                Venue name
+                {t('fields.venueName')}
                 <input
                   className={cn(
                     'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
@@ -486,7 +482,7 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Venue region
+                {t('fields.venueRegion')}
                 <select
                   className={cn(
                     'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
@@ -507,7 +503,7 @@ export function ProfilePage() {
                   }}
                   disabled={refRegionsLoading}
                 >
-                  <option value="">{refRegionsLoading ? 'Loading regions…' : 'Select region'}</option>
+                  <option value="">{refRegionsLoading ? t('select.loadingRegions') : t('select.selectRegion')}</option>
                   {refRegions.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -519,7 +515,7 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Venue city
+                {t('fields.venueCity')}
                 <select
                   className={cn(
                     'mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5 text-[14px]',
@@ -543,10 +539,10 @@ export function ProfilePage() {
                 >
                   <option value="">
                     {!venueRegionId && !p.venue?.regionId
-                      ? 'Choose a region first'
+                      ? t('select.chooseRegionFirst')
                       : venueCitiesFetching
-                        ? 'Loading cities…'
-                        : 'Select city'}
+                        ? t('select.loadingCities')
+                        : t('select.selectCity')}
                   </option>
                   {venueCities.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -559,7 +555,7 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60 md:col-span-2">
-                Address
+                {t('fields.address')}
                 <input
                   className={cn(
                     'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
@@ -580,7 +576,7 @@ export function ProfilePage() {
                 visible={tab === 'venue'}
                 latitude={p.venue?.latitude ?? null}
                 longitude={p.venue?.longitude ?? null}
-                hint="Values are stored when you save the profile."
+                hint={t('map.coordinatesHint')}
                 onCoordinatesChange={(lat, lng) =>
                   patch({
                     venue: {
@@ -598,7 +594,7 @@ export function ProfilePage() {
                 }
               />
               <label className="block text-[12px] font-semibold text-ink-60">
-                Max audience capacity
+                {t('fields.maxCapacity')}
                 <input
                   type="number"
                   min={0}
@@ -621,12 +617,12 @@ export function ProfilePage() {
                 ) : null}
               </label>
               <div className="md:col-span-2">
-                <p className="text-[12px] font-semibold text-ink-60">Facilities</p>
-                <p className="mt-0.5 text-[11px] text-ink-40">Add amenities (Enter or Add), required for a complete profile.</p>
+                <p className="text-[12px] font-semibold text-ink-60">{t('fields.facilities')}</p>
+                <p className="mt-0.5 text-[11px] text-ink-40">{t('fields.facilitiesHint')}</p>
                 <div className="mt-2 flex gap-2">
                   <input
                     className="min-w-0 flex-1 rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
-                    placeholder="e.g. VIP boxes"
+                    placeholder={t('fields.facilitiesPlaceholder')}
                     value={facilityInput}
                     onChange={(e) => setFacilityInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -666,7 +662,7 @@ export function ProfilePage() {
                       setFacilityInput('');
                     }}
                   >
-                    Add
+                    {t('actions.add')}
                   </Button>
                 </div>
                 <ul className="mt-3 flex flex-wrap gap-2">
@@ -700,13 +696,11 @@ export function ProfilePage() {
 
         {tab === 'organization' ? (
           <section className="space-y-6 p-6 md:p-8">
-            <h2 className="text-lg font-extrabold text-ink">Organization</h2>
-            <p className="max-w-2xl text-[12px] text-ink-60">
-              Social links are saved via the organizer API when you click <strong>Save profile</strong> at the bottom of the page.
-            </p>
+            <h2 className="text-lg font-extrabold text-ink">{t('sections.organization')}</h2>
+            <p className="max-w-2xl text-[12px] text-ink-60">{t('organization.socialSaveHint')}</p>
             <div className="grid gap-6 md:grid-cols-2">
               <label className="block text-[12px] font-semibold text-ink-60">
-                Website
+                {t('fields.website')}
                 <input
                   className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
                   value={p.organization?.website ?? ''}
@@ -714,7 +708,7 @@ export function ProfilePage() {
                 />
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Instagram
+                {t('fields.instagram')}
                 <input
                   className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
                   value={p.organization?.instagram ?? ''}
@@ -722,7 +716,7 @@ export function ProfilePage() {
                 />
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Twitter / X
+                {t('fields.twitter')}
                 <input
                   className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
                   value={p.organization?.twitter ?? ''}
@@ -730,7 +724,7 @@ export function ProfilePage() {
                 />
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                TikTok
+                {t('fields.tiktok')}
                 <input
                   className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
                   value={p.organization?.tiktok ?? ''}
@@ -738,7 +732,7 @@ export function ProfilePage() {
                 />
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
-                Typical event duration (hours)
+                {t('fields.typicalDuration')}
                 <input
                   type="number"
                   min={0}
@@ -760,13 +754,11 @@ export function ProfilePage() {
 
         {tab === 'documents' ? (
           <section className="space-y-8 p-6 md:p-8">
-            <h2 className="text-lg font-extrabold text-ink">Documents &amp; media</h2>
+            <h2 className="text-lg font-extrabold text-ink">{t('sections.documentsMedia')}</h2>
 
             <div className="space-y-3">
-              <p className="text-[12px] font-semibold text-ink-60">Organization document (required)</p>
-              <p className="text-[11px] text-ink-40">
-                PDF or image — uploads immediately to the organizer API, then the public URL is stored when you save the profile.
-              </p>
+              <p className="text-[12px] font-semibold text-ink-60">{t('fields.organizationDocument')}</p>
+              <p className="text-[11px] text-ink-40">{t('fields.organizationDocumentHint')}</p>
               {docUploadError ? <p className="text-[12px] text-coral">{docUploadError}</p> : null}
               {saveFieldErrors.organizationDocument ? (
                 <p className="text-[12px] font-medium text-coral">{saveFieldErrors.organizationDocument}</p>
@@ -777,7 +769,7 @@ export function ProfilePage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-ink">{displayFileLabel(p.organizationDocument)}</p>
                     <p className="text-[11px] text-ink-40">
-                      {/^https?:\/\//i.test(p.organizationDocument) ? 'Stored URL' : 'Not uploaded yet'}
+                      {/^https?:\/\//i.test(p.organizationDocument) ? t('upload.storedUrl') : t('upload.notUploadedYet')}
                     </p>
                   </div>
                   <button
@@ -788,13 +780,13 @@ export function ProfilePage() {
                       patch({ organizationDocument: '' });
                     }}
                   >
-                    Remove
+                    {t('remove', { ns: 'common' })}
                   </button>
                 </div>
               ) : null}
               <UploadTileInput
-                title={docUploading ? 'Uploading…' : 'Upload organization document'}
-                subtitle="PDF, scan, or photo of CR / permit (max 12 MB)"
+                title={docUploading ? t('uploading', { ns: 'common' }) : t('upload.organizationDocument')}
+                subtitle={t('upload.organizationDocumentSubtitle')}
                 accept="image/*,.pdf,application/pdf"
                 className={docUploading ? 'pointer-events-none opacity-60' : undefined}
                 onPick={(file) => {
@@ -805,7 +797,7 @@ export function ProfilePage() {
                       patch({ organizationDocument: url });
                     })
                     .catch((err: unknown) => {
-                      setDocUploadError(err instanceof Error ? err.message : 'Document upload failed.');
+                      setDocUploadError(err instanceof Error ? err.message : t('errors.documentUploadFailed'));
                     })
                     .finally(() => setDocUploading(false));
                 }}
@@ -813,13 +805,11 @@ export function ProfilePage() {
             </div>
 
             <div className="space-y-3 border-t border-ink-10 pt-8">
-              <p className="text-[12px] font-semibold text-ink-60">Gallery images</p>
-              <p className="text-[11px] text-ink-40">
-                Each image uploads to the organizer API when selected; public URLs are appended to your profile. Remove items you do not want, then use <strong>Save profile</strong> to persist the gallery list.
-              </p>
+              <p className="text-[12px] font-semibold text-ink-60">{t('fields.galleryImages')}</p>
+              <p className="text-[11px] text-ink-40">{t('fields.galleryHint')}</p>
               {galleryUploadError ? <p className="text-[12px] text-coral">{galleryUploadError}</p> : null}
               {saveFieldErrors.gallery ? <p className="text-[12px] font-medium text-coral">{saveFieldErrors.gallery}</p> : null}
-              {galleryUploading ? <p className="text-[12px] text-ink-60">Uploading images…</p> : null}
+              {galleryUploading ? <p className="text-[12px] text-ink-60">{t('errors.uploadingImages')}</p> : null}
               <GalleryDropZone
                 items={galleryItems}
                 onAddFiles={(files) => {
@@ -835,7 +825,7 @@ export function ProfilePage() {
                         setGalleryPreviewByKey((prev) => ({ ...prev, [url]: url }));
                       }
                     } catch (err: unknown) {
-                      setGalleryUploadError(err instanceof Error ? err.message : 'Gallery upload failed.');
+                      setGalleryUploadError(err instanceof Error ? err.message : t('errors.galleryUploadFailed'));
                     } finally {
                       setGalleryUploading(false);
                     }
@@ -858,9 +848,9 @@ export function ProfilePage() {
 
         <div className="flex flex-wrap items-center gap-3 border-t border-ink-10 bg-ink-5/30 px-6 py-5 md:px-8">
           <Button type="submit" variant="dark" size="md">
-            Save profile
+            {t('actions.saveProfile')}
           </Button>
-          {saved ? <span className="text-[13px] font-semibold text-mint-dark">Saved</span> : null}
+          {saved ? <span className="text-[13px] font-semibold text-mint-dark">{t('saved', { ns: 'common' })}</span> : null}
         </div>
       </form>
     </div>

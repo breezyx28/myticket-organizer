@@ -3,6 +3,10 @@ import { readNum, readString, toIdString } from '@/lib/api/json';
 import { organizerApi } from '@/store/api/organizerApi';
 import type { LaravelPaginatorUnknown } from '@/schemas/organizer/responses/shared';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
+import { getApiLanguage } from '@/lib/locale/apiHeaders';
+import { formatNumber } from '@/lib/locale/format';
+import { tNs } from '@/lib/i18n/translateNs';
+import type { AppLocale } from '@/config/locale';
 
 const delay = (ms = 80) => new Promise((r) => setTimeout(r, ms));
 
@@ -63,7 +67,7 @@ export async function listBankAccountsForFinance(): Promise<BankAccountRowView[]
     return rows.map((row, i) => {
       const o = asRecord(row) ?? {};
       const id = toIdString(o.id) || String(i);
-      const bankName = readString(o, 'bank_name', 'bankName', 'name', 'label') || 'Bank account';
+      const bankName = readString(o, 'bank_name', 'bankName', 'name', 'label') || tNs('finance', 'bankAccounts.unnamed');
       const last4 = readString(o, 'iban_last4', 'ibanLast4', 'account_last4', 'last4');
       const iban = readString(o, 'iban', 'account_number', 'accountNumber');
       const masked =
@@ -94,7 +98,7 @@ export async function listPayoutsPageForFinance(page = 1): Promise<{ rows: Payou
       const id = toIdString(o.id) || String(i);
       const status = readString(o, 'status', 'state') || '—';
       const amountNum = readNum(o, 'amount', 'total', 'net_amount', 'gross_amount');
-      const amount = amountNum != null ? `SAR ${amountNum.toLocaleString()}` : readString(o, 'amount_display', 'amountDisplay') || '—';
+      const amount = amountNum != null ? `SAR ${formatNumber(amountNum, getApiLanguage() as AppLocale)}` : readString(o, 'amount_display', 'amountDisplay') || '—';
       const at = readString(o, 'created_at', 'createdAt', 'paid_at', 'paidAt') || '—';
       return { id, status, amount, at };
     });

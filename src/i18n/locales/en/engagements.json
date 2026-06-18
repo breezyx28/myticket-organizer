@@ -1,0 +1,55 @@
+{
+  "page": {
+    "eyebrow": "Hiring",
+    "title": "Engagements",
+    "description": "Talent and vendor requests you started. Chat here to coordinate bookings.",
+    "unread": "{{count}} unread"
+  },
+  "inbox": {
+    "requests": "Requests",
+    "emptyTitle": "No requests yet",
+    "emptyBody": "Browse talents and vendors from an event's Partners tab.",
+    "goToEvents": "Go to events",
+    "selectPrompt": "Select a request from the list to open the conversation."
+  },
+  "status": {
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "counterpart": {
+    "partner": "Partner"
+  },
+  "thread": {
+    "backToInbox": "← Back to inbox",
+    "withCounterpart": "with {{name}}",
+    "viewLinkedEvent": "View linked event",
+    "cancelRequest": "Cancel request",
+    "cancelConfirm": "Cancel this hiring request? The conversation will be closed.",
+    "cancelSuccess": "Request cancelled.",
+    "notDelivered": "Not delivered",
+    "emptyMessages": "No messages yet. Say hello to start the conversation.",
+    "messagePlaceholder": "Write a message…",
+    "send": "Send",
+    "closedHint": "This conversation is closed.",
+    "loadFailed": "Could not load conversation.",
+    "sendFailed": "Message could not be sent."
+  },
+  "startDialog": {
+    "title": "Start hiring request",
+    "description": "Start a hiring conversation with {{name}}. They will receive a notification and can reply in chat.",
+    "subject": "Subject",
+    "brief": "Brief",
+    "message": "Intro message",
+    "defaultTopic": {
+      "talent": "Talent for {{eventTitle}}",
+      "vendor": "Vendor for {{eventTitle}}"
+    },
+    "fallbackTopic": "Request {{name}}",
+    "subjectPlaceholder": "e.g. Wedding singer",
+    "briefPlaceholder": "Describe what you need, dates, budget, etc.",
+    "messagePlaceholder": "Hi, are you available for our event?",
+    "submit": "Send request",
+    "sending": "Sending…",
+    "success": "Request sent — open Engagements to continue the chat."
+  }
+}

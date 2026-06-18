@@ -22,20 +22,29 @@ import { toast } from '@/lib/appToast';
 import type { OrganizerEvent, ScannerAccount } from '@/types/domain';
 import { cn } from '@/lib/utils';
 import { ScanLine, UserPlus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDateTime } from '@/lib/locale/format';
 
 type ScannerTab = 'accounts' | 'assign' | 'logs';
 
 const LIVE_STATUSES = new Set(['published', 'sold_out', 'in_progress']);
 
-const TAB_ITEMS: { id: ScannerTab; label: string }[] = [
-  { id: 'accounts', label: 'Accounts' },
-  { id: 'assign', label: 'Assignments' },
-  { id: 'logs', label: 'Scan logs' },
+const TAB_ITEMS: { id: ScannerTab; labelKey: 'tabs.accounts' | 'tabs.assignments' | 'tabs.scanLogs' }[] = [
+  { id: 'accounts', labelKey: 'tabs.accounts' },
+  { id: 'assign', labelKey: 'tabs.assignments' },
+  { id: 'logs', labelKey: 'tabs.scanLogs' },
 ];
 
 export function ScannerManagementPage() {
+  const { t } = useTranslation(['scanners', 'common']);
+  const { language } = useLocale();
+  const tabItems = useMemo(
+    () => TAB_ITEMS.map((item) => ({ id: item.id, label: t(item.labelKey) })),
+    [t]
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const focusEventId = searchParams.get('eventId') ?? '';
   const [scanners, setScanners] = useState<ScannerAccount[]>([]);
@@ -107,41 +116,40 @@ export function ScannerManagementPage() {
   return (
     <div className="space-y-8">
       <ScannerPageHeader
-        eyebrow="Operations"
-        title="Scanner management"
-        description="Gate staff accounts, per-event assignments, and check-in history for your live events."
+        eyebrow={t('page.eyebrow')}
+        title={t('page.title')}
+        description={t('page.description')}
         action={
           tab === 'accounts' ? (
             <Button variant="dark" size="md" className="gap-2" onClick={openCreateStaff}>
               <UserPlus className="h-4 w-4" strokeWidth={2} aria-hidden />
-              Add gate staff
+              {t('page.addGateStaff')}
             </Button>
           ) : null
         }
       />
 
       <ScannerMetricStrip>
-        <ScannerMetricCard label="Gate staff" value={String(scanners.length)} accent="bg-sky/20" />
-        <ScannerMetricCard label="Active" value={String(activeStaff)} accent="bg-mint/25" />
-        <ScannerMetricCard label="Live events" value={String(events.length)} accent="bg-lemon/30" />
-        <ScannerMetricCard label="Recent scans" value={String(logs.length)} accent="bg-ink-5/60" />
+        <ScannerMetricCard label={t('metrics.gateStaff')} value={String(scanners.length)} accent="bg-sky/20" />
+        <ScannerMetricCard label={t('metrics.active')} value={String(activeStaff)} accent="bg-mint/25" />
+        <ScannerMetricCard label={t('metrics.liveEvents')} value={String(events.length)} accent="bg-lemon/30" />
+        <ScannerMetricCard label={t('metrics.recentScans')} value={String(logs.length)} accent="bg-ink-5/60" />
       </ScannerMetricStrip>
 
       {focusEventId ? (
         <ScannerFocusBanner
           action={
             <Button type="button" variant="outline" size="sm" onClick={() => goToAssignments(focusEventId)}>
-              View assignments
+              {t('focus.viewAssignments')}
             </Button>
           }
         >
-          Focused on <strong className="font-bold">{focusTitle ?? 'this event'}</strong> — assign staff in the
-          Assignments tab.
+          {t('focus.body', { event: focusTitle ?? t('focus.thisEvent') })}
         </ScannerFocusBanner>
       ) : null}
 
       <ScannerMainPanel>
-        <ScannerTabNav tabs={TAB_ITEMS} active={tab} onChange={setTab} />
+        <ScannerTabNav tabs={tabItems} active={tab} onChange={setTab} />
 
         <ScannerPanelBody>
           {tab === 'accounts' ? (
@@ -165,23 +173,23 @@ export function ScannerManagementPage() {
           {tab === 'logs' ? (
             <div>
               <div className="mb-5">
-                <h2 className="text-lg font-extrabold text-ink">Scan activity</h2>
-                <p className="mt-1 text-[13px] text-ink-60">Last 30 check-ins across live events.</p>
+                <h2 className="text-lg font-extrabold text-ink">{t('logs.title')}</h2>
+                <p className="mt-1 text-[13px] text-ink-60">{t('logs.subtitle')}</p>
               </div>
               {logs.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-ink-20 bg-ink-5/25 px-6 py-12 text-center">
                   <ScanLine className="mx-auto h-8 w-8 text-ink-30" strokeWidth={1.5} aria-hidden />
-                  <p className="mt-3 text-[14px] font-semibold text-ink">No scans yet</p>
-                  <p className="mt-1 text-[13px] text-ink-50">Activity appears here once tickets are scanned at the gate.</p>
+                  <p className="mt-3 text-[14px] font-semibold text-ink">{t('logs.emptyTitle')}</p>
+                  <p className="mt-1 text-[13px] text-ink-50">{t('logs.emptyBody')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-2xl border border-ink-10">
-                  <table className="w-full min-w-[520px] border-collapse text-left text-[13px]">
+                  <table className="w-full min-w-[520px] border-collapse text-start text-[13px]">
                     <thead>
                       <tr className="border-b border-ink-10 bg-ink-5/50 text-[11px] font-bold uppercase tracking-wide text-ink-50">
-                        <th className="px-4 py-3">Ticket</th>
-                        <th className="px-4 py-3">Result</th>
-                        <th className="px-4 py-3">Time</th>
+                        <th className="px-4 py-3">{t('logs.table.ticket')}</th>
+                        <th className="px-4 py-3">{t('logs.table.result')}</th>
+                        <th className="px-4 py-3">{t('logs.table.time')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink-10">
@@ -195,10 +203,10 @@ export function ScannerManagementPage() {
                                 l.result === 'ok' ? 'bg-mint/25 text-ink' : 'bg-coral/15 text-coral'
                               )}
                             >
-                              {l.result}
+                              {t(`results.${l.result}`)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-ink-60">{new Date(l.at).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-ink-60">{formatDateTime(l.at, language)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -212,11 +220,8 @@ export function ScannerManagementPage() {
 
       {openCreateDialog ? (
         <ScannerDialogOverlay>
-          <h3 className="text-xl font-extrabold text-ink">Add gate staff</h3>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-60">
-            A login password is generated and emailed unless you set one below. Staff sign in at the scanner app with
-            this email.
-          </p>
+          <h3 className="text-xl font-extrabold text-ink">{t('create.title')}</h3>
+          <p className="mt-2 text-[14px] leading-relaxed text-ink-60">{t('create.description')}</p>
           <form
             className="mt-6 space-y-4"
             onSubmit={(e) => {
@@ -225,10 +230,10 @@ export function ScannerManagementPage() {
               const nm = name.trim();
               const em = email.trim();
               const pw = password.trim();
-              if (!nm) next.name = 'Name is required.';
-              if (!em) next.email = 'Email is required.';
-              else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) next.email = 'Enter a valid email address.';
-              if (pw && pw.length < 8) next.password = 'Password must be at least 8 characters.';
+              if (!nm) next.name = t('create.validation.nameRequired');
+              if (!em) next.email = t('create.validation.emailRequired');
+              else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) next.email = t('create.validation.emailInvalid');
+              if (pw && pw.length < 8) next.password = t('create.validation.passwordMinLength');
               if (Object.keys(next).length > 0) {
                 setScannerFieldErrors(next);
                 return;
@@ -246,9 +251,9 @@ export function ScannerManagementPage() {
                   });
                   setOpenCreateDialog(false);
                   if (result.credentialsEmailed) {
-                    toast.success(`Login details were sent to ${em}.`);
+                    toast.success(t('toasts.credentialsEmailed', { email: em }));
                   } else {
-                    toast.success('Scanner account created.');
+                    toast.success(t('toasts.accountCreated'));
                   }
                   await reload();
                 } catch (err) {
@@ -271,7 +276,7 @@ export function ScannerManagementPage() {
             }}
           >
             <ScannerFormLabel error={scannerFieldErrors.name}>
-              Name
+              {t('create.fields.name')}
               <input
                 className={scannerInputErrorClass(Boolean(scannerFieldErrors.name))}
                 value={name}
@@ -283,7 +288,7 @@ export function ScannerManagementPage() {
               />
             </ScannerFormLabel>
             <ScannerFormLabel error={scannerFieldErrors.email}>
-              Email (scanner app login)
+              {t('create.fields.email')}
               <input
                 type="email"
                 className={scannerInputErrorClass(Boolean(scannerFieldErrors.email))}
@@ -295,13 +300,13 @@ export function ScannerManagementPage() {
               />
             </ScannerFormLabel>
             <ScannerFormLabel error={scannerFieldErrors.password}>
-              Password (optional)
+              {t('create.fields.password')}
               <PasswordInput
                 autoComplete="new-password"
                 className={scannerInputErrorClass(Boolean(scannerFieldErrors.password))}
                 hasError={Boolean(scannerFieldErrors.password)}
                 value={password}
-                placeholder="Leave blank to email a generated password"
+                placeholder={t('create.fields.passwordPlaceholder')}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setScannerFieldErrors((c) => ({ ...c, password: undefined }));
@@ -309,17 +314,17 @@ export function ScannerManagementPage() {
               />
             </ScannerFormLabel>
             <ScannerFormLabel>
-              Gate label (optional)
+              {t('create.fields.gateLabel')}
               <input
                 className={scannerInputErrorClass(false)}
                 value={gateLabel}
-                placeholder="e.g. North Entrance"
+                placeholder={t('create.fields.gateLabelPlaceholder')}
                 onChange={(e) => setGateLabel(e.target.value)}
               />
             </ScannerFormLabel>
             {events.length > 0 ? (
               <fieldset className="rounded-2xl border border-ink-10 bg-ink-5/25 px-4 py-4">
-                <legend className="px-1 text-[12px] font-semibold text-ink-60">Assign on create (optional)</legend>
+                <legend className="px-1 text-[12px] font-semibold text-ink-60">{t('create.fields.assignEvents')}</legend>
                 <ul className="mt-3 max-h-32 space-y-2 overflow-y-auto">
                   {events.map((ev) => (
                     <li key={ev.id}>
@@ -339,10 +344,10 @@ export function ScannerManagementPage() {
             ) : null}
             <div className="flex flex-col-reverse gap-2 border-t border-ink-10 pt-4 sm:flex-row sm:justify-end">
               <Button variant="ghost" type="button" size="md" onClick={() => setOpenCreateDialog(false)} disabled={creating}>
-                Cancel
+                {t('cancel', { ns: 'common' })}
               </Button>
               <Button type="submit" variant="dark" size="md" disabled={creating}>
-                {creating ? 'Creating…' : 'Create & send login'}
+                {creating ? t('create.creating') : t('create.submit')}
               </Button>
             </div>
           </form>

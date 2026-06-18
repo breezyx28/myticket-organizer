@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { useGetTalentQuery, useGetVendorQuery } from '@/store/api/mainMarketplaceApi';
 import { MapPin, Star, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function MarketplaceProfileDrawer({
   open,
@@ -15,6 +16,7 @@ export function MarketplaceProfileDrawer({
   onClose: () => void;
   onRequest: () => void;
 }) {
+  const { t } = useTranslation(['marketplace', 'common']);
   const talent = useGetTalentQuery(slug, { skip: !open || kind !== 'talent' });
   const vendor = useGetVendorQuery(slug, { skip: !open || kind !== 'vendor' });
   const listing = kind === 'talent' ? talent.data : vendor.data;
@@ -24,22 +26,22 @@ export function MarketplaceProfileDrawer({
 
   return (
     <div className="fixed inset-0 z-[110] flex justify-end bg-ink/40 p-0 sm:p-4">
-      <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
+      <button type="button" className="absolute inset-0" aria-label={t('drawer.close')} onClick={onClose} />
       <aside className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-card-xl sm:max-h-[90dvh] sm:rounded-3xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink-10 bg-white px-5 py-4">
-          <h3 className="text-lg font-extrabold text-ink">{kind === 'talent' ? 'Talent profile' : 'Vendor profile'}</h3>
+          <h3 className="text-lg font-extrabold text-ink">{kind === 'talent' ? t('drawer.talentProfile') : t('drawer.vendorProfile')}</h3>
           <button
             type="button"
             className="rounded-full border border-ink-10 p-2 text-ink-60 hover:bg-ink-5"
             onClick={onClose}
-            aria-label="Close drawer"
+            aria-label={t('drawer.close')}
           >
             <X className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
         <div className="p-5">
           {loading ? (
-            <p className="text-[14px] text-ink-50">Loading…</p>
+            <p className="text-[14px] text-ink-50">{t('loading', { ns: 'common' })}</p>
           ) : listing ? (
             <>
               {listing.coverImageUrl ? (
@@ -66,11 +68,11 @@ export function MarketplaceProfileDrawer({
                 ) : null}
               </div>
               <Button type="button" variant="dark" size="md" className="mt-6 w-full" onClick={onRequest}>
-                Request for event
+                {kind === 'talent' ? t('drawer.requestTalent') : t('drawer.requestVendor')}
               </Button>
             </>
           ) : (
-            <p className="text-[14px] text-ink-50">Profile not found.</p>
+            <p className="text-[14px] text-ink-50">{t('drawer.notFound')}</p>
           )}
         </div>
       </aside>

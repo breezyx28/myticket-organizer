@@ -1,0 +1,292 @@
+{
+  "list": {
+    "eyebrow": "Events",
+    "title": "My events",
+    "description": "Create, publish, edit, duplicate, cancel, and archive against the organizer API.",
+    "createEvent": "Create event",
+    "completeProfileFirst": "Complete profile first",
+    "profileIncomplete": {
+      "title": "Profile incomplete.",
+      "body": "Finish your organizer profile before creating events.",
+      "openProfile": "Open profile"
+    },
+    "table": {
+      "event": "Event",
+      "dateTime": "Date & time",
+      "category": "Category",
+      "entry": "Entry",
+      "status": "Status",
+      "sold": "Sold",
+      "actions": "Actions",
+      "to": "to",
+      "unknownCity": "Unknown city",
+      "uncategorized": "Uncategorized",
+      "openActions": "Open actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "cancel": "Cancel",
+      "archive": "Archive",
+      "delete": "Delete",
+      "cancelDisabledTitle": "Event is already cancelled or archived",
+      "cancelTitle": "Cancel event",
+      "archiveTitle": "Archive event",
+      "archiveDisabledTitle": "Archive is allowed only when event status is ended",
+      "deleteTitle": "Delete event",
+      "deleteDisabledTitle": "Delete is allowed only for draft or rejected events"
+    },
+    "empty": "No events on this page.",
+    "pagination": {
+      "pageOf": "Page {{current}} of {{last}}",
+      "eventsTotal": "{{total}} events total",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "confirm": {
+      "archiveTitle": "Archive event?",
+      "cancelTitle": "Cancel event?",
+      "deleteTitle": "Delete event?",
+      "archiveBody": "Archive \"{{title}}\"? This follows lifecycle transition rules on the server.",
+      "cancelBody": "Cancel \"{{title}}\"? This follows lifecycle transition rules on the server.",
+      "deleteBody": "Delete \"{{title}}\" permanently? This is allowed only for draft or rejected events.",
+      "confirmArchive": "Archive",
+      "confirmCancel": "Cancel event",
+      "confirmDelete": "Delete"
+    }
+  },
+  "archive": {
+    "eyebrow": "Events",
+    "title": "Archive",
+    "description": "Hidden from public discovery — duplicate to spin up the next edition."
+  },
+  "editor": {
+    "new": {
+      "eyebrow": "New event",
+      "title": "Create event",
+      "description": "Set a title and schedule, then continue to the full editor. The draft is created when you continue.",
+      "titleField": "Title",
+      "titlePlaceholder": "e.g. Summer night concert",
+      "starts": "Starts",
+      "ends": "Ends",
+      "createDraft": "Create draft & continue"
+    },
+    "tabs": {
+      "basics": "Basics",
+      "media": "Media",
+      "layout": "Layout",
+      "seats": "Seats",
+      "tickets": "Tickets",
+      "partners": "Partners",
+      "more": "More"
+    },
+    "statusLine": "{{status}} · Sold: {{sold}} · Entry: {{entryMode}}",
+    "upload": {
+      "cover": "Upload cover image",
+      "coverUploading": "Uploading cover…",
+      "galleryAdd": "Add gallery images",
+      "galleryUploading": "Uploading…"
+    },
+    "eyebrow": "Event editor",
+    "submitForReview": "Submit for review",
+    "nextLifecycle": "Next lifecycle",
+    "nextLifecycleTitle": "Draft/rejected → submit for approval; ended → archive",
+    "lifecycle": {
+      "title": "Lifecycle",
+      "bodyIntro": "— Submitting sends the event to",
+      "pendingApproval": "pending approval",
+      "bodyOutro": " (not published until an admin approves). Cancel and archive use dedicated API routes; arbitrary status is not PATCHable from the organizer app.",
+      "assignScanners": "Assign scanners"
+    },
+    "concurrentTab": {
+      "title": "This event is open in another tab or window",
+      "body": "Another editor may have saved changes. Reload to see the latest server copy, or keep editing here — your unsaved fields stay on this screen until you save.",
+      "reload": "Reload from server",
+      "dismiss": "Dismiss"
+    },
+    "fields": {
+      "title": "Title",
+      "category": "Category",
+      "venue": "Venue",
+      "region": "Region",
+      "city": "City",
+      "starts": "Starts",
+      "ends": "Ends",
+      "description": "Description",
+      "layoutType": "Layout type",
+      "rows": "Rows",
+      "rowsRegenSeats": "Rows (regen seats)",
+      "columns": "Columns",
+      "coverImage": "Cover image",
+      "entryMode": "Entry mode",
+      "purchaseLimit": "Purchase limit / user (optional)",
+      "multiDayTicketing": "Multi-day ticketing",
+      "maxCapacity": "Max capacity"
+    },
+    "placeholders": {
+      "selectCategory": "Select category",
+      "selectRegion": "Select region",
+      "selectCity": "Select city",
+      "chooseRegionFirst": "Choose a region first",
+      "unlimited": "Unlimited",
+      "newTicketType": "New type label (e.g. Economy)",
+      "filenameOrLabel": "filename or label",
+      "locationAutoSave": "Location updates save automatically shortly after you pick a place or finish moving the pin."
+    },
+    "media": {
+      "uploadHint": "Upload JPG, PNG, or WEBP images only. Maximum file size is 6 MB per image.",
+      "coverProgress": "{{percent}}% uploaded",
+      "replaceCoverTitle": "Replace cover image",
+      "replace": "Replace",
+      "currentCover": "Current cover image"
+    },
+    "tickets": {
+      "ticketTypes": "Ticket types",
+      "apiNote": "Saved via POST/PATCH/DELETE …/ticket-types using canonical fields name, price, quantity_limit (≥1). Nested ticket_types on event PATCH is not supported by the API.",
+      "perSeat": "Per-seat",
+      "addType": "Add type",
+      "multiDayHint": "One ticket covers full span (when applicable)",
+      "freeLayoutQuantities": "Free-layout quantities: {{total}} / {{capacity}}",
+      "exceedsCapacity": "(exceeds capacity)",
+      "withinCapacity": "(within capacity)",
+      "waitlist": "Waitlist (demo): {{count}} users are waiting for ticket availability."
+    },
+    "more": {
+      "addMediaDemo": "Add media (demo)",
+      "empty": "No post-event content yet. Post-event media appears when the event is ended or archived."
+    },
+    "notifications": {
+      "title": "Buyer notifications (demo queue)",
+      "cancelledNotice": "Event cancelled notice",
+      "publishUpdateNotice": "Post-publish update notice",
+      "changedFields": "{{count}} changed field(s) included in notification."
+    },
+    "validation": {
+      "titleRequired": "Title is required.",
+      "startsRequired": "Start date/time is required.",
+      "endsRequired": "End date/time is required.",
+      "endsAfterStarts": "End time must be after start time."
+    },
+    "toasts": {
+      "saveFailed": "Could not save changes.",
+      "submitFailed": "Submit failed.",
+      "archiveFailed": "Archive failed.",
+      "lifecycleFailed": "Lifecycle step failed.",
+      "coverUploadFailed": "Cover image upload failed.",
+      "galleryUploadFailed": "Gallery upload failed.",
+      "ticketTypeSaveFailed": "Could not save ticket type.",
+      "ticketTypeRemoveFailed": "Could not remove ticket type.",
+      "ticketTypeAddFailed": "Could not add ticket type.",
+      "imageRemoveFailed": "Could not remove image."
+    }
+  },
+  "defaults": {
+    "untitled": "Untitled event",
+    "untitledShort": "Untitled",
+    "general": "General",
+    "ticketStandard": "Standard",
+    "ticketVip": "VIP",
+    "ticketAccessibility": "Accessibility",
+    "ticketTypeNumber": "Type {{n}}",
+    "mediaFallback": "Media",
+    "mediaPhoto": "Photo",
+    "mediaVideo": "Video"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending_approval": "Pending approval",
+    "rejected": "Rejected",
+    "published": "Published",
+    "sold_out": "Sold out",
+    "in_progress": "In progress",
+    "ended": "Ended",
+    "cancelled": "Cancelled",
+    "archived": "Archived"
+  },
+  "layout": {
+    "grid": "Grid layout",
+    "section": "Section layout",
+    "free": "Free layout"
+  },
+  "entryMode": {
+    "one_time": "One-time entry",
+    "multi_scan": "Multi-scan"
+  },
+  "recurrence": {
+    "title": "Recurring schedule",
+    "clear": "Clear recurrence",
+    "windowStart": "Window start",
+    "windowEnd": "Window end",
+    "occurrencesTitle": "Recurring occurrences",
+    "cancelOccurrence": "Cancel occurrence",
+    "occurrenceStatus": {
+      "scheduled": "Scheduled",
+      "cancelled": "Cancelled"
+    },
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    }
+  },
+  "seats": {
+    "freeLayoutNote": "Free layout uses capacity + ticket type quantity limits (no seat map).",
+    "templates": {
+      "small": "Template: Small (6×10)",
+      "medium": "Template: Medium (8×12)",
+      "large": "Template: Large (10×14)"
+    },
+    "rows": "Rows",
+    "columns": "Columns",
+    "rowGap": "Row gap (px)",
+    "colGap": "Column gap (px)",
+    "rowOverrideIndex": "Row override index",
+    "colOverrideIndex": "Column override index",
+    "gap": "Gap",
+    "applyRow": "Apply row",
+    "applyCol": "Apply col",
+    "selectionClick": "Click",
+    "selectionToSelect": "to select",
+    "selectionCtrlClick": "Ctrl/Cmd+click",
+    "selectionToAddRemove": "to add/remove",
+    "selectionShiftClick": "Shift+click",
+    "selectionForRange": "for a range",
+    "selectionDoubleClick": "Double-click",
+    "selectionTogglesAccessibility": "toggles accessibility",
+    "selectAll": "Select all",
+    "inspectorEmpty": "Select a seat to edit ticket type and price.",
+    "inspectorTitle": "Seat inspector",
+    "bulkEdit": "Bulk edit",
+    "bulkSelected_one": "{{count}} seat selected — changes apply when you click Apply",
+    "bulkSelected_other": "{{count}} seats selected — changes apply when you click Apply",
+    "clearSelection": "Clear selection",
+    "ticketType": "Ticket type",
+    "price": "Price",
+    "pricePlaceholder": "SAR",
+    "applyToSeats": "Apply to {{count}} seats"
+  },
+  "cancellation": {
+    "step1Title": "Cancel event?",
+    "step1Intro": "You are about to cancel",
+    "step1Body": "All tickets will be marked",
+    "cancelledStatus": "CANCELLED",
+    "step1Outro": "and buyers receive cancellation + refund info (simulated). Auction-listed tickets are also cancelled (demo).",
+    "refundNotice": "Refund method follows the platform cancellation agreement — details TBD per spec.",
+    "step2Title": "Confirm cancellation",
+    "agreeLabel": "I understand tickets will be cancelled and attendees notified (demo).",
+    "confirmCancel": "Confirm cancel"
+  },
+  "publishImpact": {
+    "title": "Strong alert — ticket holders affected",
+    "bodyIntro": "Tickets have already been sold. Saving will queue",
+    "emailInApp": "email + in-app",
+    "bodyMid": "notifications listing each changed field (old vs new). Significant date/time/location changes may require",
+    "organizerRefunds": "organizer-led refunds",
+    "bodyOutro": "(demo).",
+    "saveAndNotify": "Save & notify (demo)"
+  }
+}

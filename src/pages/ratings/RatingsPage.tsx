@@ -7,26 +7,34 @@ import { cn } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Area, AreaChart, XAxis, YAxis } from 'recharts';
 import { Star } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-
-const chartConfig = {
-  score: {
-    label: 'Score',
-    color: '#ff6b4a',
-  },
-  average: {
-    label: 'Running avg',
-    color: '#3355ff',
-  },
-} satisfies ChartConfig;
-
-const BAR_PALETTE = ['#ff6b4a', '#4dffc3', '#f5e642', '#3355ff', '#f4a05a', '#c4b5f4'] as const;
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDate } from '@/lib/locale/format';
 
 export function RatingsPage() {
+  const { t } = useTranslation('ratings');
+  const { language } = useLocale();
+  const chartConfig = useMemo(
+    () =>
+      ({
+        score: {
+          label: t('charts.scoreTrend.score'),
+          color: '#ff6b4a',
+        },
+        average: {
+          label: t('charts.scoreTrend.runningAvg'),
+          color: '#3355ff',
+        },
+      }) satisfies ChartConfig,
+    [t]
+  );
   const [items, setItems] = useState<RatingItem[]>([]);
   const [given, setGiven] = useState<GivenRating[]>([]);
   const [aggregate, setAggregate] = useState<Awaited<ReturnType<typeof getRatingsAggregate>> | null>(null);
   const [tab, setTab] = useState<'received' | 'given' | 'byEvent'>('received');
   const [ready, setReady] = useState(false);
+
+  const BAR_PALETTE = ['#ff6b4a', '#4dffc3', '#f5e642', '#3355ff', '#f4a05a', '#c4b5f4'] as const;
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -44,11 +52,11 @@ export function RatingsPage() {
   const trendData = useMemo(() => {
     const sorted = [...items].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     return sorted.map((r, i) => ({
-      label: new Date(r.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      label: formatDate(r.at, language, { month: 'short', day: 'numeric' }),
       score: r.score,
       cumulative: sorted.slice(0, i + 1).reduce((s, x) => s + x.score, 0) / (i + 1),
     }));
-  }, [items]);
+  }, [items, language]);
 
   const barData = useMemo(
     () =>
@@ -70,24 +78,22 @@ export function RatingsPage() {
     >
       <Card className="border-ink-10 bg-white shadow-card-sm">
         <CardHeader className="border-b border-ink-10 pb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reputation</p>
-          <CardTitle className="text-3xl font-extrabold tracking-tight text-ink">Ratings</CardTitle>
-          <CardDescription className="max-w-2xl text-[15px] text-ink-60">
-            Star ratings are not exposed on the organizer API. This view lists your engagements (same source as reputation workflows); scores stay at zero until a dedicated ratings contract exists.
-          </CardDescription>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t('page.eyebrow')}</p>
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-ink">{t('page.title')}</CardTitle>
+          <CardDescription className="max-w-2xl text-[15px] text-ink-60">{t('page.description')}</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
-            <TabButton active={tab === 'received'} onClick={() => setTab('received')} label="Received" />
-            <TabButton active={tab === 'given'} onClick={() => setTab('given')} label="Given" />
-            <TabButton active={tab === 'byEvent'} onClick={() => setTab('byEvent')} label="By event" />
+            <TabButton active={tab === 'received'} onClick={() => setTab('received')} label={t('tabs.received')} />
+            <TabButton active={tab === 'given'} onClick={() => setTab('given')} label={t('tabs.given')} />
+            <TabButton active={tab === 'byEvent'} onClick={() => setTab('byEvent')} label={t('tabs.byEvent')} />
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard label="Overall average" value={aggregate ? aggregate.overallAverage.toFixed(2) : '—'} delay={0} ready={ready} />
-        <StatCard label="Received count" value={aggregate ? String(aggregate.totalReceived) : '—'} delay={75} ready={ready} />
+        <StatCard label={t('stats.overallAverage')} value={aggregate ? aggregate.overallAverage.toFixed(2) : '—'} delay={0} ready={ready} />
+        <StatCard label={t('stats.receivedCount')} value={aggregate ? String(aggregate.totalReceived) : '—'} delay={75} ready={ready} />
       </div>
 
       {tab === 'received' ? (
@@ -100,14 +106,14 @@ export function RatingsPage() {
             style={{ transitionDelay: ready ? '120ms' : '0ms' }}
           >
             <CardHeader>
-              <CardTitle className="text-lg text-ink">Score trend</CardTitle>
-              <CardDescription>Per-review scores and running average</CardDescription>
+              <CardTitle className="text-lg text-ink">{t('charts.scoreTrend.title')}</CardTitle>
+              <CardDescription>{t('charts.scoreTrend.description')}</CardDescription>
             </CardHeader>
             <CardContent className="pb-2">
               {trendData.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No score trend — engagements do not include star ratings.</p>
+                <p className="text-sm text-muted-foreground">{t('charts.scoreTrend.noTrend')}</p>
               ) : trendData.every((d) => d.score === 0) ? (
-                <p className="text-sm text-muted-foreground">Engagements loaded; chart hidden because scores are not in the API response.</p>
+                <p className="text-sm text-muted-foreground">{t('charts.scoreTrend.scoresHidden')}</p>
               ) : (
                 <ChartContainer config={chartConfig} className="aspect-[4/3] max-h-[280px] w-full sm:aspect-video">
                   <AreaChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
@@ -124,7 +130,7 @@ export function RatingsPage() {
                     <Area
                       type="monotone"
                       dataKey="cumulative"
-                      name="Running avg"
+                      name={t('charts.scoreTrend.runningAvg')}
                       stroke="var(--color-average)"
                       strokeWidth={2}
                       fill="none"
@@ -134,7 +140,7 @@ export function RatingsPage() {
                     <Area
                       type="monotone"
                       dataKey="score"
-                      name="Score"
+                      name={t('charts.scoreTrend.score')}
                       stroke="var(--color-score)"
                       strokeWidth={2}
                       fill="url(#ratingsScoreFill)"
@@ -153,7 +159,7 @@ export function RatingsPage() {
             ))}
             {items.length === 0 ? (
               <Card className="border-dashed border-ink-20 bg-muted/30">
-                <CardContent className="py-8 text-center text-sm text-muted-foreground">No ratings yet.</CardContent>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">{t('lists.received.empty')}</CardContent>
               </Card>
             ) : null}
           </div>
@@ -167,7 +173,7 @@ export function RatingsPage() {
           ))}
           {given.length === 0 ? (
             <Card className="border-dashed border-ink-20 bg-muted/30">
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">No given ratings yet.</CardContent>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">{t('lists.given.empty')}</CardContent>
             </Card>
           ) : null}
         </div>
@@ -176,8 +182,8 @@ export function RatingsPage() {
       {tab === 'byEvent' ? (
         <Card className="border-ink-10 bg-white shadow-card-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-ink">Per-event averages</CardTitle>
-            <CardDescription>Volume-weighted scores from received ratings</CardDescription>
+            <CardTitle className="text-lg text-ink">{t('charts.byEvent.title')}</CardTitle>
+            <CardDescription>{t('charts.byEvent.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {barData.length > 0 ? (
@@ -195,7 +201,7 @@ export function RatingsPage() {
                     className="text-[10px] font-medium"
                   />
                   <ChartTooltip cursor={{ fill: 'oklch(0.97 0 0 / 0.45)' }} content={<ChartTooltipContent />} />
-                  <Bar dataKey="average" name="Average" radius={[0, 6, 6, 0]} isAnimationActive animationDuration={800}>
+                  <Bar dataKey="average" name={t('charts.byEvent.averageLabel')} radius={[0, 6, 6, 0]} isAnimationActive animationDuration={800}>
                     {barData.map((_, i) => (
                       <Cell key={i} fill={BAR_PALETTE[i % BAR_PALETTE.length]} />
                     ))}
@@ -216,7 +222,7 @@ export function RatingsPage() {
                 </li>
               ))}
               {!aggregate?.byEvent.length ? (
-                <li className="text-[13px] text-muted-foreground">No event aggregates yet.</li>
+                <li className="text-[13px] text-muted-foreground">{t('charts.byEvent.empty')}</li>
               ) : null}
             </ul>
           </CardContent>
@@ -258,6 +264,8 @@ function StatCard({ label, value, delay, ready }: { label: string; value: string
 }
 
 function RatingReceivedCard({ rating: r, index, ready }: { rating: RatingItem; index: number; ready: boolean }) {
+  const { t } = useTranslation('ratings');
+  const { language } = useLocale();
   const delay = 180 + index * 70;
   return (
     <Card
@@ -276,14 +284,14 @@ function RatingReceivedCard({ rating: r, index, ready }: { rating: RatingItem; i
             </>
           ) : (
             <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Engagement
+              {t('card.engagement')}
             </span>
           )}
           <span className="text-[13px] font-semibold text-ink-60">{r.eventTitle}</span>
         </div>
         <p className="mt-3 text-[15px] font-medium leading-relaxed text-ink">{r.comment}</p>
         <p className="mt-2 text-[12px] text-muted-foreground">
-          From {r.from} · {new Date(r.at).toLocaleDateString()}
+          {t('card.from', { name: r.from })} · {formatDate(r.at, language)}
         </p>
       </CardContent>
     </Card>
@@ -291,6 +299,8 @@ function RatingReceivedCard({ rating: r, index, ready }: { rating: RatingItem; i
 }
 
 function GivenRatingCard({ row: g, index, ready }: { row: GivenRating; index: number; ready: boolean }) {
+  const { t } = useTranslation('ratings');
+  const { language } = useLocale();
   const delay = 100 + index * 80;
   return (
     <Card
@@ -302,11 +312,11 @@ function GivenRatingCard({ row: g, index, ready }: { row: GivenRating; index: nu
     >
       <CardContent className="py-4">
         <p className="text-[13px] font-semibold text-ink">
-          To {g.to} ({g.role}) · <span className="font-mono">{g.score.toFixed(1)}</span>
+          {t('card.givenTo', { name: g.to, role: g.role })} · <span className="font-mono">{g.score.toFixed(1)}</span>
         </p>
         <p className="mt-1 text-sm text-ink-60">{g.comment}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {g.eventTitle} · {new Date(g.at).toLocaleDateString()}
+          {g.eventTitle} · {formatDate(g.at, language)}
         </p>
       </CardContent>
     </Card>

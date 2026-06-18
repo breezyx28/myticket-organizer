@@ -1,0 +1,62 @@
+{
+  "partners": {
+    "visibility": {
+      "title": "ظهور الفعالية",
+      "description": "تحكم في ظهور الشركاء المرتبطين على صفحة الفعالية العامة.",
+      "showTalents": "عرض المواهب في صفحة الفعالية",
+      "showVendors": "عرض الموردين في صفحة الفعالية"
+    },
+    "linked": {
+      "title": "الشركاء المرتبطون",
+      "manageInEngagements": "أدر طلبات التوظيف في التعاقدات."
+    }
+  },
+  "browse": {
+    "talent": {
+      "title": "اطلب موهبة لفعاليتك",
+      "description": "تصفّح جميع المواهب المعتمدة في السوق. استخدم البحث والتصفية حسب التخصص أو المنطقة أو المدينة.",
+      "categoryLabel": "تصنيف الموهبة"
+    },
+    "vendor": {
+      "title": "خدمات لفعاليتك",
+      "description": "تصفّح جميع الموردين المعتمدين — الضيافة، الصوت والصورة، الديكور، وغيرها. صفِّ حسب نوع الخدمة أو الموقع عند الحاجة.",
+      "categoryLabel": "تصنيف الخدمة"
+    },
+    "actions": {
+      "request": "طلب",
+      "viewDetails": "عرض التفاصيل",
+      "clearFilters": "مسح التصفية"
+    },
+    "empty": "لا توجد قوائم تطابق التصفية.",
+    "emptyNoTalents": "لا مواهب معتمدة بعد",
+    "emptyNoVendors": "لا موردين معتمدين بعد",
+    "emptyNoPublished": "ستظهر الملفات المعتمدة هنا عند نشرها في السوق.",
+    "loading": "جاري تحميل السوق…",
+    "error": "تعذّر تحميل قوائم السوق.",
+    "kind": {
+      "talent": "موهبة",
+      "vendor": "مورد"
+    },
+    "partnerFallback": "{{kind}} #{{id}}"
+  },
+  "filters": {
+    "search": "بحث",
+    "searchPlaceholder": "ابحث بالاسم أو الكلمة",
+    "category": "التصنيف",
+    "allCategories": "كل التصنيفات",
+    "region": "المنطقة",
+    "allRegions": "كل المناطق",
+    "city": "المدينة",
+    "allCities": "كل المدن",
+    "chooseRegionFirst": "اختر منطقة أولاً",
+    "advanced": "تصفية متقدمة"
+  },
+  "drawer": {
+    "talentProfile": "ملف الموهبة",
+    "vendorProfile": "ملف المورد",
+    "notFound": "لم يُعثر على الملف.",
+    "requestTalent": "اطلب هذه الموهبة",
+    "requestVendor": "اطلب هذا المورد",
+    "close": "إغلاق الملف"
+  }
+}

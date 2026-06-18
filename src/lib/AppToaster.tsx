@@ -1,9 +1,12 @@
+import { useLocale } from '@/hooks/useLocale';
 import { Toaster as SonnerToaster } from 'sonner';
 
 export function AppToaster() {
+  const { isRtl } = useLocale();
+
   return (
     <SonnerToaster
-      position="top-right"
+      position={isRtl ? 'top-left' : 'top-right'}
       richColors
       closeButton
       duration={4000}

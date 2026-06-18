@@ -27,18 +27,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDateTime } from '@/lib/locale/format';
 
-function counterpartName(c: Conversation): string {
+function counterpartName(c: Conversation, fallback: string): string {
   const other = c.participants.find((p) => p.role !== 'organizer');
-  return other?.displayName || other?.email || 'Partner';
+  return other?.displayName || other?.email || fallback;
 }
 
 function EngagementMessageBubble({
   message,
   onRetry,
+  sendingLabel,
+  retryLabel,
+  notDeliveredLabel,
+  locale,
 }: {
   message: ThreadMessage;
   onRetry?: () => void;
+  sendingLabel: string;
+  retryLabel: string;
+  notDeliveredLabel: string;
+  locale: 'en' | 'ar';
 }) {
   const mine = message.senderRole === 'organizer';
   const failed = message.sendStatus === 'failed';
@@ -56,13 +67,13 @@ function EngagementMessageBubble({
       >
         <p className="whitespace-pre-wrap">{message.body}</p>
         <p className={cn('mt-1 text-[10px]', mine ? 'text-white/60' : 'text-ink-40')}>
-          {sending ? 'Sending…' : new Date(message.createdAt).toLocaleString()}
+          {sending ? sendingLabel : formatDateTime(message.createdAt, locale)}
         </p>
       </div>
       {failed && mine ? (
         <div className="flex max-w-[85%] items-center gap-2 text-[11px] text-coral">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="min-w-0 truncate">{message.sendError || 'Not delivered'}</span>
+          <span className="min-w-0 truncate">{message.sendError || notDeliveredLabel}</span>
           {onRetry ? (
             <button
               type="button"
@@ -70,7 +81,7 @@ function EngagementMessageBubble({
               className="inline-flex shrink-0 items-center gap-1 font-semibold underline-offset-2 hover:underline active:scale-[0.98]"
             >
               <RotateCcw className="h-3 w-3" strokeWidth={2} aria-hidden />
-              Retry
+              {retryLabel}
             </button>
           ) : null}
         </div>
@@ -86,6 +97,8 @@ export function EngagementThreadPanel({
   conversationId: string;
   onBack?: () => void;
 }) {
+  const { t } = useTranslation(['engagements', 'common']);
+  const { language } = useLocale();
   const { user } = useAuth();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
@@ -173,12 +186,12 @@ export function EngagementThreadPanel({
 
   async function handleCancelEngagement() {
     if (!conversation?.contextId) return;
-    if (!window.confirm('Cancel this hiring request? The conversation will be closed.')) return;
+    if (!window.confirm(t('thread.cancelConfirm'))) return;
     try {
       await apiUnwrap(
         apiDispatch(organizerApi.endpoints.cancelEngagement.initiate(conversation.contextId))
       );
-      toast.success('Request cancelled.');
+      toast.success(t('thread.cancelSuccess'));
       await reload({ silent: true });
     } catch (err) {
       toast.error(formatOrganizerApiError(err));
@@ -186,11 +199,11 @@ export function EngagementThreadPanel({
   }
 
   if (loading) {
-    return <p className="p-6 text-[14px] text-ink-50">Loading conversation…</p>;
+    return <p className="p-6 text-[14px] text-ink-50">{t('loading', { ns: 'common' })}</p>;
   }
 
   if (!conversation) {
-    return <p className="p-6 text-[14px] text-ink-50">Conversation not found.</p>;
+    return <p className="p-6 text-[14px] text-ink-50">{t('thread.loadFailed')}</p>;
   }
 
   const eventId = conversation.metadata?.eventId;
@@ -200,16 +213,16 @@ export function EngagementThreadPanel({
       <div className="border-b border-ink-10 px-5 py-4">
         {onBack ? (
           <button type="button" className="mb-2 text-[12px] font-semibold text-coral hover:underline" onClick={onBack}>
-            ← Back to inbox
+            {t('thread.backToInbox')}
           </button>
         ) : null}
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-lg font-extrabold text-ink">{conversation.subject}</h2>
-            <p className="mt-0.5 text-[13px] text-ink-60">with {counterpartName(conversation)}</p>
+            <p className="mt-0.5 text-[13px] text-ink-60">{t('thread.withCounterpart', { name: counterpartName(conversation, t('counterpart.partner')) })}</p>
             {eventId ? (
               <Link to={`/events/${eventId}`} className="mt-1 inline-block text-[12px] font-semibold text-coral hover:underline">
-                View linked event
+                {t('thread.viewLinkedEvent')}
               </Link>
             ) : null}
           </div>
@@ -219,7 +232,7 @@ export function EngagementThreadPanel({
               conversation.status === 'open' ? 'bg-mint/25 text-ink' : 'bg-ink-10 text-ink-50'
             )}
           >
-            {conversation.status}
+            {conversation.status === 'open' ? t('status.open') : t('status.closed')}
           </span>
         </div>
         {conversation.status === 'open' && conversation.contextId ? (
@@ -230,7 +243,7 @@ export function EngagementThreadPanel({
             className="mt-3 border-coral/30 text-coral hover:bg-coral/10"
             onClick={() => void handleCancelEngagement()}
           >
-            Cancel request
+            {t('thread.cancelRequest')}
           </Button>
         ) : null}
       </div>
@@ -240,6 +253,10 @@ export function EngagementThreadPanel({
           <EngagementMessageBubble
             key={m.clientId ?? m.id}
             message={m}
+            sendingLabel={t('sending', { ns: 'common' })}
+            retryLabel={t('retry', { ns: 'common' })}
+            notDeliveredLabel={t('thread.notDelivered')}
+            locale={language}
             onRetry={
               m.sendStatus === 'failed' && m.clientId
                 ? () => void sendMessage(m.body, m.clientId)
@@ -248,7 +265,7 @@ export function EngagementThreadPanel({
           />
         ))}
         {messages.length === 0 ? (
-          <li className="text-center text-[13px] text-ink-40">No messages yet. Say hello to start the conversation.</li>
+          <li className="text-center text-[13px] text-ink-40">{t('thread.emptyMessages')}</li>
         ) : null}
         <div ref={bottomRef} />
       </ul>
@@ -259,7 +276,7 @@ export function EngagementThreadPanel({
             <input
               className="min-w-0 flex-1 rounded-xl border border-ink-10 px-3 py-2.5 text-[14px] outline-none focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
               value={draft}
-              placeholder="Type a message…"
+              placeholder={t('thread.messagePlaceholder')}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -269,12 +286,12 @@ export function EngagementThreadPanel({
               }}
             />
             <Button type="button" variant="dark" size="md" disabled={!draft.trim()} onClick={handleSend}>
-              Send
+              {t('thread.send')}
             </Button>
           </div>
         </div>
       ) : (
-        <p className="border-t border-ink-10 px-5 py-4 text-[13px] text-ink-50">This conversation is closed.</p>
+        <p className="border-t border-ink-10 px-5 py-4 text-[13px] text-ink-50">{t('thread.closedHint')}</p>
       )}
     </div>
   );

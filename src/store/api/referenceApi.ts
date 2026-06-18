@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { ApiBaseUrl, MAIN_API_PREFIX, REFERENCE_API_PREFIX } from '@/config/api';
 import { eventCategoriesEnvelopeSchema, type EventCategoryRow } from '@/schemas/reference/eventCategories';
+import { appendAcceptLanguage } from '@/lib/locale/apiHeaders';
 import {
   saudiCitiesEnvelopeSchema,
   saudiRegionsEnvelopeSchema,
@@ -50,15 +51,19 @@ function normalizeEventCategories(rows: EventCategoryRow[]): EventCategoryOption
 /** Public reference data (no Bearer); same origin as organizer API. */
 export const referenceApi = createApi({
   reducerPath: 'referenceApi',
+  tagTypes: ['SaudiRegion', 'SaudiCity', 'EventCategory'],
   baseQuery: fetchBaseQuery({
     baseUrl: ApiBaseUrl,
-    prepareHeaders: (headers) => {
+    prepareHeaders: (headers, { getState }) => {
       headers.set('Accept', 'application/json');
+      appendAcceptLanguage(headers, getState);
+      return headers;
     },
   }),
   endpoints: (builder) => ({
     listSaudiRegions: builder.query<SaudiRegionOption[], void>({
       query: () => `${REFERENCE_API_PREFIX}/saudi-regions`,
+      providesTags: [{ type: 'SaudiRegion', id: 'LIST' }],
       transformResponse: (raw: unknown) => {
         const parsed = saudiRegionsEnvelopeSchema.safeParse(raw);
         if (!parsed.success) return [];
@@ -71,6 +76,7 @@ export const referenceApi = createApi({
         url: `${REFERENCE_API_PREFIX}/saudi-cities`,
         params: regionId.trim() ? { region_id: regionId.trim() } : {},
       }),
+      providesTags: (_r, _e, regionId) => [{ type: 'SaudiCity', id: regionId.trim() || 'ALL' }],
       transformResponse: (raw: unknown) => {
         const parsed = saudiCitiesEnvelopeSchema.safeParse(raw);
         if (!parsed.success) return [];
@@ -81,6 +87,7 @@ export const referenceApi = createApi({
     /** GET /api/v1/main/events/categories — discovery categories (public). */
     listEventCategories: builder.query<EventCategoryOption[], void>({
       query: () => `${MAIN_API_PREFIX}/events/categories`,
+      providesTags: [{ type: 'EventCategory', id: 'LIST' }],
       transformResponse: (raw: unknown) => {
         const parsed = eventCategoriesEnvelopeSchema.safeParse(raw);
         if (!parsed.success) return [];

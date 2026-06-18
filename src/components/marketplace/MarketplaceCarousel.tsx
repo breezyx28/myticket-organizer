@@ -1,8 +1,14 @@
+import { useDir } from '@/hooks/useLocale';
 import type { ReactNode } from 'react';
 
 export function MarketplaceCarousel({ children }: { children: ReactNode }) {
+  const { dir } = useDir();
+
   return (
-    <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-3 snap-x snap-mandatory scroll-smooth [scrollbar-width:thin]">
+    <div
+      dir={dir}
+      className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-3 snap-x snap-mandatory scroll-smooth [scrollbar-width:thin]"
+    >
       {children}
     </div>
   );
@@ -13,8 +19,10 @@ export function MarketplaceCarouselItem({ children }: { children: ReactNode }) {
 }
 
 export function MarketplaceCarouselSkeleton({ count = 4 }: { count?: number }) {
+  const { dir } = useDir();
+
   return (
-    <div className="-mx-1 flex gap-4 overflow-hidden px-1 pb-3">
+    <div dir={dir} className="-mx-1 flex gap-4 overflow-hidden px-1 pb-3">
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
