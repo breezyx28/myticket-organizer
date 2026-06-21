@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { extractAccessTokenFromLoginResponse } from '@/lib/api/extractAuth';
+import { isUnauthorizedStatus, notifySessionExpired } from '@/lib/auth/sessionGuard';
 import { refreshTokenResponseSchema } from '@/schemas/organizer/responses/auth';
 import { appendAcceptLanguage } from '@/lib/locale/apiHeaders';
 import { setAccessToken } from '@/store/slices/authSlice';
@@ -64,19 +65,30 @@ function scheduleRefresh(api: BaseQueryApi, extraOptions: object): Promise<strin
   return refreshInFlight;
 }
 
+function handleUnauthorizedSession(api: BaseQueryApi) {
+  api.dispatch(setAccessToken(null));
+  notifySessionExpired();
+}
+
 export const organizerBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
   api,
   extraOptions
 ) => {
   let result = await rawBaseQuery(args, api, extraOptions);
-  if (result.error?.status !== 401) return result;
+  if (!isUnauthorizedStatus(result.error?.status)) return result;
 
   if (NO_REFRESH_ON_401.has(String(api.endpoint))) return result;
 
   const token = await scheduleRefresh(api, (extraOptions ?? {}) as object);
-  if (!token) return result;
+  if (!token) {
+    handleUnauthorizedSession(api);
+    return result;
+  }
 
   result = await rawBaseQuery(args, api, extraOptions);
+  if (isUnauthorizedStatus(result.error?.status)) {
+    handleUnauthorizedSession(api);
+  }
   return result;
 };

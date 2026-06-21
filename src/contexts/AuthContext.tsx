@@ -1,17 +1,22 @@
 import { AuthContext, type AuthContextValue, type SessionUser } from '@/contexts/organizerAuthContext';
-import { disconnectEcho } from '@/lib/realtime/echo';
+import { clearClientAuthSession, ORGANIZER_SESSION_STORAGE_KEY } from '@/lib/auth/clearClientAuthSession';
+import {
+  registerSessionExpiredHandler,
+  resetSessionExpiredGuard,
+} from '@/lib/auth/sessionGuard';
+import { toast } from '@/lib/appToast';
 import { organizerApi, useLoginMutation, useLogoutMutation } from '@/store/api/organizerApi';
 import { useAppDispatch } from '@/store/hooks';
 import { setAccessToken, ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 import type { OrganizerUser, UserRole } from '@/types/domain';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-
-const SESSION_KEY = 'myticket_organizer_session_v1';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 function loadSession(): SessionUser | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(ORGANIZER_SESSION_STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as SessionUser;
   } catch {
@@ -20,8 +25,8 @@ function loadSession(): SessionUser | null {
 }
 
 function saveSession(u: SessionUser | null) {
-  if (!u) sessionStorage.removeItem(SESSION_KEY);
-  else sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  if (!u) sessionStorage.removeItem(ORGANIZER_SESSION_STORAGE_KEY);
+  else sessionStorage.setItem(ORGANIZER_SESSION_STORAGE_KEY, JSON.stringify(u));
 }
 
 function sessionFromProfile(profile: OrganizerUser): SessionUser {
@@ -49,6 +54,8 @@ function sessionFromLoginUser(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { t } = useTranslation('auth');
   const [user, setUser] = useState<SessionUser | null>(() => {
     if (typeof sessionStorage === 'undefined') return null;
     const token = sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
@@ -58,6 +65,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [loginMutation] = useLoginMutation();
   const [logoutMutation] = useLogoutMutation();
+
+  const forceSignOut = useCallback(
+    (options?: { silent?: boolean }) => {
+      clearClientAuthSession(dispatch);
+      setUser(null);
+      if (!options?.silent) {
+        toast.error(t('sessionExpired'), { id: 'auth:session-expired' });
+      }
+      navigate('/login', { replace: true, state: { reason: 'session_expired' } });
+    },
+    [dispatch, navigate, t]
+  );
+
+  useEffect(() => {
+    registerSessionExpiredHandler((options) => forceSignOut(options));
+    return () => registerSessionExpiredHandler(null);
+  }, [forceSignOut]);
 
   const signIn = useCallback(
     async (params: { email: string; password: string } | { challengeToken: string; otp: string }) => {
@@ -73,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (result.kind !== 'success' || !result.accessToken) {
             return { ok: false as const, reason: 'invalid' as const };
           }
+          resetSessionExpiredGuard();
           dispatch(setAccessToken(result.accessToken));
           let profile: OrganizerUser | undefined;
           if (!result.user?.id) {
@@ -109,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.kind !== 'success' || !result.accessToken) {
           return { ok: false as const, reason: 'invalid' as const };
         }
+        resetSessionExpiredGuard();
         dispatch(setAccessToken(result.accessToken));
         let profile: OrganizerUser | undefined;
         if (!result.user?.id) {
@@ -135,16 +161,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    resetSessionExpiredGuard();
     try {
       await logoutMutation().unwrap();
     } catch {
       /* still clear client session */
     }
-    disconnectEcho();
-    dispatch(setAccessToken(null));
+    clearClientAuthSession(dispatch);
     setUser(null);
-    saveSession(null);
-  }, [dispatch, logoutMutation]);
+    navigate('/login', { replace: true });
+  }, [dispatch, logoutMutation, navigate]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

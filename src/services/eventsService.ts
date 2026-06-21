@@ -15,6 +15,7 @@ import { tError } from '@/lib/i18n/translateError';
 import { tNs } from '@/lib/i18n/translateNs';
 import { ApiBaseUrl, ORGANIZER_API_PREFIX } from '@/config/api';
 import { ACCESS_TOKEN_STORAGE_KEY } from '@/store/slices/authSlice';
+import { isUnauthorizedStatus, notifySessionExpired } from '@/lib/auth/sessionGuard';
 
 export { diffOrganizerEventPatch } from '@/lib/api/mapEvent';
 export { formatOrganizerApiError } from '@/lib/api/extractOrganizerApiError';
@@ -629,6 +630,11 @@ export function uploadEventCoverImageWithProgress(
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(100);
         resolve();
+        return;
+      }
+      if (isUnauthorizedStatus(xhr.status)) {
+        notifySessionExpired();
+        reject(new Error(tError('api.notAuthenticated')));
         return;
       }
       let message = tError('events.coverUploadFailedWithStatus', { status: xhr.status });

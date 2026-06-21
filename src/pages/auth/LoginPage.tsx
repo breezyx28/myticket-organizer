@@ -13,7 +13,9 @@ export function LoginPage() {
   const { t } = useTranslation(['auth', 'common']);
   const { user, signIn } = useAuth();
   const loc = useLocation();
-  const from = (loc.state as { from?: string } | null)?.from ?? '/';
+  const locState = loc.state as { from?: string; reason?: string } | null;
+  const from = locState?.from ?? '/';
+  const sessionExpired = locState?.reason === 'session_expired';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
@@ -97,6 +99,11 @@ export function LoginPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('organizerArea')}</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">{t('signIn')}</h1>
           <p className="mt-2 text-[14px] text-ink-60">{t('signInSubtitle')}</p>
+          {sessionExpired ? (
+            <p className="mt-4 rounded-xl border border-coral/25 bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral-dark" role="status">
+              {t('sessionExpiredHint')}
+            </p>
+          ) : null}
 
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
             {challengeToken ? (
