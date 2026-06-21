@@ -16,6 +16,8 @@ import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/r
 import type { TalentListing, VendorListing } from '@/types/domain';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 
 type Listing = TalentListing | VendorListing;
 
@@ -55,6 +57,7 @@ export function MarketplaceBrowseSection({
   onViewDetails: (listing: Listing) => void;
 }) {
   const { t } = useTranslation('marketplace');
+  const { language } = useLocale();
   const [filters, setFilters] = useState<MarketplaceFilterValues>(EMPTY_MARKETPLACE_FILTERS);
   const { data: regions = [] } = useListSaudiRegionsQuery();
   const { data: cities = [] } = useListSaudiCitiesQuery(filters.regionId);
@@ -92,8 +95,14 @@ export function MarketplaceBrowseSection({
     return mergeCategoryOptions(seed.map((row) => row.categories));
   }, [kind, categorySeedQuery.data, vendorCategorySeedQuery.data]);
 
-  const cityNameById = useMemo(() => new Map(cities.map((c) => [c.id, c.name])), [cities]);
-  const regionNameById = useMemo(() => new Map(regions.map((r) => [r.id, r.name])), [regions]);
+  const cityNameById = useMemo(
+    () => new Map(cities.map((c) => [c.id, pickLocalizedRefName(c, language)])),
+    [cities, language]
+  );
+  const regionNameById = useMemo(
+    () => new Map(regions.map((r) => [r.id, pickLocalizedRefName(r, language)])),
+    [regions, language]
+  );
 
   const listings = useMemo(() => {
     const rows = activeQuery.data ?? [];

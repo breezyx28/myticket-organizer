@@ -2,14 +2,21 @@ import { z } from 'zod';
 
 const idLike = z.union([z.number().int(), z.string().min(1)]);
 
+const localizedNameFields = {
+  name: z.string(),
+  name_en: z.string().optional(),
+  name_ar: z.string().optional(),
+};
+
 export const saudiRefCityNestedSchema = z.object({
   id: idLike,
-  name: z.string(),
+  ...localizedNameFields,
 });
 
 export const saudiRefRegionRowSchema = z.object({
   id: idLike,
-  name: z.string(),
+  code: z.string().optional(),
+  ...localizedNameFields,
   cities: z.array(saudiRefCityNestedSchema).optional(),
 });
 
@@ -19,7 +26,7 @@ export const saudiRegionsEnvelopeSchema = z.object({
 
 export const saudiRefCityFlatSchema = z.object({
   id: idLike,
-  name: z.string(),
+  ...localizedNameFields,
   region_id: idLike,
 });
 

@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
+import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 
 export type MarketplaceFilterValues = {
   search: string;
@@ -37,6 +39,7 @@ export function MarketplaceFilterBar({
   onReset: () => void;
 }) {
   const { t } = useTranslation(['marketplace', 'common']);
+  const { language } = useLocale();
   const [expanded, setExpanded] = useState(false);
   const [searchDraft, setSearchDraft] = useState(values.search);
   const valuesRef = useRef(values);
@@ -145,7 +148,7 @@ export function MarketplaceFilterBar({
                 <option value="">{t('filters.allRegions')}</option>
                 {regions.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name}
+                    {pickLocalizedRefName(r, language)}
                   </option>
                 ))}
               </select>
@@ -161,7 +164,7 @@ export function MarketplaceFilterBar({
                 <option value="">{values.regionId ? t('filters.allCities') : t('filters.chooseRegionFirst')}</option>
                 {cities.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {pickLocalizedRefName(c, language)}
                   </option>
                 ))}
               </select>

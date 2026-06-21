@@ -4,6 +4,7 @@ import localeReducer, { hydrateLanguage, setLanguage } from '@/store/slices/loca
 import { appendAcceptLanguage, getApiLanguage, setApiLanguage } from '@/lib/locale/apiHeaders';
 import { applyDocumentLocale } from '@/lib/locale/document';
 import { formatDate, formatDateTime, formatNumber, formatRelative } from '@/lib/locale/format';
+import { normalizeLocalizedRefName, pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 import type { RootState } from '@/store/store';
 
 describe('locale slice', () => {
@@ -103,5 +104,26 @@ describe('format helpers', () => {
       return key;
     };
     expect(formatRelative(recent, 'en', t)).toBe('5m ago');
+  });
+});
+
+describe('localized reference names', () => {
+  it('normalizes bilingual fields with fallbacks', () => {
+    expect(normalizeLocalizedRefName({ name: 'Riyadh', name_en: 'Riyadh', name_ar: 'الرياض' })).toEqual({
+      name: 'Riyadh',
+      nameEn: 'Riyadh',
+      nameAr: 'الرياض',
+    });
+    expect(normalizeLocalizedRefName({ name: 'Riyadh' })).toEqual({
+      name: 'Riyadh',
+      nameEn: 'Riyadh',
+      nameAr: 'Riyadh',
+    });
+  });
+
+  it('picks name_en or name_ar by locale', () => {
+    const row = normalizeLocalizedRefName({ name: 'Riyadh', name_en: 'Riyadh', name_ar: 'الرياض' });
+    expect(pickLocalizedRefName(row, 'en')).toBe('Riyadh');
+    expect(pickLocalizedRefName(row, 'ar')).toBe('الرياض');
   });
 });

@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { isProfileComplete, loadProfileBundle, saveOrganizerProfile, uploadProfileDocument, uploadProfileGalleryImage, uploadProfileImage, uploadProfileLogo, clearProfileImage, type ProfileResourceContext } from '@/services/profileService';
 import type { OrganizerUser } from '@/types/domain';
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
+import { useLocale } from '@/hooks/useLocale';
+import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 import { Briefcase, Building2, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +59,7 @@ function profileSaveFieldErrorsFromApi(e: unknown): Record<string, string> {
 
 export function ProfilePage() {
   const { t } = useTranslation(['profile', 'common']);
+  const { language } = useLocale();
   const [p, setP] = useState<OrganizerUser | null>(null);
   const [resourceCtx, setResourceCtx] = useState<ProfileResourceContext | null>(null);
   const [saved, setSaved] = useState(false);
@@ -344,7 +347,7 @@ export function ProfilePage() {
                   <option value="">{refRegionsLoading ? t('select.loadingRegions') : t('select.selectRegion')}</option>
                   {refRegions.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.name}
+                      {pickLocalizedRefName(r, language)}
                     </option>
                   ))}
                 </select>
@@ -365,8 +368,12 @@ export function ProfilePage() {
                   value={p.cityId ?? ''}
                   onChange={(e) => {
                     const id = e.target.value;
-                    const label = id ? (profileCities.find((c) => c.id === id)?.name ?? '') : '';
-                    patch({ cityId: id, city: label, regionId: profileRegionId });
+                    const city = id ? profileCities.find((c) => c.id === id) : undefined;
+                    patch({
+                      cityId: id,
+                      city: city ? pickLocalizedRefName(city, language) : '',
+                      regionId: profileRegionId,
+                    });
                   }}
                   disabled={!profileRegionId || profileCitiesFetching || refRegionsLoading}
                 >
@@ -379,7 +386,7 @@ export function ProfilePage() {
                   </option>
                   {profileCities.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {pickLocalizedRefName(c, language)}
                     </option>
                   ))}
                 </select>
@@ -506,7 +513,7 @@ export function ProfilePage() {
                   <option value="">{refRegionsLoading ? t('select.loadingRegions') : t('select.selectRegion')}</option>
                   {refRegions.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.name}
+                      {pickLocalizedRefName(r, language)}
                     </option>
                   ))}
                 </select>
@@ -525,7 +532,8 @@ export function ProfilePage() {
                   onChange={(e) => {
                     const cid = e.target.value;
                     const rid = venueRegionId || p.venue?.regionId || '';
-                    const cityName = cid ? (venueCities.find((c) => c.id === cid)?.name ?? '') : '';
+                    const city = cid ? venueCities.find((c) => c.id === cid) : undefined;
+                    const cityName = city ? pickLocalizedRefName(city, language) : '';
                     patch({
                       venue: {
                         ...(p.venue ?? { name: p.displayName, capacity: null, facilities: [], address: '' }),
@@ -546,7 +554,7 @@ export function ProfilePage() {
                   </option>
                   {venueCities.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {pickLocalizedRefName(c, language)}
                     </option>
                   ))}
                 </select>

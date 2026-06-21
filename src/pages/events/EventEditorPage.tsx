@@ -40,6 +40,7 @@ import { Armchair, FileText, Handshake, Image, LayoutGrid, MoreHorizontal, Refre
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/useLocale';
+import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 import { formatDateTime } from '@/lib/locale/format';
 import { postEventMediaKindLabel } from '@/lib/events/mediaLabels';
 import { tError } from '@/lib/i18n/translateError';
@@ -581,7 +582,7 @@ export function EventEditorPage() {
               <option value="">{t('editor.placeholders.selectRegion')}</option>
               {saudiRegions.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.name}
+                  {pickLocalizedRefName(r, language)}
                 </option>
               ))}
             </select>
@@ -594,14 +595,15 @@ export function EventEditorPage() {
               onChange={(e) => {
                 const cid = e.target.value;
                 const opt = saudiCities.find((c) => c.id === cid);
-                updateLocal((cur) => ({ ...cur, cityId: cid || undefined, city: opt?.name ?? cur.city }));
-                saveEventPatch({ cityId: cid || undefined, city: opt?.name ?? '' });
+                const cityLabel = opt ? pickLocalizedRefName(opt, language) : '';
+                updateLocal((cur) => ({ ...cur, cityId: cid || undefined, city: cityLabel || cur.city }));
+                saveEventPatch({ cityId: cid || undefined, city: cityLabel });
               }}
             >
               <option value="">{regionIdForCities ? t('editor.placeholders.selectCity') : t('editor.placeholders.chooseRegionFirst')}</option>
               {saudiCities.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {pickLocalizedRefName(c, language)}
                 </option>
               ))}
             </select>

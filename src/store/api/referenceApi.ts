@@ -3,14 +3,25 @@ import { ApiBaseUrl, MAIN_API_PREFIX, REFERENCE_API_PREFIX } from '@/config/api'
 import { eventCategoriesEnvelopeSchema, type EventCategoryRow } from '@/schemas/reference/eventCategories';
 import { appendAcceptLanguage } from '@/lib/locale/apiHeaders';
 import {
+  normalizeLocalizedRefName,
+  type LocalizedRefName,
+} from '@/lib/locale/localizedRefName';
+import {
   saudiCitiesEnvelopeSchema,
   saudiRegionsEnvelopeSchema,
   type SaudiRefCityFlat,
   type SaudiRefRegionRow,
 } from '@/schemas/reference/saudi';
 
-export type SaudiRegionOption = { id: string; name: string; cities: { id: string; name: string }[] };
-export type SaudiCityOption = { id: string; name: string; regionId: string };
+export type SaudiCityNestedOption = LocalizedRefName & { id: string };
+
+export type SaudiRegionOption = LocalizedRefName & {
+  id: string;
+  code?: string;
+  cities: SaudiCityNestedOption[];
+};
+
+export type SaudiCityOption = LocalizedRefName & { id: string; regionId: string };
 
 export type EventCategoryOption = { id: string; name: string; slug?: string };
 
@@ -20,22 +31,36 @@ function toIdStr(v: unknown): string {
   return '';
 }
 
+function normalizeCityNested(c: { id: unknown; name: string; name_en?: string; name_ar?: string }): SaudiCityNestedOption | null {
+  const id = toIdStr(c.id);
+  if (!id) return null;
+  return { id, ...normalizeLocalizedRefName(c) };
+}
+
 function normalizeRegions(rows: SaudiRefRegionRow[]): SaudiRegionOption[] {
-  return rows.map((r) => ({
-    id: toIdStr(r.id),
-    name: r.name.trim(),
-    cities: (r.cities ?? []).map((c) => ({ id: toIdStr(c.id), name: c.name.trim() })).filter((c) => c.id),
-  })).filter((r) => r.id);
+  const out: SaudiRegionOption[] = [];
+  for (const r of rows) {
+    const id = toIdStr(r.id);
+    if (!id) continue;
+    out.push({
+      id,
+      ...normalizeLocalizedRefName(r),
+      code: r.code?.trim() || undefined,
+      cities: (r.cities ?? []).map(normalizeCityNested).filter((c): c is SaudiCityNestedOption => c != null),
+    });
+  }
+  return out;
 }
 
 function normalizeCitiesFlat(rows: SaudiRefCityFlat[]): SaudiCityOption[] {
   return rows
-    .map((row) => ({
-      id: toIdStr(row.id),
-      name: row.name.trim(),
-      regionId: toIdStr(row.region_id),
-    }))
-    .filter((c) => c.id && c.regionId);
+    .map((row) => {
+      const id = toIdStr(row.id);
+      const regionId = toIdStr(row.region_id);
+      if (!id || !regionId) return null;
+      return { id, regionId, ...normalizeLocalizedRefName(row) };
+    })
+    .filter((c): c is SaudiCityOption => c != null);
 }
 
 function normalizeEventCategories(rows: EventCategoryRow[]): EventCategoryOption[] {
