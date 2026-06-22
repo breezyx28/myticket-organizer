@@ -34,6 +34,7 @@ export const organizerProfilePatchSchema = z.object({
   region_id: z.number().int().nullable().optional(),
   document_url: z.string().max(500).nullable().optional(),
   gallery_urls: z.array(z.string().max(800)).max(50).nullable().optional(),
+  typical_event_duration_hours: z.number().nullable().optional(),
 });
 
 export type OrganizerProfilePatch = z.infer<typeof organizerProfilePatchSchema>;

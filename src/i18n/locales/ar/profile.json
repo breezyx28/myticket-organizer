@@ -62,6 +62,11 @@
     "organizationDocument": "رفع مستند المنظمة",
     "organizationDocumentSubtitle": "PDF أو مسح أو صورة للسجل التجاري / التصريح (بحد أقصى 12 ميجابايت)",
     "storedUrl": "رابط محفوظ",
+    "storedUrlHint": "تم الرفع إلى واجهة المنظم. احفظ الملف للإبقاء على هذا الرابط في حسابك.",
+    "storedBadge": "مرفوع",
+    "pendingBadge": "معلق",
+    "imageKind": "صورة",
+    "viewDocument": "عرض المستند",
     "notUploadedYet": "لم يُرفع بعد"
   },
   "select": {

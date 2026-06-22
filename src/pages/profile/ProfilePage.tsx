@@ -13,7 +13,7 @@ import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/r
 import { useLocale } from '@/hooks/useLocale';
 import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
 import { validateProfileBeforeSave } from '@/lib/profile/validateProfileForm';
-import { Briefcase, Building2, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
+import { Briefcase, Building2, ExternalLink, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,6 +27,23 @@ function displayFileLabel(value: string) {
 
 function isRemoteMediaUrl(value: string) {
   return /^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('/');
+}
+
+function isPdfDocumentUrl(value: string) {
+  const v = value.toLowerCase();
+  return v.includes('.pdf') || v.includes('application/pdf');
+}
+
+function organizationDocumentFileName(value: string) {
+  const label = displayFileLabel(value);
+  try {
+    const path = new URL(value).pathname;
+    const base = path.split('/').pop();
+    if (base) return decodeURIComponent(base);
+  } catch {
+    /* not a URL */
+  }
+  return label;
 }
 
 function mergeOrganization(
@@ -55,6 +72,7 @@ function profileSaveFieldErrorsFromApi(e: unknown): Record<string, string> {
   add('venueCapacity', 'venue.capacity', 'capacity');
   add('venueRegionId', 'venue.region_id', 'venue_region_id');
   add('venueCityId', 'venue.city_id', 'venue_city_id');
+  add('typicalEventDurationHours', 'typical_event_duration_hours', 'typicalEventDurationHours');
   return out;
 }
 
@@ -78,6 +96,7 @@ export function ProfilePage() {
   const [profileImageUploadError, setProfileImageUploadError] = useState<string | null>(null);
   const [profileImageRemoving, setProfileImageRemoving] = useState(false);
   const [saveFieldErrors, setSaveFieldErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [galleryPreviewByKey, setGalleryPreviewByKey] = useState<Record<string, string>>({});
   const previewUrlsRef = useRef<Set<string>>(new Set());
   /** Region dropdowns are local state; do not re-derive from `p` on every keystroke or selects reset / flash. */
@@ -220,6 +239,7 @@ export function ProfilePage() {
             return;
           }
           setSaveFieldErrors({});
+          setSaving(true);
           try {
             const bundle = await saveOrganizerProfile(p, resourceCtx);
             setP(bundle.user);
@@ -230,6 +250,8 @@ export function ProfilePage() {
           } catch (err) {
             setSaveFieldErrors(profileSaveFieldErrorsFromApi(err));
             toast.error(formatOrganizerApiError(err));
+          } finally {
+            setSaving(false);
           }
         }}
       >
@@ -809,24 +831,70 @@ export function ProfilePage() {
                 <p className="text-[12px] font-medium text-coral">{saveFieldErrors.organizationDocument}</p>
               ) : null}
               {p.organizationDocument ? (
-                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-10 bg-ink-5/50 px-4 py-3">
-                  <FileText className="h-9 w-9 shrink-0 text-coral" strokeWidth={1.5} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-ink">{displayFileLabel(p.organizationDocument)}</p>
-                    <p className="text-[11px] text-ink-40">
-                      {/^https?:\/\//i.test(p.organizationDocument) ? t('upload.storedUrl') : t('upload.notUploadedYet')}
-                    </p>
+                <div className="overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-card-sm ring-1 ring-ink/5 transition hover:border-ink-20 hover:shadow-card">
+                  <div className="flex items-stretch">
+                    <div
+                      className={cn(
+                        'flex w-[4.5rem] shrink-0 flex-col items-center justify-center border-e border-ink-10 px-2 py-5 sm:w-20',
+                        isPdfDocumentUrl(p.organizationDocument)
+                          ? 'bg-gradient-to-b from-coral/20 to-coral/5'
+                          : 'bg-gradient-to-b from-sky/30 to-sky/10'
+                      )}
+                    >
+                      {isPdfDocumentUrl(p.organizationDocument) ? (
+                        <FileText className="h-8 w-8 text-coral-dark" strokeWidth={1.5} aria-hidden />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-indigo" strokeWidth={1.5} aria-hidden />
+                      )}
+                      <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-ink-50">
+                        {isPdfDocumentUrl(p.organizationDocument) ? 'PDF' : t('upload.imageKind')}
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-4 sm:px-5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="min-w-0 flex-1 truncate text-[15px] font-extrabold tracking-tight text-ink">
+                          {organizationDocumentFileName(p.organizationDocument)}
+                        </p>
+                        {/^https?:\/\//i.test(p.organizationDocument) ? (
+                          <span className="shrink-0 rounded-full bg-mint/25 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mint-dark ring-1 ring-mint/40">
+                            {t('upload.storedBadge')}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-amber/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-60 ring-1 ring-amber/30">
+                            {t('upload.pendingBadge')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] leading-relaxed text-ink-50">
+                        {/^https?:\/\//i.test(p.organizationDocument)
+                          ? t('upload.storedUrlHint')
+                          : t('upload.notUploadedYet')}
+                      </p>
+                      {/^https?:\/\//i.test(p.organizationDocument) ? (
+                        <a
+                          href={p.organizationDocument}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-fit items-center gap-1.5 text-[12px] font-semibold text-coral transition hover:text-coral-dark hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                          {t('upload.viewDocument')}
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center border-s border-ink-10 px-3 sm:px-4">
+                      <button
+                        type="button"
+                        className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-coral transition hover:bg-coral/10 active:scale-[0.98]"
+                        onClick={() => {
+                          setDocUploadError(null);
+                          patch({ organizationDocument: '' });
+                        }}
+                      >
+                        {t('remove', { ns: 'common' })}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="text-[12px] font-semibold text-coral hover:underline"
-                    onClick={() => {
-                      setDocUploadError(null);
-                      patch({ organizationDocument: '' });
-                    }}
-                  >
-                    {t('remove', { ns: 'common' })}
-                  </button>
                 </div>
               ) : null}
               <UploadTileInput
@@ -892,7 +960,7 @@ export function ProfilePage() {
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3 border-t border-ink-10 bg-ink-5/30 px-6 py-5 md:px-8">
-          <Button type="submit" variant="dark" size="md">
+          <Button type="submit" variant="dark" size="md" loading={saving} disabled={saving}>
             {t('actions.saveProfile')}
           </Button>
           {saved ? <span className="text-[13px] font-semibold text-mint-dark">{t('saved', { ns: 'common' })}</span> : null}

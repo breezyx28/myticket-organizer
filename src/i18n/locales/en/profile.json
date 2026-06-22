@@ -62,6 +62,11 @@
     "organizationDocument": "Upload organization document",
     "organizationDocumentSubtitle": "PDF, scan, or photo of CR / permit (max 12 MB)",
     "storedUrl": "Stored URL",
+    "storedUrlHint": "Uploaded to the organizer API. Save profile to keep this URL on your account.",
+    "storedBadge": "Uploaded",
+    "pendingBadge": "Pending",
+    "imageKind": "Image",
+    "viewDocument": "View document",
     "notUploadedYet": "Not uploaded yet"
   },
   "select": {

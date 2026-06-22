@@ -180,6 +180,11 @@ export async function saveOrganizerProfile(p: OrganizerUser, ctx: ProfileResourc
     regionId: regionIdForPatch,
     organizationDocument: p.organizationDocument,
     gallery: p.gallery,
+    organization: {
+      previousEvents: p.organization?.previousEvents ?? [],
+      categories: p.organization?.categories ?? [],
+      typicalEventDurationHours: p.organization?.typicalEventDurationHours ?? null,
+    },
   };
 
   if (p.cityId !== undefined) {

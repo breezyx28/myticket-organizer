@@ -222,5 +222,11 @@ export function organizerUserToProfilePatch(patch: Partial<OrganizerUser>): Reco
     else if (urls.length > 0) body.gallery_urls = urls;
   }
 
+  const duration = patch.organization?.typicalEventDurationHours;
+  if (duration !== undefined) {
+    body.typical_event_duration_hours =
+      duration == null || Number.isNaN(duration) ? null : duration;
+  }
+
   return body;
 }
