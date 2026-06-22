@@ -10,6 +10,11 @@ import {
 } from '@/lib/api/mapMeResources';
 import { parseCreatedSocialLinkId } from '@/lib/api/parseProfileUpload';
 import { organizerUserToProfilePatch, mapApiProfileToOrganizerUser } from '@/lib/api/mapProfile';
+import {
+  cacheProfileImageUrl,
+  clearCachedProfileImageUrl,
+  readCachedProfileImageUrl,
+} from '@/lib/profile/profileImageCache';
 import { organizerApi } from '@/store/api/organizerApi';
 import { apiDispatch, apiUnwrap } from '@/services/apiDispatch';
 
@@ -35,7 +40,7 @@ export async function uploadProfileLogo(file: File): Promise<string> {
 }
 
 /** POST /me/profile-image (multipart `image`); returns absolute profile image URL. */
-export async function uploadProfileImage(file: File): Promise<string> {
+export async function uploadProfileImage(file: File, userId?: string): Promise<string> {
   if (file.size > PROFILE_IMAGE_MAX_BYTES) {
     throw new Error(tError('profile.imageTooLarge'));
   }
@@ -45,6 +50,7 @@ export async function uploadProfileImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('image', file);
   const url = await apiUnwrap<string>(apiDispatch(organizerApi.endpoints.postProfileImage.initiate(formData)));
+  if (userId?.trim()) cacheProfileImageUrl(userId.trim(), url);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('organizer-dashboard-changed'));
   }
@@ -52,8 +58,9 @@ export async function uploadProfileImage(file: File): Promise<string> {
 }
 
 /** Clears profile photo via PATCH /me/profile (`avatar_url: null`). */
-export async function clearProfileImage(): Promise<void> {
+export async function clearProfileImage(userId?: string): Promise<void> {
   await apiUnwrap(apiDispatch(organizerApi.endpoints.patchProfile.initiate({ profileImageUrl: '' })));
+  if (userId?.trim()) clearCachedProfileImageUrl(userId.trim());
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('organizer-dashboard-changed'));
   }
@@ -117,6 +124,17 @@ function zipPreviousEventsWithIds(titles: string[], rows: { id: string; title: s
   });
 }
 
+function applyProfileImageFallback(user: OrganizerUser, prior?: OrganizerUser): OrganizerUser {
+  if (user.profileImageUrl?.trim()) return user;
+  const priorUrl = prior?.profileImageUrl?.trim();
+  if (priorUrl && /^https?:\/\//i.test(priorUrl)) {
+    return { ...user, profileImageUrl: priorUrl };
+  }
+  const cached = readCachedProfileImageUrl(user.id);
+  if (cached) return { ...user, profileImageUrl: cached };
+  return user;
+}
+
 export async function loadProfileBundle(): Promise<ProfileLoadBundle> {
   const [raw, venuesRows] = await Promise.all([
     fetchMeProfileRaw(),
@@ -128,8 +146,9 @@ export async function loadProfileBundle(): Promise<ProfileLoadBundle> {
 
   const venues = Array.isArray(venuesRows) ? venuesRows : [];
   const firstMeta = venues[0] ? mapApiVenueRowMeta(venues[0]) : undefined;
-  const user: OrganizerUser =
-    firstMeta?.venue != null ? { ...profile, venue: firstMeta.venue } : { ...profile };
+  const user: OrganizerUser = applyProfileImageFallback(
+    firstMeta?.venue != null ? { ...profile, venue: firstMeta.venue } : { ...profile }
+  );
 
   const titles = user.organization?.previousEvents ?? [];
   const previousEvents = zipPreviousEventsWithIds(titles, metaFromRaw.previousEventRows);
@@ -214,6 +233,7 @@ export async function saveOrganizerProfile(p: OrganizerUser, ctx: ProfileResourc
 
   return {
     ...bundle,
+    user: applyProfileImageFallback(bundle.user, p),
     resourceCtx: { ...bundle.resourceCtx, socialLinkIds: mergedIds },
   };
 }

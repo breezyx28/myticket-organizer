@@ -7,6 +7,7 @@ export const eventCategoriesEnvelopeSchema = z.object({
       id: z.union([z.number(), z.string()]),
       slug: z.string().optional(),
       name: z.string(),
+      name_en: z.string().optional(),
       name_ar: z.string().optional(),
       events_count: z.number().optional(),
     })

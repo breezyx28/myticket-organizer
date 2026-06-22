@@ -12,6 +12,7 @@ import type { OrganizerUser } from '@/types/domain';
 import { useListSaudiCitiesQuery, useListSaudiRegionsQuery } from '@/store/api/referenceApi';
 import { useLocale } from '@/hooks/useLocale';
 import { pickLocalizedRefName } from '@/lib/locale/localizedRefName';
+import { validateProfileBeforeSave } from '@/lib/profile/validateProfileForm';
 import { Briefcase, Building2, FileText, FolderOpen, ImageIcon, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -212,6 +213,12 @@ export function ProfilePage() {
         className="space-y-0 overflow-visible rounded-3xl border border-ink-10 bg-white shadow-card-sm"
         onSubmit={async (e) => {
           e.preventDefault();
+          const clientErrors = validateProfileBeforeSave(p, (key) => t(key as never));
+          if (Object.keys(clientErrors).length > 0) {
+            setSaveFieldErrors(clientErrors);
+            toast.error(t('validation.fixBeforeSave'));
+            return;
+          }
           setSaveFieldErrors({});
           try {
             const bundle = await saveOrganizerProfile(p, resourceCtx);
@@ -250,7 +257,7 @@ export function ProfilePage() {
                         revokePreview(profileImagePreviewUrl ?? undefined);
                         setProfileImageUploadError(null);
                         try {
-                          const url = await uploadProfileImage(file);
+                          const url = await uploadProfileImage(file, p.id);
                           setProfileImagePreviewUrl(null);
                           patch({ profileImageUrl: url });
                           toast.success(t('toasts.photoUpdated'));
@@ -281,7 +288,7 @@ export function ProfilePage() {
                             setProfileImageUploadError(null);
                             setProfileImageRemoving(true);
                             try {
-                              await clearProfileImage();
+                              await clearProfileImage(p.id);
                               patch({ profileImageUrl: '' });
                               toast.success(t('toasts.photoRemoved'));
                             } catch (err) {
@@ -710,34 +717,58 @@ export function ProfilePage() {
               <label className="block text-[12px] font-semibold text-ink-60">
                 {t('fields.website')}
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.website ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.organization?.website ?? ''}
                   onChange={(e) => patch({ organization: mergeOrganization(p.organization, { website: e.target.value }) })}
                 />
+                {saveFieldErrors.website ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.website}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 {t('fields.instagram')}
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.instagram ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.organization?.instagram ?? ''}
                   onChange={(e) => patch({ organization: mergeOrganization(p.organization, { instagram: e.target.value }) })}
                 />
+                {saveFieldErrors.instagram ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.instagram}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 {t('fields.twitter')}
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.twitter ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.organization?.twitter ?? ''}
                   onChange={(e) => patch({ organization: mergeOrganization(p.organization, { twitter: e.target.value }) })}
                 />
+                {saveFieldErrors.twitter ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.twitter}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 {t('fields.tiktok')}
                 <input
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 text-[14px]',
+                    saveFieldErrors.tiktok ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.organization?.tiktok ?? ''}
                   onChange={(e) => patch({ organization: mergeOrganization(p.organization, { tiktok: e.target.value }) })}
                 />
+                {saveFieldErrors.tiktok ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.tiktok}</p>
+                ) : null}
               </label>
               <label className="block text-[12px] font-semibold text-ink-60">
                 {t('fields.typicalDuration')}
@@ -745,7 +776,10 @@ export function ProfilePage() {
                   type="number"
                   min={0}
                   step={0.5}
-                  className="mt-1.5 w-full rounded-xl border border-ink-10 px-3 py-2.5 font-mono text-[14px]"
+                  className={cn(
+                    'mt-1.5 w-full rounded-xl border px-3 py-2.5 font-mono text-[14px]',
+                    saveFieldErrors.typicalEventDurationHours ? 'border-coral ring-1 ring-coral/30' : 'border-ink-10'
+                  )}
                   value={p.organization?.typicalEventDurationHours ?? ''}
                   onChange={(e) =>
                     patch({
@@ -755,6 +789,9 @@ export function ProfilePage() {
                     })
                   }
                 />
+                {saveFieldErrors.typicalEventDurationHours ? (
+                  <p className="mt-1 text-[12px] font-medium text-coral">{saveFieldErrors.typicalEventDurationHours}</p>
+                ) : null}
               </label>
             </div>
           </section>

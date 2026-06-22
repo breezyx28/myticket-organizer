@@ -23,7 +23,7 @@ export type SaudiRegionOption = LocalizedRefName & {
 
 export type SaudiCityOption = LocalizedRefName & { id: string; regionId: string };
 
-export type EventCategoryOption = { id: string; name: string; slug?: string };
+export type EventCategoryOption = LocalizedRefName & { id: string; slug?: string };
 
 function toIdStr(v: unknown): string {
   if (typeof v === 'number' && Number.isFinite(v)) return String(Math.trunc(v));
@@ -64,13 +64,21 @@ function normalizeCitiesFlat(rows: SaudiRefCityFlat[]): SaudiCityOption[] {
 }
 
 function normalizeEventCategories(rows: EventCategoryRow[]): EventCategoryOption[] {
-  return rows
-    .map((r) => ({
-      id: toIdStr(r.id),
-      name: r.name.trim(),
+  const out: EventCategoryOption[] = [];
+  for (const r of rows) {
+    const id = toIdStr(r.id);
+    if (!id) continue;
+    out.push({
+      id,
       slug: r.slug?.trim() || undefined,
-    }))
-    .filter((r) => r.id && r.name);
+      ...normalizeLocalizedRefName({
+        name: r.name,
+        name_en: r.name_en ?? r.name,
+        name_ar: r.name_ar,
+      }),
+    });
+  }
+  return out;
 }
 
 /** Public reference data (no Bearer); same origin as organizer API. */

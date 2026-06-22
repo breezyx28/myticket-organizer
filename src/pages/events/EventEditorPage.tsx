@@ -532,15 +532,20 @@ export function EventEditorPage() {
               onChange={(e) => {
                 const cid = e.target.value;
                 const opt = eventCategories.find((c) => c.id === cid);
-                const label = opt?.name ?? '';
-                updateLocal((cur) => ({ ...cur, categoryId: cid || undefined, category: label || cur.category }));
-                saveEventPatch({ categoryId: cid || undefined, category: label });
+                const label = opt ? pickLocalizedRefName(opt, language) : '';
+                const categoryEn = opt?.nameEn ?? opt?.name ?? '';
+                updateLocal((cur) => ({
+                  ...cur,
+                  categoryId: cid || undefined,
+                  category: categoryEn || label || cur.category,
+                }));
+                saveEventPatch({ categoryId: cid || undefined, category: categoryEn || label });
               }}
             >
               <option value="">{t('editor.placeholders.selectCategory')}</option>
               {eventCategories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {pickLocalizedRefName(c, language)}
                 </option>
               ))}
             </select>

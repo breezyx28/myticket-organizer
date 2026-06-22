@@ -65,6 +65,7 @@ describe('applyDocumentLocale', () => {
   afterEach(() => {
     document.documentElement.lang = '';
     document.documentElement.dir = '';
+    document.documentElement.classList.remove('locale-ar', 'locale-en');
     document.body.classList.remove('rtl');
   });
 
@@ -72,6 +73,8 @@ describe('applyDocumentLocale', () => {
     applyDocumentLocale('en');
     expect(document.documentElement.lang).toBe('en');
     expect(document.documentElement.dir).toBe('ltr');
+    expect(document.documentElement.classList.contains('locale-en')).toBe(true);
+    expect(document.documentElement.classList.contains('locale-ar')).toBe(false);
     expect(document.body.classList.contains('rtl')).toBe(false);
   });
 
@@ -79,6 +82,8 @@ describe('applyDocumentLocale', () => {
     applyDocumentLocale('ar');
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
+    expect(document.documentElement.classList.contains('locale-ar')).toBe(true);
+    expect(document.documentElement.classList.contains('locale-en')).toBe(false);
     expect(document.body.classList.contains('rtl')).toBe(true);
   });
 });

@@ -13,6 +13,17 @@ describe('parseProfileImageUrl', () => {
     });
     expect(url).toBe('https://api.example.com/storage/users/profile-images/1/abc.jpg');
   });
+
+  it('reads avatar_url from nested user on profile envelope', () => {
+    const url = parseProfileImageUrl({
+      data: {
+        id: 1,
+        display_name: 'Test',
+        user: { avatar_url: 'https://api.example.com/nested.jpg' },
+      },
+    });
+    expect(url).toBe('https://api.example.com/nested.jpg');
+  });
 });
 
 describe('mapApiProfileToOrganizerUser profile image', () => {

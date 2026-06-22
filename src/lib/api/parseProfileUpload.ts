@@ -11,13 +11,45 @@ function profileRecordFromEnvelope(raw: unknown): Record<string, unknown> | null
   return asRecord(root.data) ?? root;
 }
 
+export function readProfileImageFromRecord(profile: Record<string, unknown>): string | undefined {
+  const direct = readString(
+    profile,
+    'profile_image_url',
+    'profileImageUrl',
+    'avatar_url',
+    'avatarUrl',
+    'image_url',
+    'imageUrl'
+  ).trim();
+  if (/^https?:\/\//i.test(direct) || (direct.startsWith('/') && direct.length >= 2)) return direct;
+
+  const nestedUser = asRecord(profile.user);
+  if (nestedUser) {
+    const fromUser = readString(
+      nestedUser,
+      'profile_image_url',
+      'profileImageUrl',
+      'avatar_url',
+      'avatarUrl',
+      'image_url'
+    ).trim();
+    if (/^https?:\/\//i.test(fromUser) || (fromUser.startsWith('/') && fromUser.length >= 2)) return fromUser;
+  }
+
+  const imageObj = asRecord(profile.profile_image) ?? asRecord(profile.image);
+  if (imageObj) {
+    const fromImage = readString(imageObj, 'url', 'image_url', 'path').trim();
+    if (/^https?:\/\//i.test(fromImage) || (fromImage.startsWith('/') && fromImage.length >= 2)) return fromImage;
+  }
+
+  return undefined;
+}
+
 /** Resolve absolute profile image URL from POST /me/profile-image (201) or GET/PATCH /me profile. */
 export function parseProfileImageUrl(raw: unknown): string | undefined {
   const profile = profileRecordFromEnvelope(raw);
   if (!profile) return undefined;
-  const u = readString(profile, 'profile_image_url', 'profileImageUrl', 'avatar_url', 'avatarUrl').trim();
-  if (/^https?:\/\//i.test(u) || (u.startsWith('/') && u.length >= 2)) return u;
-  return undefined;
+  return readProfileImageFromRecord(profile);
 }
 
 /** Resolve absolute document URL from POST /me/profile/document (or full profile) responses. */

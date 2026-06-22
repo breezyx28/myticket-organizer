@@ -94,5 +94,21 @@
     "documentUploadFailed": "Document upload failed.",
     "galleryUploadFailed": "Gallery upload failed.",
     "uploadingImages": "Uploading images…"
+  },
+  "validation": {
+    "fixBeforeSave": "Fix the highlighted fields before saving.",
+    "displayNameMin": "Display name must be at least 2 characters.",
+    "bioMin": "Bio must be at least 30 characters.",
+    "phoneMin": "Enter a valid phone number (at least 8 digits).",
+    "regionRequired": "Select a region.",
+    "cityRequired": "Select a city.",
+    "websiteInvalid": "Website must be a valid http(s) URL.",
+    "instagramInvalid": "Instagram must be a valid http(s) URL.",
+    "twitterInvalid": "Twitter / X must be a valid http(s) URL.",
+    "tiktokInvalid": "TikTok must be a valid http(s) URL.",
+    "durationMin": "Duration cannot be negative.",
+    "venueRegionRequired": "Select a venue region.",
+    "venueCityRequired": "Select a venue city.",
+    "venueCapacityMin": "Venue capacity must be greater than zero."
   }
 }

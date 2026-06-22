@@ -117,7 +117,7 @@ export function OrganizerShell({ children }: { children?: ReactNode }) {
           className={cn(
             'fixed inset-y-0 start-0 z-40 w-[86%] max-w-[320px] bg-white/95 p-6 transition-transform',
             'md:top-[72px] md:z-30 md:w-72 md:max-w-none md:translate-x-0 md:overflow-y-auto md:border-e md:border-ink-10 md:bg-white md:p-5 md:pt-6',
-            open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full md:translate-x-0'
+            open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-auto md:translate-x-0'
           )}
         >
           <div className="mb-6 flex items-center justify-between md:hidden">

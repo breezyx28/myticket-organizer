@@ -1,5 +1,6 @@
 import type { OrganizerUser } from '@/types/domain';
 import { readApiNumericId, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
+import { readProfileImageFromRecord } from '@/lib/api/parseProfileUpload';
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
@@ -113,8 +114,10 @@ export function mapApiProfileToOrganizerUser(raw: unknown): OrganizerUser {
     cityId: cityId || undefined,
     regionId: regionId || undefined,
     logoUrl: readString(root, 'logo_url', 'logoUrl'),
-    profileImageUrl:
-      readString(root, 'profile_image_url', 'profileImageUrl', 'avatar_url', 'avatarUrl') || '',
+    profileImageUrl: (() => {
+      const fromApi = readProfileImageFromRecord(root);
+      return fromApi ?? '';
+    })(),
     organizationDocument:
       readString(root, 'document_url', 'organization_document', 'organizationDocument') || undefined,
     gallery,

@@ -94,5 +94,21 @@
     "documentUploadFailed": "فشل رفع المستند.",
     "galleryUploadFailed": "فشل رفع المعرض.",
     "uploadingImages": "جاري رفع الصور…"
+  },
+  "validation": {
+    "fixBeforeSave": "صحّح الحقول المميزة قبل الحفظ.",
+    "displayNameMin": "يجب ألا يقل الاسم المعروض عن حرفين.",
+    "bioMin": "يجب ألا يقل النبذة عن 30 حرفاً.",
+    "phoneMin": "أدخل رقم هاتف صالحاً (8 أرقام على الأقل).",
+    "regionRequired": "اختر المنطقة.",
+    "cityRequired": "اختر المدينة.",
+    "websiteInvalid": "يجب أن يكون الموقع رابطاً صالحاً يبدأ بـ http أو https.",
+    "instagramInvalid": "يجب أن يكون إنستغرام رابطاً صالحاً يبدأ بـ http أو https.",
+    "twitterInvalid": "يجب أن يكون تويتر / X رابطاً صالحاً يبدأ بـ http أو https.",
+    "tiktokInvalid": "يجب أن يكون تيك توك رابطاً صالحاً يبدأ بـ http أو https.",
+    "durationMin": "لا يمكن أن تكون المدة سالبة.",
+    "venueRegionRequired": "اختر منطقة المكان.",
+    "venueCityRequired": "اختر مدينة المكان.",
+    "venueCapacityMin": "يجب أن تكون سعة المكان أكبر من صفر."
   }
 }
