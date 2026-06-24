@@ -12,6 +12,7 @@ import type {
 } from '@/types/domain';
 import { readApiNumericId, readBool, readNum, readString, toIdString, unwrapEnvelope } from '@/lib/api/json';
 import { defaultTicketTypeLabel, postEventMediaFallbackLabel } from '@/lib/events/mediaLabels';
+import { normalizeSalesDateForApi } from '@/lib/datetimeLocal';
 import { tNs } from '@/lib/i18n/translateNs';
 
 function partnerFallbackDisplayName(role: 'talent' | 'vendor', profileId: string): string {
@@ -310,8 +311,14 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.startsAt !== undefined) body.starts_at = patch.startsAt;
   if (patch.endsAt !== undefined) body.ends_at = patch.endsAt;
   if (patch.ticketSalesStartsAt !== undefined || patch.ticketSalesEndsAt !== undefined) {
-    body.ticket_sales_starts_at = patch.ticketSalesStartsAt ?? null;
-    body.ticket_sales_ends_at = patch.ticketSalesEndsAt ?? null;
+    body.ticket_sales_starts_at =
+      patch.ticketSalesStartsAt != null && patch.ticketSalesStartsAt !== ''
+        ? normalizeSalesDateForApi(patch.ticketSalesStartsAt) || patch.ticketSalesStartsAt
+        : null;
+    body.ticket_sales_ends_at =
+      patch.ticketSalesEndsAt != null && patch.ticketSalesEndsAt !== ''
+        ? normalizeSalesDateForApi(patch.ticketSalesEndsAt) || patch.ticketSalesEndsAt
+        : null;
   }
   if (patch.layoutType !== undefined) body.layout_type = patch.layoutType;
   if (patch.layoutType === 'free') {
@@ -329,7 +336,27 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   if (patch.entryMode !== undefined) body.entry_mode = patch.entryMode;
   if (patch.purchaseLimitPerUser !== undefined) body.purchase_limit_per_user = patch.purchaseLimitPerUser;
   if (patch.multiDaySingleTicket !== undefined) body.multi_day_single_ticket = patch.multiDaySingleTicket;
-  if (patch.recurrence !== undefined) body.recurrence = patch.recurrence;
+  if (patch.recurrence !== undefined) {
+    if (patch.recurrence === null) {
+      body.recurrence = null;
+    } else {
+      const rec = patch.recurrence;
+      body.recurrence = {
+        weekdays: rec.weekdays,
+        window_start: rec.windowStart,
+        window_end: rec.windowEnd,
+      };
+      // API stores ticket sales on top-level columns, not inside `recurrence`.
+      if (patch.ticketSalesStartsAt === undefined && patch.ticketSalesEndsAt === undefined) {
+        const ws = rec.windowStart?.trim();
+        const we = rec.windowEnd?.trim();
+        if (ws && we) {
+          body.ticket_sales_starts_at = normalizeSalesDateForApi(ws);
+          body.ticket_sales_ends_at = normalizeSalesDateForApi(we);
+        }
+      }
+    }
+  }
   if (patch.occurrences !== undefined) {
     body.occurrences = patch.occurrences.map((o) => ({
       id: o.id,

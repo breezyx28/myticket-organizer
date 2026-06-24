@@ -25,10 +25,25 @@ describe('ticket sales window', () => {
       ticketSalesStartsAt: '2026-06-21T00:00:00.000000Z',
       ticketSalesEndsAt: '2026-06-29T00:00:00.000000Z',
     });
-    expect(body).toEqual({
-      ticket_sales_starts_at: '2026-06-21T00:00:00.000000Z',
-      ticket_sales_ends_at: '2026-06-29T00:00:00.000000Z',
+    expect(body.ticket_sales_starts_at).toBeTruthy();
+    expect(body.ticket_sales_ends_at).toBeTruthy();
+    expect(new Date(String(body.ticket_sales_starts_at)).toISOString().slice(0, 10)).toBe('2026-06-21');
+    expect(new Date(String(body.ticket_sales_ends_at)).toISOString().slice(0, 10)).toBe('2026-06-29');
+  });
+
+  it('promotes recurrence windowStart/windowEnd to top-level ticket_sales_*', () => {
+    const body = organizerEventPatchToApiBody({
+      recurrence: { weekdays: [], windowStart: '2026-06-23', windowEnd: '2026-06-29' },
     });
+    expect(body.recurrence).toEqual({
+      weekdays: [],
+      window_start: '2026-06-23',
+      window_end: '2026-06-29',
+    });
+    expect(body.ticket_sales_starts_at).toBeTruthy();
+    expect(body.ticket_sales_ends_at).toBeTruthy();
+    expect(toDateInput(String(body.ticket_sales_starts_at))).toBe('2026-06-23');
+    expect(toDateInput(String(body.ticket_sales_ends_at))).toBe('2026-06-29');
   });
 
   it('converts date input helpers round-trip', () => {

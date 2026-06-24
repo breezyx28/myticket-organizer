@@ -967,8 +967,18 @@ export function EventEditorPage() {
           <RecurrenceManager
             value={event.recurrence ?? null}
             onChange={(r) => {
-              updateLocal((cur) => ({ ...cur, recurrence: r }));
-              saveEventPatch({ recurrence: r });
+              const patch: Partial<OrganizerEvent> = { recurrence: r };
+              if (r?.windowStart?.trim() && r?.windowEnd?.trim()) {
+                patch.ticketSalesStartsAt = dateInputToIsoDate(r.windowStart.trim());
+                patch.ticketSalesEndsAt = dateInputToIsoDate(r.windowEnd.trim());
+              }
+              updateLocal((cur) => ({
+                ...cur,
+                recurrence: r,
+                ...(patch.ticketSalesStartsAt ? { ticketSalesStartsAt: patch.ticketSalesStartsAt } : {}),
+                ...(patch.ticketSalesEndsAt ? { ticketSalesEndsAt: patch.ticketSalesEndsAt } : {}),
+              }));
+              saveEventPatch(patch);
             }}
           />
         </div>
