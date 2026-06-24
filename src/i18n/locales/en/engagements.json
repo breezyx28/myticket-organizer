@@ -32,7 +32,8 @@
     "send": "Send",
     "closedHint": "This conversation is closed.",
     "loadFailed": "Could not load conversation.",
-    "sendFailed": "Message could not be sent."
+    "sendFailed": "Message could not be sent.",
+    "viewAttachment": "Open attachment in new tab"
   },
   "startDialog": {
     "title": "Start hiring request",

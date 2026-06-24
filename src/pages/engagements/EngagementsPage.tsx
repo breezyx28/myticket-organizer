@@ -29,6 +29,7 @@ export function EngagementsPage() {
   const [rows, setRows] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: unread } = organizerApi.useGetConversationsUnreadCountQuery();
+  const inThread = Boolean(conversationId);
 
   async function reload() {
     setLoading(true);
@@ -46,8 +47,8 @@ export function EngagementsPage() {
   }, [conversationId]);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className={cn('space-y-6', inThread && 'space-y-0 lg:space-y-6')}>
+      <header className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between', inThread && 'hidden lg:flex')}>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-40">{t('page.eyebrow')}</p>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t('page.title')}</h1>
@@ -60,8 +61,13 @@ export function EngagementsPage() {
         ) : null}
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(280px,340px)_1fr]">
-        <section className="overflow-hidden rounded-3xl border border-ink-10 bg-white shadow-card-sm">
+      <div className={cn('grid gap-6 lg:grid-cols-[minmax(280px,340px)_1fr]', inThread && 'gap-0 lg:gap-6')}>
+        <section
+          className={cn(
+            'overflow-hidden rounded-3xl border border-ink-10 bg-white shadow-card-sm',
+            inThread && 'hidden lg:block'
+          )}
+        >
           <div className="border-b border-ink-10 px-4 py-3">
             <p className="text-[12px] font-bold uppercase tracking-wide text-ink-50">{t('inbox.requests')}</p>
           </div>
@@ -116,7 +122,14 @@ export function EngagementsPage() {
           )}
         </section>
 
-        <div className="min-h-[420px] rounded-3xl border border-ink-10 bg-white shadow-card-sm">
+        <div
+          className={cn(
+            'bg-white shadow-card-sm',
+            inThread
+              ? 'fixed inset-x-0 top-[72px] bottom-0 z-20 flex min-h-0 flex-col lg:static lg:z-auto lg:min-h-[min(70dvh,640px)] lg:rounded-3xl lg:border lg:border-ink-10'
+              : 'hidden min-h-[420px] rounded-3xl border border-ink-10 lg:block'
+          )}
+        >
           {conversationId ? (
             <Outlet />
           ) : (

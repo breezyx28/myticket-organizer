@@ -30,6 +30,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/useLocale';
 import { formatDateTime } from '@/lib/locale/format';
+import { isHttpAttachmentUrl, messageAttachmentFileName } from '@/lib/chat/messageAttachment';
+import { ExternalLink, Paperclip } from 'lucide-react';
 
 function counterpartName(c: Conversation, fallback: string): string {
   const other = c.participants.find((p) => p.role !== 'organizer');
@@ -42,6 +44,7 @@ function EngagementMessageBubble({
   sendingLabel,
   retryLabel,
   notDeliveredLabel,
+  viewAttachmentLabel,
   locale,
 }: {
   message: ThreadMessage;
@@ -49,24 +52,44 @@ function EngagementMessageBubble({
   sendingLabel: string;
   retryLabel: string;
   notDeliveredLabel: string;
+  viewAttachmentLabel: string;
   locale: 'en' | 'ar';
 }) {
   const mine = message.senderRole === 'organizer';
   const failed = message.sendStatus === 'failed';
   const sending = message.sendStatus === 'sending';
+  const attachment = isHttpAttachmentUrl(message.attachmentUrl) ? message.attachmentUrl : null;
+  const hasBody = Boolean(message.body?.trim());
 
   return (
     <li className={cn('flex flex-col gap-1', mine ? 'items-end' : 'items-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] transition-opacity',
+          'max-w-[min(85%,20rem)] rounded-2xl px-4 py-2.5 text-[14px] transition-opacity sm:max-w-[75%]',
           mine ? 'bg-ink text-white' : 'bg-ink-5 text-ink',
           sending && 'opacity-80',
           failed && mine && 'bg-coral/90'
         )}
       >
-        <p className="whitespace-pre-wrap">{message.body}</p>
-        <p className={cn('mt-1 text-[10px]', mine ? 'text-white/60' : 'text-ink-40')}>
+        {hasBody ? <p className="whitespace-pre-wrap break-words">{message.body}</p> : null}
+        {attachment ? (
+          <a
+            href={attachment}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'inline-flex max-w-full items-center gap-1.5 text-[12px] font-semibold underline-offset-2 hover:underline',
+              hasBody && 'mt-2',
+              mine ? 'text-white/95' : 'text-coral'
+            )}
+          >
+            <Paperclip className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+            <span className="truncate">{messageAttachmentFileName(attachment)}</span>
+            <ExternalLink className="h-3 w-3 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+            <span className="sr-only">{viewAttachmentLabel}</span>
+          </a>
+        ) : null}
+        <p className={cn('mt-1 text-[10px]', mine ? 'text-white/60' : 'text-ink-40', !hasBody && !attachment && 'mt-0')}>
           {sending ? sendingLabel : formatDateTime(message.createdAt, locale)}
         </p>
       </div>
@@ -199,26 +222,26 @@ export function EngagementThreadPanel({
   }
 
   if (loading) {
-    return <p className="p-6 text-[14px] text-ink-50">{t('loading', { ns: 'common' })}</p>;
+    return <p className="p-4 text-[14px] text-ink-50 sm:p-6">{t('loading', { ns: 'common' })}</p>;
   }
 
   if (!conversation) {
-    return <p className="p-6 text-[14px] text-ink-50">{t('thread.loadFailed')}</p>;
+    return <p className="p-4 text-[14px] text-ink-50 sm:p-6">{t('thread.loadFailed')}</p>;
   }
 
   const eventId = conversation.metadata?.eventId;
 
   return (
-    <div className="flex h-full min-h-[420px] flex-col">
-      <div className="border-b border-ink-10 px-5 py-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-ink-10 px-4 py-3 sm:px-5 sm:py-4">
         {onBack ? (
           <button type="button" className="mb-2 text-[12px] font-semibold text-coral hover:underline" onClick={onBack}>
             {t('thread.backToInbox')}
           </button>
         ) : null}
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-extrabold text-ink">{conversation.subject}</h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-ink sm:text-lg">{conversation.subject}</h2>
             <p className="mt-0.5 text-[13px] text-ink-60">{t('thread.withCounterpart', { name: counterpartName(conversation, t('counterpart.partner')) })}</p>
             {eventId ? (
               <Link to={`/events/${eventId}`} className="mt-1 inline-block text-[12px] font-semibold text-coral hover:underline">
@@ -248,7 +271,7 @@ export function EngagementThreadPanel({
         ) : null}
       </div>
 
-      <ul className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
         {messages.map((m) => (
           <EngagementMessageBubble
             key={m.clientId ?? m.id}
@@ -256,6 +279,7 @@ export function EngagementThreadPanel({
             sendingLabel={t('sending', { ns: 'common' })}
             retryLabel={t('retry', { ns: 'common' })}
             notDeliveredLabel={t('thread.notDelivered')}
+            viewAttachmentLabel={t('thread.viewAttachment')}
             locale={language}
             onRetry={
               m.sendStatus === 'failed' && m.clientId
@@ -271,10 +295,10 @@ export function EngagementThreadPanel({
       </ul>
 
       {conversation.status === 'open' ? (
-        <div className="border-t border-ink-10 p-4">
-          <div className="flex gap-2">
+        <div className="shrink-0 border-t border-ink-10 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
-              className="min-w-0 flex-1 rounded-xl border border-ink-10 px-3 py-2.5 text-[14px] outline-none focus:border-ink-30 focus:ring-2 focus:ring-ink/10"
+              className="min-w-0 flex-1 rounded-xl border border-ink-10 px-3 py-2.5 text-[16px] outline-none focus:border-ink-30 focus:ring-2 focus:ring-ink/10 sm:text-[14px]"
               value={draft}
               placeholder={t('thread.messagePlaceholder')}
               onChange={(e) => setDraft(e.target.value)}
@@ -285,13 +309,20 @@ export function EngagementThreadPanel({
                 }
               }}
             />
-            <Button type="button" variant="dark" size="md" disabled={!draft.trim()} onClick={handleSend}>
+            <Button
+              type="button"
+              variant="dark"
+              size="md"
+              className="w-full shrink-0 sm:w-auto"
+              disabled={!draft.trim()}
+              onClick={handleSend}
+            >
               {t('thread.send')}
             </Button>
           </div>
         </div>
       ) : (
-        <p className="border-t border-ink-10 px-5 py-4 text-[13px] text-ink-50">{t('thread.closedHint')}</p>
+        <p className="shrink-0 border-t border-ink-10 px-4 py-4 text-[13px] text-ink-50 sm:px-5">{t('thread.closedHint')}</p>
       )}
     </div>
   );

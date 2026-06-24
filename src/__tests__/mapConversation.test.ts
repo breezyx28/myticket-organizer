@@ -81,4 +81,17 @@ describe('mapConversation', () => {
     expect(msg.senderRole).toBe('organizer');
     expect(msg.body).toBe('Hello there');
   });
+
+  it('maps attachment_url on messages', () => {
+    const msg = mapApiConversationMessage({
+      id: 3,
+      conversation_id: 2,
+      sender_user_id: 7,
+      sender_role: 'vendor',
+      body: 'see attached',
+      attachment_url: 'https://api.example.com/storage/doc.jpg',
+      created_at: '2026-06-24T08:59:57+00:00',
+    });
+    expect(msg.attachmentUrl).toBe('https://api.example.com/storage/doc.jpg');
+  });
 });

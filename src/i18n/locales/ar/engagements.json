@@ -32,7 +32,8 @@
     "send": "إرسال",
     "closedHint": "هذه المحادثة مغلقة.",
     "loadFailed": "تعذّر تحميل المحادثة.",
-    "sendFailed": "تعذّر إرسال الرسالة."
+    "sendFailed": "تعذّر إرسال الرسالة.",
+    "viewAttachment": "فتح المرفق في تبويب جديد"
   },
   "startDialog": {
     "title": "بدء طلب توظيف",
