@@ -104,6 +104,10 @@
       "reload": "إعادة التحميل من الخادم",
       "dismiss": "تجاهل"
     },
+    "sections": {
+      "eventSchedule": "تاريخ ووقت الفعالية",
+      "ticketSales": "فترة بيع التذاكر"
+    },
     "fields": {
       "title": "العنوان",
       "category": "التصنيف",
@@ -112,6 +116,8 @@
       "city": "المدينة",
       "starts": "يبدأ",
       "ends": "ينتهي",
+      "salesStarts": "بداية البيع",
+      "salesEnds": "نهاية البيع",
       "description": "الوصف",
       "layoutType": "نوع التخطيط",
       "rows": "الصفوف",
@@ -122,6 +128,9 @@
       "purchaseLimit": "حد الشراء / مستخدم (اختياري)",
       "multiDayTicketing": "تذاكر متعددة الأيام",
       "maxCapacity": "السعة القصوى"
+    },
+    "hints": {
+      "ticketSales": "متى يمكن للمشترين شراء التذاكر. قد يبدأ البيع قبل موعد الفعالية. حدّد التاريخين معاً للوضوح."
     },
     "placeholders": {
       "selectCategory": "اختر التصنيف",
@@ -165,7 +174,9 @@
       "titleRequired": "العنوان مطلوب.",
       "startsRequired": "تاريخ ووقت البداية مطلوبان.",
       "endsRequired": "تاريخ ووقت النهاية مطلوبان.",
-      "endsAfterStarts": "يجب أن يكون وقت النهاية بعد وقت البداية."
+      "endsAfterStarts": "يجب أن يكون وقت النهاية بعد وقت البداية.",
+      "salesBothRequired": "يجب تحديد تاريخي بداية ونهاية البيع معاً.",
+      "salesEndsAfterStarts": "يجب أن يكون تاريخ نهاية البيع بعد تاريخ البداية."
     },
     "toasts": {
       "saveFailed": "تعذّر حفظ التغييرات.",

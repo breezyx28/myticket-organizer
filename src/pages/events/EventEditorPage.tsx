@@ -5,7 +5,7 @@ import { RecurrenceManager } from '@/components/events/RecurrenceManager';
 import { SeatLayoutBuilder } from '@/components/events/SeatLayoutBuilder';
 import { Button } from '@/components/ui/Button';
 import { ApiBaseUrl } from '@/config/api';
-import { fromLocalInput, toLocalInput } from '@/lib/datetimeLocal';
+import { dateInputToIsoDate, fromLocalInput, toDateInput, toLocalInput } from '@/lib/datetimeLocal';
 import { toast } from '@/lib/appToast';
 import { useEventStatusLabel } from '@/lib/eventStatusLabels';
 import { type EventEditorTabId, usePersistedEventEditorTab } from '@/hooks/usePersistedEventEditorTab';
@@ -76,6 +76,7 @@ export function EventEditorPage() {
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [galleryUploadError, setGalleryUploadError] = useState<string | null>(null);
   const [uploadedCoverPreview, setUploadedCoverPreview] = useState<string | null>(null);
+  const [salesFieldErrors, setSalesFieldErrors] = useState<{ salesStarts?: string; salesEnds?: string }>({});
 
   const mapCoordsSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -273,6 +274,45 @@ export function EventEditorPage() {
     { id: 'more', label: t('editor.tabs.more'), Icon: MoreHorizontal },
   ];
 
+  function mapSalesApiErrors(message: string) {
+    const m = message.toLowerCase();
+    const errors: { salesStarts?: string; salesEnds?: string } = {};
+    if (m.includes('ticket_sales_starts') || m.includes('window_start')) errors.salesStarts = message;
+    if (m.includes('ticket_sales_ends') || m.includes('window_end')) errors.salesEnds = message;
+    if (!errors.salesStarts && !errors.salesEnds) errors.salesEnds = message;
+    return errors;
+  }
+
+  function validateAndSaveTicketSales(startsDate: string, endsDate: string) {
+    const hasStart = Boolean(startsDate.trim());
+    const hasEnd = Boolean(endsDate.trim());
+    if (hasStart !== hasEnd) {
+      const msg = t('editor.validation.salesBothRequired');
+      setSalesFieldErrors({ salesStarts: msg, salesEnds: msg });
+      return;
+    }
+    if (!hasStart) {
+      setSalesFieldErrors({});
+      return;
+    }
+    const ticketSalesStartsAt = dateInputToIsoDate(startsDate);
+    const ticketSalesEndsAt = dateInputToIsoDate(endsDate);
+    if (new Date(ticketSalesEndsAt).getTime() <= new Date(ticketSalesStartsAt).getTime()) {
+      setSalesFieldErrors({ salesEnds: t('editor.validation.salesEndsAfterStarts') });
+      return;
+    }
+    setSalesFieldErrors({});
+    saveEventPatch(
+      { ticketSalesStartsAt, ticketSalesEndsAt },
+      {
+        onError: (err) => {
+          const msg = formatOrganizerApiError(err).trim();
+          setSalesFieldErrors(mapSalesApiErrors(msg));
+        },
+      }
+    );
+  }
+
   function partialChanges(prev: OrganizerEvent, patch: Partial<OrganizerEvent>) {
     const out: { field: string; old: string; new: string }[] = [];
     for (const k of Object.keys(patch) as (keyof OrganizerEvent)[]) {
@@ -308,7 +348,10 @@ export function EventEditorPage() {
     })();
   }
 
-  function saveEventPatch(patch: Partial<OrganizerEvent>, options?: { localSnapshot?: OrganizerEvent }) {
+  function saveEventPatch(
+    patch: Partial<OrganizerEvent>,
+    options?: { localSnapshot?: OrganizerEvent; onError?: (err: unknown) => void }
+  ) {
     if (!committed.current) return;
     const base = committed.current;
     const sold =
@@ -326,9 +369,9 @@ export function EventEditorPage() {
         return;
       }
     }
-    saveWithToast(patch, options, (err) => {
+    saveWithToast(patch, options, options?.onError ?? ((err) => {
       toastApiErr(err, t('editor.toasts.saveFailed'));
-    });
+    }));
   }
 
   function confirmImpactSave() {
@@ -613,36 +656,87 @@ export function EventEditorPage() {
               ))}
             </select>
           </Field>
-          <Field label={t('editor.fields.starts')}>
-            <input
-              type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
-              value={toLocalInput(event.startsAt)}
-              onChange={(e) => {
-                const iso = fromLocalInput(e.target.value);
-                if (iso) updateLocal((cur) => ({ ...cur, startsAt: iso }));
-              }}
-              onBlur={(e) => {
-                const iso = fromLocalInput(e.target.value);
-                if (iso) saveEventPatch({ startsAt: iso });
-              }}
-            />
-          </Field>
-          <Field label={t('editor.fields.ends')}>
-            <input
-              type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
-              value={toLocalInput(event.endsAt)}
-              onChange={(e) => {
-                const iso = fromLocalInput(e.target.value);
-                if (iso) updateLocal((cur) => ({ ...cur, endsAt: iso }));
-              }}
-              onBlur={(e) => {
-                const iso = fromLocalInput(e.target.value);
-                if (iso) saveEventPatch({ endsAt: iso });
-              }}
-            />
-          </Field>
+          <div className="md:col-span-2">
+            <h3 className="text-[14px] font-extrabold text-ink">{t('editor.sections.eventSchedule')}</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <Field label={t('editor.fields.starts')}>
+                <input
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
+                  value={toLocalInput(event.startsAt)}
+                  onChange={(e) => {
+                    const iso = fromLocalInput(e.target.value);
+                    if (iso) updateLocal((cur) => ({ ...cur, startsAt: iso }));
+                  }}
+                  onBlur={(e) => {
+                    const iso = fromLocalInput(e.target.value);
+                    if (iso) saveEventPatch({ startsAt: iso });
+                  }}
+                />
+              </Field>
+              <Field label={t('editor.fields.ends')}>
+                <input
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-xl border border-ink-10 px-3 py-2 font-mono text-[13px]"
+                  value={toLocalInput(event.endsAt)}
+                  onChange={(e) => {
+                    const iso = fromLocalInput(e.target.value);
+                    if (iso) updateLocal((cur) => ({ ...cur, endsAt: iso }));
+                  }}
+                  onBlur={(e) => {
+                    const iso = fromLocalInput(e.target.value);
+                    if (iso) saveEventPatch({ endsAt: iso });
+                  }}
+                />
+              </Field>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <h3 className="text-[14px] font-extrabold text-ink">{t('editor.sections.ticketSales')}</h3>
+            <p className="mt-1 text-[12px] text-ink-60">{t('editor.hints.ticketSales')}</p>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <Field label={t('editor.fields.salesStarts')}>
+                <input
+                  type="date"
+                  className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
+                    salesFieldErrors.salesStarts ? 'border-coral' : 'border-ink-10'
+                  }`}
+                  value={toDateInput(event.ticketSalesStartsAt)}
+                  onChange={(e) => {
+                    const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
+                    updateLocal((cur) => ({ ...cur, ticketSalesStartsAt: iso }));
+                    setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
+                  }}
+                  onBlur={(e) => {
+                    validateAndSaveTicketSales(e.target.value, toDateInput(event.ticketSalesEndsAt));
+                  }}
+                />
+                {salesFieldErrors.salesStarts ? (
+                  <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesStarts}</p>
+                ) : null}
+              </Field>
+              <Field label={t('editor.fields.salesEnds')}>
+                <input
+                  type="date"
+                  className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
+                    salesFieldErrors.salesEnds ? 'border-coral' : 'border-ink-10'
+                  }`}
+                  value={toDateInput(event.ticketSalesEndsAt)}
+                  onChange={(e) => {
+                    const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
+                    updateLocal((cur) => ({ ...cur, ticketSalesEndsAt: iso }));
+                    setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
+                  }}
+                  onBlur={(e) => {
+                    validateAndSaveTicketSales(toDateInput(event.ticketSalesStartsAt), e.target.value);
+                  }}
+                />
+                {salesFieldErrors.salesEnds ? (
+                  <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesEnds}</p>
+                ) : null}
+              </Field>
+            </div>
+          </div>
           <Field label={t('editor.fields.description')} className="md:col-span-2">
             <textarea
               rows={4}

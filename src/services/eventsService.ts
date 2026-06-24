@@ -449,6 +449,8 @@ export async function patchEvent(
       | 'cityId'
       | 'startsAt'
       | 'endsAt'
+      | 'ticketSalesStartsAt'
+      | 'ticketSalesEndsAt'
       | 'layoutType'
       | 'rows'
       | 'cols'

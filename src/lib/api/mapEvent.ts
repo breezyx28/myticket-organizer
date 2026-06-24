@@ -231,6 +231,10 @@ export function mapApiEventToOrganizerEvent(raw: unknown): OrganizerEvent {
     cityId: readApiNumericId(root, 'city_id', 'cityId').trim() || undefined,
     startsAt: readString(root, 'starts_at', 'startsAt', 'start_at') || new Date().toISOString(),
     endsAt: readString(root, 'ends_at', 'endsAt', 'end_at') || new Date().toISOString(),
+    ticketSalesStartsAt:
+      readString(root, 'ticket_sales_starts_at', 'ticketSalesStartsAt') || null,
+    ticketSalesEndsAt:
+      readString(root, 'ticket_sales_ends_at', 'ticketSalesEndsAt') || null,
     status: parseStatus(readString(root, 'status', 'state') || 'draft'),
     layoutType: parseLayout(readString(root, 'layout_type', 'layoutType') || 'free'),
     rows: readNum(root, 'rows_count', 'rows', 'row_count') ?? 0,
@@ -305,6 +309,10 @@ export function organizerEventPatchToApiBody(patch: Partial<OrganizerEvent>): Re
   }
   if (patch.startsAt !== undefined) body.starts_at = patch.startsAt;
   if (patch.endsAt !== undefined) body.ends_at = patch.endsAt;
+  if (patch.ticketSalesStartsAt !== undefined || patch.ticketSalesEndsAt !== undefined) {
+    body.ticket_sales_starts_at = patch.ticketSalesStartsAt ?? null;
+    body.ticket_sales_ends_at = patch.ticketSalesEndsAt ?? null;
+  }
   if (patch.layoutType !== undefined) body.layout_type = patch.layoutType;
   if (patch.layoutType === 'free') {
     body.rows_count = 0;
@@ -360,6 +368,8 @@ const EVENT_PATCH_DIFF_KEYS: (keyof OrganizerEvent)[] = [
   'cityId',
   'startsAt',
   'endsAt',
+  'ticketSalesStartsAt',
+  'ticketSalesEndsAt',
   'layoutType',
   'rows',
   'cols',

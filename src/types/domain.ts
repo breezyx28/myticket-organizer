@@ -219,6 +219,9 @@ export type OrganizerEvent = {
   cityId?: string;
   startsAt: string;
   endsAt: string;
+  /** When tickets can be sold (distinct from event live period). */
+  ticketSalesStartsAt?: string | null;
+  ticketSalesEndsAt?: string | null;
   status: EventStatus;
   layoutType: LayoutType;
   rows: number;

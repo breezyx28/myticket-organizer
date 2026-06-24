@@ -104,6 +104,10 @@
       "reload": "Reload from server",
       "dismiss": "Dismiss"
     },
+    "sections": {
+      "eventSchedule": "Event date & time",
+      "ticketSales": "Ticket sales period"
+    },
     "fields": {
       "title": "Title",
       "category": "Category",
@@ -112,6 +116,8 @@
       "city": "City",
       "starts": "Starts",
       "ends": "Ends",
+      "salesStarts": "Sales start",
+      "salesEnds": "Sales end",
       "description": "Description",
       "layoutType": "Layout type",
       "rows": "Rows",
@@ -122,6 +128,9 @@
       "purchaseLimit": "Purchase limit / user (optional)",
       "multiDayTicketing": "Multi-day ticketing",
       "maxCapacity": "Max capacity"
+    },
+    "hints": {
+      "ticketSales": "When buyers can purchase tickets. Sales may start before the event. Set both dates for clarity."
     },
     "placeholders": {
       "selectCategory": "Select category",
@@ -165,7 +174,9 @@
       "titleRequired": "Title is required.",
       "startsRequired": "Start date/time is required.",
       "endsRequired": "End date/time is required.",
-      "endsAfterStarts": "End time must be after start time."
+      "endsAfterStarts": "End time must be after start time.",
+      "salesBothRequired": "Sales start and end dates must both be set.",
+      "salesEndsAfterStarts": "Sales end date must be after sales start date."
     },
     "toasts": {
       "saveFailed": "Could not save changes.",

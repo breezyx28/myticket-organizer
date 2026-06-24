@@ -22,3 +22,20 @@ export function fromLocalInput(v: string): string {
   if (Number.isNaN(d.getTime())) return '';
   return d.toISOString();
 }
+
+/** `date` input value (`YYYY-MM-DD`) from an ISO string. */
+export function toDateInput(iso: string | null | undefined): string {
+  if (!iso || !isValidIso(iso)) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** ISO string at local start-of-day from a `date` input value. */
+export function dateInputToIsoDate(v: string): string {
+  const t = v.trim();
+  if (!t) return '';
+  const d = new Date(`${t}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString();
+}
