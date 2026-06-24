@@ -691,52 +691,6 @@ export function EventEditorPage() {
               </Field>
             </div>
           </div>
-          <div className="md:col-span-2">
-            <h3 className="text-[14px] font-extrabold text-ink">{t('editor.sections.ticketSales')}</h3>
-            <p className="mt-1 text-[12px] text-ink-60">{t('editor.hints.ticketSales')}</p>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <Field label={t('editor.fields.salesStarts')}>
-                <input
-                  type="date"
-                  className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
-                    salesFieldErrors.salesStarts ? 'border-coral' : 'border-ink-10'
-                  }`}
-                  value={toDateInput(event.ticketSalesStartsAt)}
-                  onChange={(e) => {
-                    const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
-                    updateLocal((cur) => ({ ...cur, ticketSalesStartsAt: iso }));
-                    setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
-                  }}
-                  onBlur={(e) => {
-                    validateAndSaveTicketSales(e.target.value, toDateInput(event.ticketSalesEndsAt));
-                  }}
-                />
-                {salesFieldErrors.salesStarts ? (
-                  <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesStarts}</p>
-                ) : null}
-              </Field>
-              <Field label={t('editor.fields.salesEnds')}>
-                <input
-                  type="date"
-                  className={`mt-1 w-full rounded-xl border px-3 py-2 font-mono text-[13px] ${
-                    salesFieldErrors.salesEnds ? 'border-coral' : 'border-ink-10'
-                  }`}
-                  value={toDateInput(event.ticketSalesEndsAt)}
-                  onChange={(e) => {
-                    const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
-                    updateLocal((cur) => ({ ...cur, ticketSalesEndsAt: iso }));
-                    setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
-                  }}
-                  onBlur={(e) => {
-                    validateAndSaveTicketSales(toDateInput(event.ticketSalesStartsAt), e.target.value);
-                  }}
-                />
-                {salesFieldErrors.salesEnds ? (
-                  <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesEnds}</p>
-                ) : null}
-              </Field>
-            </div>
-          </div>
           <Field label={t('editor.fields.description')} className="md:col-span-2">
             <textarea
               rows={4}
@@ -967,18 +921,8 @@ export function EventEditorPage() {
           <RecurrenceManager
             value={event.recurrence ?? null}
             onChange={(r) => {
-              const patch: Partial<OrganizerEvent> = { recurrence: r };
-              if (r?.windowStart?.trim() && r?.windowEnd?.trim()) {
-                patch.ticketSalesStartsAt = dateInputToIsoDate(r.windowStart.trim());
-                patch.ticketSalesEndsAt = dateInputToIsoDate(r.windowEnd.trim());
-              }
-              updateLocal((cur) => ({
-                ...cur,
-                recurrence: r,
-                ...(patch.ticketSalesStartsAt ? { ticketSalesStartsAt: patch.ticketSalesStartsAt } : {}),
-                ...(patch.ticketSalesEndsAt ? { ticketSalesEndsAt: patch.ticketSalesEndsAt } : {}),
-              }));
-              saveEventPatch(patch);
+              updateLocal((cur) => ({ ...cur, recurrence: r }));
+              saveEventPatch({ recurrence: r });
             }}
           />
         </div>
@@ -1049,6 +993,52 @@ export function EventEditorPage() {
       {activeTab === 'tickets' ? (
       <section className="rounded-3xl border border-ink-10 bg-ink-5/40 p-6 shadow-card-sm">
         <h2 className="text-lg font-extrabold text-ink">{t('editor.tabs.tickets')}</h2>
+        <div className="mt-4 rounded-2xl border border-ink-10 bg-white p-4">
+          <h3 className="text-[14px] font-extrabold text-ink">{t('editor.sections.ticketSales')}</h3>
+          <p className="mt-1 text-[12px] text-ink-60">{t('editor.hints.ticketSales')}</p>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <Field label={t('editor.fields.salesStarts')}>
+              <input
+                type="date"
+                className={`mt-1 w-full rounded-xl border bg-white px-3 py-2 font-mono text-[13px] ${
+                  salesFieldErrors.salesStarts ? 'border-coral' : 'border-ink-10'
+                }`}
+                value={toDateInput(event.ticketSalesStartsAt)}
+                onChange={(e) => {
+                  const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
+                  updateLocal((cur) => ({ ...cur, ticketSalesStartsAt: iso }));
+                  setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
+                }}
+                onBlur={(e) => {
+                  validateAndSaveTicketSales(e.target.value, toDateInput(event.ticketSalesEndsAt));
+                }}
+              />
+              {salesFieldErrors.salesStarts ? (
+                <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesStarts}</p>
+              ) : null}
+            </Field>
+            <Field label={t('editor.fields.salesEnds')}>
+              <input
+                type="date"
+                className={`mt-1 w-full rounded-xl border bg-white px-3 py-2 font-mono text-[13px] ${
+                  salesFieldErrors.salesEnds ? 'border-coral' : 'border-ink-10'
+                }`}
+                value={toDateInput(event.ticketSalesEndsAt)}
+                onChange={(e) => {
+                  const iso = e.target.value ? dateInputToIsoDate(e.target.value) : null;
+                  updateLocal((cur) => ({ ...cur, ticketSalesEndsAt: iso }));
+                  setSalesFieldErrors((cur) => ({ ...cur, salesStarts: undefined, salesEnds: undefined }));
+                }}
+                onBlur={(e) => {
+                  validateAndSaveTicketSales(toDateInput(event.ticketSalesStartsAt), e.target.value);
+                }}
+              />
+              {salesFieldErrors.salesEnds ? (
+                <p className="mt-1 text-[12px] text-coral">{salesFieldErrors.salesEnds}</p>
+              ) : null}
+            </Field>
+          </div>
+        </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field label={t('editor.fields.entryMode')}>
             <select
