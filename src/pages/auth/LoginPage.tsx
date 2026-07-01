@@ -186,13 +186,6 @@ export function LoginPage() {
             <Link to="/forgot-password" className="text-coral hover:underline">
               {t('forgotPassword')}
             </Link>
-            {mainSite ? (
-              <a href={mainSite} className="text-ink-60 hover:text-coral hover:underline" rel="noreferrer">
-                {t('common:mainWebsite')}
-              </a>
-            ) : (
-              <span className="text-[12px] font-medium text-ink-40">{t('mainSiteHint')}</span>
-            )}
           </div>
         </div>
       </div>
